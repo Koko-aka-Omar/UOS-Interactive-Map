@@ -41,12 +41,14 @@ export const LOCATIONS=[
     routes: [
       {
         to: 11,
-        angle: 0,
+        angle: 6.15,
+        arrowAngle: 6.15,
         back: true
       },
       {
         to: 24,
-        angle: 3.14
+        angle: 3.14,
+        arrowAngle: 3.14
       }
     ]
   },
@@ -59,188 +61,263 @@ export const LOCATIONS=[
     routes: [
       {
         to: 23,
-        angle: 5.72,
+        angle: 5.64,
+        arrowAngle: 5.64,
         back: true
       },
       {
         to: 25,
-        angle: 3.14
+        angle: 3.14,
+        arrowAngle: 3.14
       }
     ]
   },
   {
     id: "library-study-020",
     area: "Library",
-    name: "Study Area",
+    name: "Study Area 1",
+    centerArrival: true,
     back: 24,
     view: 3.14,
     routes: [
       {
         to: 24,
         angle: 0,
+        arrowAngle: 0,
         back: true
       },
       {
         to: 26,
-        angle: 3.14
+        arrivalAngle: 3.0,
+        departureAngle: 3.14,
+        angle: 3.14,
+        arrowAngle: 3.14
       },
       {
         to: 32,
-        angle: -1.57
+        angle: -1.57,
+        arrowAngle: -1.57
       }
     ]
   },
   {
     id: "library-study-021",
     area: "Library",
-    name: "Study Area 021",
+    name: "Study Area 2",
+    centerArrival: true,
     back: 25,
-    view: 3.14,
+    view: 3.0,
     routes: [
       {
         to: 25,
+        arrivalAngle: 0,
+        departureAngle: 6.17,
         angle: 0,
-        back: true
+        arrowAngle: 6.17,
+        back: true,
+        hotspotAngle: 6.17,
+        hotspotDistance: 1.02
       },
       {
         to: 27,
-        angle: 3.14
+        arrivalAngle: 3.01,
+        departureAngle: 3.0,
+        angle: 3.14,
+        arrowAngle: 3.0,
+        hotspotAngle: 3.0,
+        hotspotDistance: 1.05
       }
     ]
   },
   {
     id: "library-study-022",
     area: "Library",
-    name: "Study Area 022",
+    name: "Study Area 3",
+    centerArrival: true,
     back: 26,
-    view: 3.14,
+    view: 3.01,
     routes: [
       {
         to: 26,
+        arrivalAngle: 6.17,
+        departureAngle: 6.17,
         angle: 0,
-        back: true
+        arrowAngle: 0,
+        back: true,
+        hotspotAngle: 6.17
       },
       {
         to: 28,
-        angle: 3.14
+        arrivalAngle: 3.35,
+        departureAngle: 3.01,
+        angle: 3.14,
+        arrowAngle: 3.01,
+        hotspotAngle: 3.01,
+        hotspotDistance: 1.02
       }
     ]
   },
   {
     id: "library-study-023",
     area: "Library",
-    name: "Study Area 023",
+    name: "Study Area 4",
+    centerArrival: true,
     back: 27,
-    view: 3.14,
+    view: 3.35,
     routes: [
       {
         to: 27,
+        arrivalAngle: 6.17,
+        departureAngle: 0.28,
         angle: 0,
-        back: true
+        arrowAngle: 0.28,
+        back: true,
+        hotspotAngle: 0.28
       },
       {
         to: 29,
-        angle: 3.14
+        arrivalAngle: 3.8,
+        departureAngle: 3.35,
+        angle: 3.14,
+        arrowAngle: 3.35,
+        hotspotAngle: 3.35,
+        hotspotDistance: 1.02
       }
     ]
   },
   {
     id: "library-study-024",
     area: "Library",
-    name: "Study Area 024",
+    name: "Study Area 5",
+    centerArrival: true,
     back: 28,
-    view: 3.14,
+    view: 3.8,
     routes: [
       {
         to: 28,
+        arrivalAngle: 0.28,
+        departureAngle: 0.62,
         angle: 0,
-        back: true
+        arrowAngle: 0.6,
+        back: true,
+        hotspotAngle: 0.62
       },
       {
         to: 30,
-        angle: 3.14
+        arrivalAngle: 2.62,
+        departureAngle: 3.8,
+        angle: 3.14,
+        arrowAngle: 3.8,
+        hotspotAngle: 3.8,
+        hotspotDistance: 1.08
       }
     ]
   },
   {
     id: "library-study-025",
     area: "Library",
-    name: "Study Area 025",
+    name: "Study Area 6",
+    centerArrival: true,
     back: 29,
-    view: 3.14,
+    view: 2.62,
     routes: [
       {
         to: 29,
+        arrivalAngle: 0.62,
+        departureAngle: 5.85,
         angle: 0,
-        back: true
+        arrowAngle: 5.85,
+        back: true,
+        hotspotAngle: 5.85,
+        hotspotDistance: 1.2
       },
       {
         to: 31,
-        angle: 3.14
+        arrivalAngle: 2.85,
+        departureAngle: 2.62,
+        angle: 3.14,
+        arrowAngle: 2.62,
+        hotspotAngle: 2.62,
+        hotspotDistance: 1.02
       }
     ]
   },
   {
     id: "library-study-026",
     area: "Library",
-    name: "Study Area 026",
+    name: "Study Area 7",
+    centerArrival: true,
     back: 30,
-    view: 3.14,
+    view: 2.85,
     routes: [
       {
         to: 30,
+        arrivalAngle: 5.85,
+        departureAngle: 6.05,
         angle: 0,
-        back: true
+        arrowAngle: 6.05,
+        back: true,
+        hotspotAngle: 6.05,
+        hotspotDistance: 1.2
       }
     ]
   },
   {
     id: "library-study-027",
     area: "Library",
-    name: "Study Area 027",
+    name: "Study Area 8",
+    centerArrival: true,
     back: 25,
-    view: 3.14,
+    view: 4.08,
     routes: [
       {
         to: 25,
         angle: 2.15,
-        back: true
+        arrowAngle: 1.92,
+        back: true,
+        hotspotAngle: 1.92
       },
       {
         to: 33,
-        angle: 4.08
+        angle: 4.08,
+        arrowAngle: 4.08
       }
     ]
   },
   {
     id: "library-study-028",
     area: "Library",
-    name: "Study Area 028",
+    name: "Study Area 9",
     back: 32,
-    view: 3.14,
+    view: 4.43,
     routes: [
       {
         to: 32,
         angle: 2.26,
+        arrowAngle: 2.26,
         back: true
       },
       {
         to: 34,
-        angle: 4.15
+        angle: 4.15,
+        arrowAngle: 4.43,
+        hotspotAngle: 4.55
       }
     ]
   },
   {
     id: "library-study-029",
     area: "Library",
-    name: "Study Area 029",
+    name: "Study Area 10",
     back: 33,
-    view: 3.14,
+    view: 2.15,
     routes: [
       {
         to: 33,
         angle: 1.95,
-        back: true
+        arrowAngle: 2.15,
+        back: true,
+        hotspotAngle: 2.22
       }
     ]
   }
@@ -249,50 +326,50 @@ export const LOCATIONS=[
 export const LOCATION_AR=[
   [
     "المكتبة",
-    "المدخل · 018"
+    "المدخل"
   ],
   [
     "المكتبة",
-    "البهو · 019"
+    "البهو"
   ],
   [
     "المكتبة",
-    "منطقة الدراسة · 020"
+    "منطقة الدراسة 1"
   ],
   [
     "المكتبة",
-    "منطقة الدراسة · 021"
+    "منطقة الدراسة 2"
   ],
   [
     "المكتبة",
-    "منطقة الدراسة · 022"
+    "منطقة الدراسة 3"
   ],
   [
     "المكتبة",
-    "منطقة الدراسة · 023"
+    "منطقة الدراسة 4"
   ],
   [
     "المكتبة",
-    "منطقة الدراسة · 024"
+    "منطقة الدراسة 5"
   ],
   [
     "المكتبة",
-    "منطقة الدراسة · 025"
+    "منطقة الدراسة 6"
   ],
   [
     "المكتبة",
-    "منطقة الدراسة · 026"
+    "منطقة الدراسة 7"
   ],
   [
     "المكتبة",
-    "منطقة الدراسة · 027"
+    "منطقة الدراسة 8"
   ],
   [
     "المكتبة",
-    "منطقة الدراسة · 028"
+    "منطقة الدراسة 9"
   ],
   [
     "المكتبة",
-    "منطقة الدراسة · 029"
+    "منطقة الدراسة 10"
   ]
 ];

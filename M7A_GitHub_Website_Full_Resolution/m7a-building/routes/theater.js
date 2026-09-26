@@ -91,8 +91,14 @@ export const LOCATIONS=[
     area: "Theater",
     name: "Exterior View",
     back: null,
-    view: 2.86,
-    routes: []
+    view: 3.14,
+    routes: [
+      {
+        to: 12,
+        angle: 3.14,
+        arrowAngle: 3.14
+      }
+    ]
   },
   {
     id: "theater-entrance-b",
@@ -103,11 +109,13 @@ export const LOCATIONS=[
     routes: [
       {
         to: 12,
-        angle: 3.14
+        angle: 3.14,
+        arrowAngle: 3.14
       },
       {
         to: 23,
-        angle: 0
+        angle: 0.18,
+        arrowAngle: 0.18
       }
     ]
   },
@@ -115,21 +123,33 @@ export const LOCATIONS=[
     id: "theater-hall",
     area: "Theater",
     name: "Main Lobby",
-    back: 11,
+    back: 10,
     view: 2.32,
     routes: [
       {
-        to: 11,
-        angle: 6.1,
+        to: 10,
+        angle: 4.68,
+        arrowAngle: 4.68,
         back: true
       },
       {
+        to: 11,
+        angle: 6.1,
+        arrowAngle: 6.28,
+        hotspotAngle: 6.28,
+        hotspotDistance: 1.25
+      },
+      {
         to: 13,
-        angle: 1.55
+        angle: 1.55,
+        arrowAngle: 1.95,
+        hotspotAngle: 1.8
       },
       {
         to: 22,
-        angle: 3.45
+        angle: 3.13,
+        arrowAngle: 2.9,
+        hotspotAngle: 3.05
       }
     ]
   },
@@ -142,12 +162,16 @@ export const LOCATIONS=[
     routes: [
       {
         to: 12,
-        angle: 4.2,
-        back: true
+        angle: 4.62,
+        arrowAngle: 4.62,
+        back: true,
+        hotspotAngle: 5.05
       },
       {
         to: 14,
-        angle: 2.98
+        arrivalPitch: -0.25,
+        angle: 2.98,
+        arrowAngle: 2.98
       }
     ]
   },
@@ -157,15 +181,19 @@ export const LOCATIONS=[
     name: "Main Stairs · Top",
     back: 13,
     view: 3.14,
+    viewPitch: -0.25,
     routes: [
       {
         to: 13,
         angle: 0,
+        arrowAngle: 0,
         back: true
       },
       {
         to: 15,
-        angle: 3.14,
+        angle: 3.29,
+        arrowAngle: 3.14,
+        hotspotAngle: 3.14,
         kind: "stairs",
         stairDirection: "down"
       }
@@ -176,24 +204,30 @@ export const LOCATIONS=[
     area: "Auditorium",
     name: "Main Stairs · Middle",
     back: 14,
-    view: 3.14,
+    view: 3.05,
+    viewPitch: -0.22,
     routes: [
       {
         to: 14,
         angle: 0,
+        arrowAngle: 0,
         back: true,
         kind: "stairs",
         stairDirection: "up"
       },
       {
         to: 16,
-        angle: 3.14,
+        angle: 3.3,
+        arrivalAngle: 3.3,
+        arrowAngle: 3.05,
+        hotspotAngle: 3.05,
         kind: "stairs",
         stairDirection: "down"
       },
       {
         to: 20,
-        angle: 4.71
+        angle: 4.71,
+        arrowAngle: 4.71
       }
     ]
   },
@@ -206,16 +240,16 @@ export const LOCATIONS=[
     routes: [
       {
         to: 15,
-        angle: 4.71,
+        angle: 6,
+        arrowAngle: 6,
         back: true,
         kind: "stairs",
         stairDirection: "up"
       },
       {
         to: 17,
-        angle: 4.05,
-        kind: "stairs",
-        stairDirection: "down"
+        angle: 4.1,
+        arrowAngle: 4.45
       }
     ]
   },
@@ -224,20 +258,19 @@ export const LOCATIONS=[
     area: "Auditorium",
     name: "Lower Center",
     back: 16,
-    view: 3.14,
+    view: 1.65,
     routes: [
       {
         to: 16,
         angle: 4.71,
-        back: true,
-        kind: "stairs",
-        stairDirection: "up"
+        arrowAngle: 4.71,
+        back: true
       },
       {
         to: 18,
-        angle: 1.57,
-        kind: "stairs",
-        stairDirection: "up"
+        angle: 1.65,
+        arrowAngle: 1.65,
+        hotspotDistance: 0.78
       }
     ]
   },
@@ -246,18 +279,21 @@ export const LOCATIONS=[
     area: "Auditorium",
     name: "Library Stairs · Bottom",
     back: 17,
-    view: 1.95,
+    view: 1.1,
     routes: [
       {
         to: 17,
-        angle: 2.23,
-        back: true,
-        kind: "stairs",
-        stairDirection: "down"
+        angle: 2.92,
+        arrowAngle: 2.92,
+        hotspotAngle: 3.15,
+        hotspotDistance: 1.35,
+        back: true
       },
       {
         to: 19,
-        angle: 1.57,
+        angle: 1.1,
+        arrowAngle: 1.1,
+        hotspotAngle: 0.98,
         kind: "stairs",
         stairDirection: "up"
       }
@@ -269,23 +305,27 @@ export const LOCATIONS=[
     name: "Library Stairs · Middle",
     back: 18,
     view: 3.14,
+    viewPitch: -0.22,
     routes: [
       {
         to: 18,
-        angle: 3.74,
+        angle: 3.25,
+        arrowAngle: 3.25,
         back: true,
         kind: "stairs",
         stairDirection: "down"
       },
       {
         to: 21,
-        angle: 0,
+        angle: 0.12,
+        arrowAngle: 0.12,
         kind: "stairs",
         stairDirection: "up"
       },
       {
         to: 20,
-        angle: 1.57
+        angle: 1.57,
+        arrowAngle: 1.57
       }
     ]
   },
@@ -294,16 +334,20 @@ export const LOCATIONS=[
     area: "Auditorium",
     name: "Cross Aisle",
     back: 15,
-    view: 3.14,
+    view: 1.8,
     routes: [
       {
         to: 15,
         angle: 1.57,
+        arrowAngle: 1.8,
+        hotspotAngle: 1.8,
         back: true
       },
       {
         to: 19,
-        angle: 4.71
+        angle: 4.71,
+        arrowAngle: 4.71,
+        hotspotAngle: 4.9
       }
     ]
   },
@@ -312,18 +356,21 @@ export const LOCATIONS=[
     area: "Auditorium",
     name: "Library Stairs · Top",
     back: 19,
-    view: 3.14,
+    view: 3.35,
+    viewPitch: -0.25,
     routes: [
       {
         to: 19,
-        angle: 3.14,
+        angle: 3.35,
+        arrowAngle: 3.35,
         back: true,
         kind: "stairs",
         stairDirection: "down"
       },
       {
         to: 22,
-        angle: 0
+        angle: 0.2,
+        arrowAngle: 0.2
       }
     ]
   },
@@ -336,12 +383,15 @@ export const LOCATIONS=[
     routes: [
       {
         to: 21,
+        arrivalPitch: -0.25,
         angle: 3.14,
+        arrowAngle: 3.32,
         back: true
       },
       {
         to: 12,
-        angle: 4.2
+        angle: 1.2,
+        arrowAngle: 1.2
       }
     ]
   }
@@ -404,9 +454,14 @@ export const LOCATION_AR=[
 
 // Exceptional visual distance/scale overrides. Keys use stable scene IDs.
 export const HOTSPOT_STYLE={
+  "theater-auditorium-rear->theater-auditorium-center":[0.65,.38],
+  "theater-auditorium-center->theater-stage-011":[0.65,.38],
+  "theater-stage-014->theater-stage-013":[0.9,.42],
+  "theater-stage-016->theater-stage-014":[0.9,.42],
   "theater-hall->theater-entrance-b":[2.05,.78],
   "theater-hall->theater-foyer":[1.85,.76],
   "theater-hall->theater-hall-017":[1.85,.76],
-  "theater-stage-011->theater-stage-012":[1.80,.80],
+  "theater-stage-011->theater-stage-012":[1.00,.64],
+  "theater-stage-011->theater-auditorium-center":[0.9,.42],
   "theater-stage-013->theater-stage-012":[1.80,.80]
 };

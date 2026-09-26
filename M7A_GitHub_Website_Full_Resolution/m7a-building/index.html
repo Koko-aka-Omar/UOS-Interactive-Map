@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>M7A Building — Virtual Tour | University of Sharjah</title>
+<title>Campus 360° Tours | University of Sharjah</title>
 <meta name="description" content="Interactive 360° virtual tour of University of Sharjah Building M7A." />
 <meta name="theme-color" content="#007d80" />
 <meta property="og:title" content="M7A Building — Virtual Tour" />
@@ -50,7 +50,8 @@
     <div class="campus-map-heading" data-i18n="tourMap">Campus map</div>
     <div class="campus-map-card">
       <span class="eyebrow" data-i18n="university">University of Sharjah</span>
-      <div class="directory-heading"><strong id="directory-title">Choose a hall</strong><button id="directory-collapse" type="button" aria-controls="directory-body" aria-expanded="true" aria-label="Collapse details">−</button></div>
+      <div class="directory-heading"><strong id="directory-title">Explore campus</strong><button id="directory-collapse" type="button" aria-controls="directory-body" aria-expanded="true" aria-label="Collapse details">−</button></div>
+      <p id="directory-intro">Choose a building to start a 360° tour.</p>
       <div id="directory-body">
         <button id="directory-browse" type="button" hidden>All halls</button>
         <input id="hall-search" type="search" placeholder="Search halls or rooms" aria-label="Search halls or rooms" autocomplete="off">
@@ -139,7 +140,8 @@
     <div class="location-chip" aria-live="polite"><span class="location-dot" aria-hidden="true"></span><span id="route-label">Main Hall · Entrance</span></div>
   </nav>
 </div>
-<div id="loading"><div class="loading-card"><span class="eyebrow" data-i18n="university">University of Sharjah</span><div class="loader-title" data-i18n="buildingLoader">Building M7A</div><div class="spinner"></div><div class="progress-track" role="progressbar" aria-label="Loading M7A" data-i18n-aria="loadingM7A" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="load-progress-bar"></span></div><p id="load-progress-text">Loading M7A · 0%</p></div></div>
+<footer class="site-footer" dir="ltr"><span>Last edited on: <time datetime="2026-09-27">27 September 2026</time></span><span>Made by Omar Yasser for UOS under Doctor Afra Alteniji’s instructions.</span></footer>
+<div id="loading"><div class="loading-card"><span class="eyebrow" data-i18n="university">University of Sharjah</span><div class="loader-title">Preparing your 360° view</div><div class="spinner"></div><div class="progress-track" role="progressbar" aria-label="Loading 360° view" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="load-progress-bar"></span></div><p id="load-progress-text">Loading 360° view · 0%</p></div></div>
 <script src="./tour-boot.js"></script>
 <script type="module" src="./tour.js"></script>
 </body>

@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { HALLS } from './halls.js';
+import { addCampusArtworkLabels } from './campus-map-labels.js';
 import { createDirectory, searchHalls, localized } from './campus-directory.js';
 import { findPath } from './directions.js';
 import { PANORAMA_FILES, VISUAL_CALIBRATION, LOCATIONS, LOCATION_AR, getHotspotStyle } from './tour-routes.js';
@@ -179,6 +180,7 @@ const CAMPUS_MAP_CORNERS=[
 const requestedScene=new URLSearchParams(location.search).get('scene');
 const requestedSceneIndex=LOCATIONS.findIndex(loc=>loc.id===requestedScene);
 const INITIAL_SCENE=requestedSceneIndex>=0?requestedSceneIndex:0;
+let loadingScene=INITIAL_SCENE;
 
 const FLOOR_Y=0.03;
 // Guidance uses local storage only; restricted/private storage must never block a tour.
@@ -223,7 +225,7 @@ function updateTourSearch(){
     const target=room?room.tour:hall.tour,actions=document.createElement('div');actions.className='tour-search-actions';
     if(target){
       if(target.scene){const button=document.createElement('button');button.type='button';button.textContent=ar?'أرشدني إلى القاعة':'Show me the way';button.disabled=!ready||transitioning;button.onclick=()=>startRoomDirections(target.scene);actions.append(button);}
-      const enter=document.createElement('button');enter.type='button';enter.textContent=ar?'فتح العرض بزاوية 360°':'Open 360° view';enter.disabled=Boolean(target.scene)&&(!ready||transitioning);enter.onclick=()=>openDirectoryTour(target);actions.append(enter);
+      const enter=document.createElement('button');enter.type='button';enter.textContent=ar?'فتح العرض بزاوية 360°':'Open 360° view';enter.disabled=Boolean(target.scene)&&transitioning;enter.onclick=()=>openDirectoryTour(target);actions.append(enter);
     }else{detail.textContent+=' · '+(ar?'الجولة متاحة قريبًا':'Tour coming soon');}
     row.append(actions);root.append(row);
   }
@@ -273,7 +275,7 @@ function openDirectoryTour(target){
   if(target.scene){const index=LOCATIONS.findIndex(item=>item.id===target.scene);if(index>=0)openPanoramaFromCampus(index);}
   else if(target.url){const url=new URL(target.url,location.href);if(['https:','http:'].includes(url.protocol))location.assign(url.href);}
 }
-const directory=createDirectory({halls:CAMPUS_BUILDINGS,root:mapPanel,language:()=>currentLanguage,isReady:()=>ready,startDirections:startRoomDirections,openTour:openDirectoryTour});
+const directory=createDirectory({halls:CAMPUS_BUILDINGS,root:mapPanel,language:()=>currentLanguage,isReady:()=>!transitioning,startDirections:startRoomDirections,openTour:openDirectoryTour});
 function initCampusMap(){
   if(campusMap||!window.maplibregl)return;
   const building=CAMPUS_BUILDINGS[0];
@@ -309,15 +311,18 @@ function initCampusMap(){
   campusMap.keyboard.disableRotation();
   campusMap.addControl(new maplibregl.AttributionControl({compact:true,customAttribution:'University of Sharjah · Campus Map 2026'}),'bottom-right');
   campusMap.addControl(new maplibregl.NavigationControl({showCompass:false,showZoom:true,visualizePitch:false}),'top-right');
+  campusMap.fitBounds([CAMPUS_MAP_CORNERS[2],CAMPUS_MAP_CORNERS[0]], {padding:{top:100,bottom:220,left:35,right:70},duration:0});
+  addCampusArtworkLabels(campusMap,CAMPUS_MAP_CORNERS,CAMPUS_BUILDINGS);
   directory.attach(campusMap);
   updateCampusMap();
 }
 function updateCampusMap(){
-  document.getElementById('campus-current-location').textContent='M7 · '+locationLabel();
+  document.getElementById('campus-current-location').textContent=object?locationLabel():t('tourMap');
   directory.update();
   document.getElementById('campus-map').setAttribute('aria-label',t('campusMapAria'));
 }
 function closePanels(){
+  if(!object)return;
   for(const [panel,button] of [[mapPanel,mapToggle],[infoPanel,infoToggle],[searchPanel,searchToggle]]){
     panel.classList.remove('open');panel.setAttribute('aria-hidden','true');button.setAttribute('aria-pressed','false');
     panel.inert=true;
@@ -371,10 +376,26 @@ async function navigateFromMap(target){
   closePanels();mapToggle.focus({preventScroll:true});
   return transitionTo(target,null,true);
 }
-function openPanoramaFromCampus(target){
-  if(!ready||transitioning||!Number.isInteger(target)||!LOCATIONS[target])return;
-  if(target===current){closePanels();mapToggle.focus({preventScroll:true});return;}
-  navigateFromMap(target);
+async function openPanoramaFromCampus(target){
+  if(transitioning||!Number.isInteger(target)||!LOCATIONS[target])return;
+  if(object&&target===current){closePanels();mapToggle.focus({preventScroll:true});return;}
+  transitioning=true;loadingScene=target;app.setAttribute('aria-busy','true');
+  loading.style.display='grid';loading.classList.remove('done');setInitialProgress(0);directory.update();
+  try{
+    await new Promise(resolve=>requestAnimationFrame(resolve));
+    const prepared=takeRecentScene(target) ?? await (preloadCache.get(target) ?? Promise.resolve(null));
+    preloadCache.delete(target);
+    await loadCheckpoint(target,prepared,p=>setInitialProgress(p));
+    renderer.render(scene,camera);closePanels();mapToggle.focus({preventScroll:true});
+    scheduleLikelyPreload();
+  }catch(error){
+    loading.classList.add('done');loading.style.display='none';
+    const message=document.querySelector('#hall-detail .hall-status');
+    if(message){message.textContent=t('loadLocationError');message.setAttribute('role','alert');}
+    console.error(error);
+  }finally{
+    transitioning=false;app.setAttribute('aria-busy','false');updateControls();
+  }
 }
 document.querySelectorAll('.map-node[data-location]').forEach(node=>{
   const target=Number(node.dataset.location);
@@ -469,14 +490,14 @@ function placeOne(root,route){
   root.visible=!!route;
   root.userData.route=route??null;
   if(!route)return;
-  const angle=route.angle,[dist]=getHotspotStyle(current,route);
-  root.position.set(Math.sin(angle)*dist,FLOOR_Y,-Math.cos(angle)*dist);
-  // The original M7A scenes (0-9) were hand-calibrated around the arrow mesh's
-  // existing orientation. The later Theater/Library panoramas use route bearings
-  // directly, so their arrow glyph needs a half-turn while keeping hotspot
-  // placement and travel bearings unchanged.
+  const angle=route.angle,[defaultDist]=getHotspotStyle(current,route);
+  const dist=route.hotspotDistance??defaultDist;
+  const hotspotAngle=route.hotspotAngle??angle;
+  root.position.set(Math.sin(hotspotAngle)*dist,FLOOR_Y,-Math.cos(hotspotAngle)*dist);
+  // Explicit scene calibration separates arrow heading from placement and travel.
+  // Preserve the legacy orientation for routes without an override.
   const arrowFlip=current>=10?Math.PI:0;
-  root.rotation.y=-angle+arrowFlip;
+  root.rotation.y=route.arrowAngle===undefined?-angle+arrowFlip:-route.arrowAngle;
 }
 
 function placeHotspots(){
@@ -543,7 +564,9 @@ function updateRouteLabel(){
   let selected=null,best=Infinity,position=null;
   for(const root of hotspotRoots){
     if(!root.visible||!root.userData.route)continue;
-    const delta=Math.abs(wrapAngle(root.userData.route.angle-bearing));
+    const route=root.userData.route;
+    const labelAngle=current>=25?(route.hotspotAngle??route.angle):route.angle;
+    const delta=Math.abs(wrapAngle(labelAngle-bearing));
     const hovered=!coarsePointer&&root===hoverHotspot;
     if(!hovered&&delta>0.45)continue;
     labelPoint.copy(root.position).project(camera);
@@ -595,6 +618,7 @@ function localizedLocation(i=current){
 function locationLabel(i=current){const loc=localizedLocation(i);return loc.area+' · '+loc.name;}
 function backTarget(){return LOCATIONS[current]?.back ?? null;}
 function floorLabel(i=current){
+  if(i>=10)return localizedLocation(i).area;
   return LOCATIONS[i]?.area==='Top Floor'?t('topFloorBadge'):t('groundFloorBadge');
 }
 function sceneLink(i=current){
@@ -609,7 +633,9 @@ function updateControls(){
   updateDirections();
   previous.disabled=!ready || transitioning || backTarget()==null;
   document.getElementById('route-label').textContent=locationLabel();
+  document.title=object?(current<10?t('pageTitle'):localizedLocation(current<23?10:23).area+' — 360° Tour | University of Sharjah'):'Campus 360° Tours | University of Sharjah';
   floorBadge.textContent=floorLabel();
+  document.querySelector('.brand-row [data-i18n="building"]').textContent=current<10?t('building'):localizedLocation(current<23?10:23).area;
   updateMap();
   updateGuidance();
   updateSceneShare();
@@ -651,7 +677,7 @@ shareScene.onclick=async()=>{
 };
 function resetView(){
   const bearing=LOCATIONS[current]?.view ?? LOCATIONS[current]?.routes?.[0]?.angle ?? 0;
-  yaw=-bearing;pitch=0;camera.fov=72;camera.updateProjectionMatrix();camera.rotation.set(pitch,yaw,0);
+  yaw=-bearing;pitch=LOCATIONS[current]?.viewPitch ?? 0;camera.fov=72;camera.updateProjectionMatrix();camera.rotation.set(pitch,yaw,0);
   if(motionEnabled)motionNeedsCalibrate=true;
 }
 function dispose(root){
@@ -724,14 +750,17 @@ let lastInitialProgress=0;
 function setInitialProgress(value){
   lastInitialProgress=value;
   const progressTrack=loadProgressBar.parentElement;
+  const name=loadingScene<10?t('building'):localizedLocation(loadingScene<23?10:23).area;
+  loading.querySelector('.loader-title').textContent=name;
+  progressTrack.setAttribute('aria-label',(currentLanguage==='ar'?'جارٍ تحميل ':'Loading ')+name);
   if(value==null){
     progressTrack.removeAttribute('aria-valuenow');
-    loadProgressText.textContent=t('loading');return;
+    loadProgressText.textContent=loadingScene<10?t('loading'):t('loadingNext');return;
   }
   const pct=Math.round(THREE.MathUtils.clamp(value,0,1)*100);
   loadProgressBar.style.width=pct+'%';
   progressTrack.setAttribute('aria-valuenow',String(pct));
-  loadProgressText.textContent=pct===100?t('preparing'):t('loadingPct',pct);
+  loadProgressText.textContent=loadingScene<10?(pct===100?t('preparing'):t('loadingPct',pct)):(pct===100?t('preparingNext'):t('loadingNextPct',pct));
 }
 async function loadCheckpoint(i, prepared=null, onProgress=null){
   let replacement;
@@ -745,10 +774,10 @@ async function loadCheckpoint(i, prepared=null, onProgress=null){
     scene.remove(object);
     cacheRecentScene(oldIndex,object);
   }
-  object=replacement;current=i;scene.add(object);
+  object=replacement;current=i;scene.add(object);document.body.classList.remove('campus-only');
   camera.position.set(0,CAMERA_HEIGHT,0);resetView();
   cp.textContent=locationLabel(i);
-  hoverHotspot=null;placeHotspots();ready=true;loading.classList.add('done');setTimeout(()=>{loading.style.display='none';},460);updateControls();
+  hoverHotspot=null;placeHotspots();ready=true;loading.classList.add('done');setTimeout(()=>{if(loading.classList.contains('done'))loading.style.display='none';},460);updateControls();
 }
 
 const travelFrame=document.getElementById('travel-frame');
@@ -762,10 +791,11 @@ async function transitionTo(i,selectedRoute=null,fromMap=false){
   const from=current,oldYaw=yaw,oldPitch=pitch,oldFov=camera.fov;
   const bearing=route.angle;
   const oldViewBearing=-oldYaw;
-  const relativeView=wrapAngle(oldViewBearing-bearing);
+  const relativeView=wrapAngle(oldViewBearing-(route.departureAngle ?? bearing));
   const returnRoute=routeFromTo(i,from);
-  const arrivalForward=returnRoute ? returnRoute.angle+Math.PI : (LOCATIONS[i]?.view ?? 0);
-  const arrivalYaw=fromMap?-(LOCATIONS[i]?.view??0):-(arrivalForward+relativeView);
+  const arrivalForward=route.arrivalAngle ?? (returnRoute ? returnRoute.angle+Math.PI : (LOCATIONS[i]?.view ?? 0));
+  const centerArrival=LOCATIONS[i]?.centerArrival === true;
+  const arrivalYaw=fromMap?-(LOCATIONS[i]?.view??0):centerArrival?-(route.arrivalAngle ?? LOCATIONS[i].view):-(arrivalForward+relativeView);
   const facingTravel=Math.cos(oldYaw+bearing);
   transitioning=true;el.title='';dragging=false;gesture=null;touches.clear();pinchDistance=null;hoverHotspot=null;routeTip.classList.remove('show');routeTip.setAttribute('aria-hidden','true');updateControls();
   document.body.classList.add('moving');app.setAttribute('aria-busy','true');el.style.cursor='progress';
@@ -824,7 +854,7 @@ async function transitionTo(i,selectedRoute=null,fromMap=false){
     }
     clearTimeout(slowLoad);status.textContent='';
     await loadCheckpoint(i,prepared);
-    yaw=arrivalYaw;pitch=fromMap?0:oldPitch;camera.fov=oldFov;camera.updateProjectionMatrix();camera.rotation.set(pitch,yaw,0);
+    yaw=arrivalYaw;pitch=(fromMap || centerArrival)?(LOCATIONS[i]?.viewPitch ?? 0):(route.arrivalPitch ?? oldPitch);camera.fov=oldFov;camera.updateProjectionMatrix();camera.rotation.set(pitch,yaw,0);
     if(coarsePointer){updateHotspotVisuals(performance.now());renderer.render(scene,camera);}
     await tween(reducedMotion?100:(coarsePointer?180:220),(e,t)=>{
       if(!reducedMotion&&!fromMap){
@@ -971,14 +1001,14 @@ animate();
 setCanvasFx(1,0,1);
 el.style.cursor='grab';
 setInitialProgress(0);
-// Make the map the homepage immediately; panorama loading continues behind it.
-if(requestedSceneIndex<0)togglePanel(mapPanel,mapToggle);
+// The campus homepage loads no panorama until a building is chosen.
+if(requestedSceneIndex<0){document.body.classList.add('campus-only');loading.classList.add('done');loading.style.display='none';togglePanel(mapPanel,mapToggle);}
 const tourWorker='serviceWorker' in navigator
   ? navigator.serviceWorker.register('./service-worker.js')
       .then(()=>navigator.serviceWorker.ready)
       .catch(err=>{console.warn('Offline cache unavailable',err);return null;})
   : Promise.resolve(null);
-loadCheckpoint(INITIAL_SCENE,null,p=>setInitialProgress(p)).then(()=>{
+if(requestedSceneIndex>=0)loadCheckpoint(INITIAL_SCENE,null,p=>setInitialProgress(p)).then(()=>{
   setInitialProgress(1);scheduleLikelyPreload();
   // Backfill the first panorama from HTTP cache if it loaded before worker activation.
   tourWorker.then(registration=>registration?.active?.postMessage({

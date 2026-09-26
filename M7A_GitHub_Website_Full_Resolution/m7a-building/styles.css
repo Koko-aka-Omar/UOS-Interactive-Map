@@ -237,3 +237,21 @@
 #campus-map .maplibregl-ctrl-group{border:1px solid #dce8e2;border-radius:15px;background:#fffffff5;box-shadow:0 6px 22px #133c351c}#campus-map .maplibregl-ctrl-group button{width:44px;height:44px}#campus-map .maplibregl-ctrl-group button+button{border-top-color:#e4ece7}
 #directory-body{scroll-padding-block:8px}
 @media(max-width:600px){.campus-map-heading{top:max(14px,env(safe-area-inset-top));left:12px;font-size:12px;padding:12px 14px}.campus-map-actions{right:12px;top:max(10px,env(safe-area-inset-top));padding:4px}.campus-map-card{left:12px;width:calc(100vw - 24px);padding:16px;border-radius:20px}.directory-heading strong{font-size:18px}#campus-map .maplibregl-ctrl-top-right{right:12px;top:78px}.campus-map-card .eyebrow{font-size:8px}.campus-popup-button{min-height:44px}}
+
+.campus-artwork-label{display:grid;place-items:center;pointer-events:none;color:#fff;font-family:Arial,sans-serif;font-weight:700;line-height:1;z-index:0}
+.campus-artwork-label span{white-space:pre;text-align:center;transform:none}
+.campus-marker,.campus-cluster{z-index:1}
+.campus-marker.has-tour .campus-pin-shape{box-shadow:0 0 0 7px #23ffe033,0 0 22px 8px #00cdbb99,0 6px 14px #003d4566}
+.campus-tour-badge{position:absolute;top:-9px;left:50%;transform:translateX(-50%);padding:3px 7px;border-radius:9px;background:#eafff7;color:#005c59;box-shadow:0 0 12px #23ffe0;font:800 10px/1.2 Inter,system-ui,sans-serif;white-space:nowrap}
+
+.site-footer{position:fixed;inset:auto 0 0;z-index:80;display:flex;flex-wrap:wrap;justify-content:center;gap:3px 14px;padding:8px 14px max(8px,env(safe-area-inset-bottom));background:#f7faf6f2;border-top:1px solid #dce8e2;color:#49665f;font:10px/1.45 Inter,system-ui,sans-serif;text-align:center;pointer-events:none}
+.bottom{bottom:max(48px,calc(env(safe-area-inset-bottom) + 44px))}
+.campus-map-card{bottom:max(58px,calc(env(safe-area-inset-bottom) + 50px))}
+#campus-map .maplibregl-ctrl-bottom-right{bottom:40px}
+#directory-intro{margin:0 0 8px;color:#607b72;font-size:12px;line-height:1.5}
+.hall-result{padding:15px;border-left:3px solid #32ae99;background:linear-gradient(110deg,#edf7f1,#fff)}
+.campus-marker.has-tour .campus-pin-shape{box-shadow:0 0 0 5px #23ffe029,0 0 17px 5px #00cdbb70,0 6px 14px #003d453d}
+.campus-only .campus-map-close{display:none}
+@media(max-width:600px){.site-footer{font-size:9px;gap:2px;padding:6px 12px max(6px,env(safe-area-inset-bottom))}.site-footer span{width:100%}.bottom{bottom:max(62px,calc(env(safe-area-inset-bottom) + 58px))}.campus-map-card{bottom:max(72px,calc(env(safe-area-inset-bottom) + 64px))}#directory-body{max-height:48vh}}
+
+.campus-only .topbar,.campus-only .bottom{visibility:hidden}

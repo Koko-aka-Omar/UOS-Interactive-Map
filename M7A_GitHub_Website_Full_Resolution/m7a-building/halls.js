@@ -12,7 +12,16 @@ export const HALLS = [
     rooms: []
   },
   {
-    id: 'm7', code: 'M7',
+    id: 'e3', code: 'E3',
+    name: { en: 'Library', ar: 'المكتبة' },
+    // E3 library position on the campus artwork; not a GPS coordinate.
+    mapCoordinates: [55.46958970693754, 25.279927082215018],
+    thumbnail: './panoramas-mobile/library-entrance-018.jpg',
+    tour: { scene: 'library-entrance-018' },
+    rooms: []
+  },
+  {
+    id: 'm7', code: 'M7A',
     name: { en: 'College of Science', ar: 'كلية العلوم' },
     coordinates: [55.47720532173917, 25.2857153181386],
     // M7 is College of Sciences; the 2026 campus artwork labels this building A11.
