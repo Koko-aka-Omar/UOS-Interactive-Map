@@ -2,9 +2,13 @@ export function localized(value, language) {
   return typeof value === 'string' ? value : value?.[language] || value?.en || '';
 }
 
+// The official campus artwork is rotated for landscape display. Keep routing/GPS
+// coordinates separate from the coordinates used to place pins on that artwork.
+const mapCoordinate = hall => hall.mapCoordinates || hall.coordinates;
+
 // Connected groups in screen pixels prevent touching pins at any zoom level.
 export function groupNearby(halls, project, radius = 64) {
-  const points = halls.map(hall => ({ hall, point: project(hall.coordinates) }));
+  const points = halls.map(hall => ({ hall, point: project(mapCoordinate(hall)) }));
   const unseen = new Set(points);
   const groups = [];
   for (const start of points) {
@@ -64,7 +68,7 @@ export function createDirectory({ halls, root, language, isReady, openTour, star
     render();
     const card = root.querySelector('.campus-map-card');
     const offset = card && map?.getContainer().clientWidth <= 600 ? [0, -Math.min(card.offsetHeight / 2, 170)] : [0, 0];
-    map?.easeTo({ center: hall.coordinates, offset, duration: 400 });
+    map?.easeTo({ center: mapCoordinate(hall), offset, duration: 400 });
   }
   function renderList() {
     results.replaceChildren();
@@ -171,11 +175,11 @@ export function createDirectory({ halls, root, language, isReady, openTour, star
         if (members.length === 1) { select(members[0]); collapse.focus({ preventScroll: true }); return; }
         selected = null; room = null; group = members; collapsed = false; search.value = ''; render();
         // Keep a selectable list even if halls share exactly the same coordinates.
-        const bounds = new maplibregl.LngLatBounds(); members.forEach(hall => bounds.extend(hall.coordinates));
+        const bounds = new maplibregl.LngLatBounds(); members.forEach(hall => bounds.extend(mapCoordinate(hall)));
         map.fitBounds(bounds, { padding: 100, maxZoom: Math.min(map.getZoom() + 2, 20), duration: 450 });
         collapse.focus({ preventScroll: true });
       };
-      const coordinate = members.reduce((sum, hall) => [sum[0] + hall.coordinates[0] / members.length, sum[1] + hall.coordinates[1] / members.length], [0, 0]);
+      const coordinate = members.reduce((sum, hall) => { const point=mapCoordinate(hall); return [sum[0] + point[0] / members.length, sum[1] + point[1] / members.length]; }, [0, 0]);
       const marker = new maplibregl.Marker({ element: button, anchor: members.length > 1 ? 'center' : 'bottom' }).setLngLat(coordinate).addTo(map);
       marker.directoryMembers = members; markers.push(marker);
     }

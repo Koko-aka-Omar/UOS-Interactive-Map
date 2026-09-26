@@ -131,7 +131,7 @@
   .campus-map-close{font-size:24px;line-height:1}.campus-map-language{font-size:11px}.campus-map-close:hover,.campus-map-language:hover{background:#eef8f7;color:#006c70}
   .campus-map-location{display:none}
   .campus-marker{width:52px;height:56px;padding:0;border:0;background:transparent;cursor:pointer;overflow:visible;display:flex;justify-content:center;align-items:flex-start}
-  .campus-pin-shape{box-sizing:border-box;width:40px;height:40px;margin-top:4px;display:grid;place-items:center;border:3px solid #effffd;border-radius:50% 50% 50% 12%;background:linear-gradient(145deg,#18aaa5,#006e74);box-shadow:0 8px 18px rgba(0,50,55,.32);color:#fff;font:800 11px/1 Inter,system-ui,sans-serif;transform:rotate(-45deg);transition:filter .16s ease}
+  .campus-pin-shape{box-sizing:border-box;width:40px;height:40px;margin-top:8px;display:grid;place-items:center;border:3px solid #effffd;border-radius:50% 50% 50% 12%;background:linear-gradient(145deg,#18aaa5,#006e74);box-shadow:0 8px 18px rgba(0,50,55,.32);color:#fff;font:800 11px/1 Inter,system-ui,sans-serif;transform:rotate(-45deg);transition:filter .16s ease}
   .campus-pin-shape span{transform:rotate(45deg)}
   .campus-marker:hover .campus-pin-shape{filter:brightness(1.12)}
   .campus-marker:focus-visible{outline:3px solid #087f82;outline-offset:5px;border-radius:24px}
