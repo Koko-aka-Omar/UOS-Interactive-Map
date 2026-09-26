@@ -68,7 +68,7 @@ export function createDirectory({ halls, root, language, isReady, openTour, star
     render();
     const card = root.querySelector('.campus-map-card');
     const offset = card && map?.getContainer().clientWidth <= 600 ? [0, -Math.min(card.offsetHeight / 2, 170)] : [0, 0];
-    map?.easeTo({ center: mapCoordinate(hall), offset, duration: 400 });
+    map?.easeTo({ center: mapCoordinate(hall), zoom: Math.max(map.getZoom(), 17), offset, duration: 400 });
   }
   function renderList() {
     results.replaceChildren();
@@ -170,6 +170,10 @@ export function createDirectory({ halls, root, language, isReady, openTour, star
       } else {
         const shape = node('span', 'campus-pin-shape'); shape.append(node('span', '', members[0].code)); button.append(shape);
         button.setAttribute('aria-label', label(members[0])); button.title = label(members[0]);
+      }
+      if (members.some(hall => hall.tour)) {
+        button.classList.add('has-tour');
+        button.append(node('span', 'campus-tour-badge', '360°'));
       }
       button.onclick = () => {
         if (members.length === 1) { select(members[0]); collapse.focus({ preventScroll: true }); return; }

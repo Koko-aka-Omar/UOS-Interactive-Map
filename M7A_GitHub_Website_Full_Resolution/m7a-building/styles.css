@@ -237,3 +237,9 @@
 #campus-map .maplibregl-ctrl-group{border:1px solid #dce8e2;border-radius:15px;background:#fffffff5;box-shadow:0 6px 22px #133c351c}#campus-map .maplibregl-ctrl-group button{width:44px;height:44px}#campus-map .maplibregl-ctrl-group button+button{border-top-color:#e4ece7}
 #directory-body{scroll-padding-block:8px}
 @media(max-width:600px){.campus-map-heading{top:max(14px,env(safe-area-inset-top));left:12px;font-size:12px;padding:12px 14px}.campus-map-actions{right:12px;top:max(10px,env(safe-area-inset-top));padding:4px}.campus-map-card{left:12px;width:calc(100vw - 24px);padding:16px;border-radius:20px}.directory-heading strong{font-size:18px}#campus-map .maplibregl-ctrl-top-right{right:12px;top:78px}.campus-map-card .eyebrow{font-size:8px}.campus-popup-button{min-height:44px}}
+
+.campus-artwork-label{display:grid;place-items:center;pointer-events:none;color:#fff;font-family:Arial,sans-serif;font-weight:700;line-height:1;z-index:0}
+.campus-artwork-label span{white-space:pre;text-align:center;transform:none}
+.campus-marker,.campus-cluster{z-index:1}
+.campus-marker.has-tour .campus-pin-shape{box-shadow:0 0 0 7px #23ffe033,0 0 22px 8px #00cdbb99,0 6px 14px #003d4566}
+.campus-tour-badge{position:absolute;top:-9px;left:50%;transform:translateX(-50%);padding:3px 7px;border-radius:9px;background:#eafff7;color:#005c59;box-shadow:0 0 12px #23ffe0;font:800 10px/1.2 Inter,system-ui,sans-serif;white-space:nowrap}

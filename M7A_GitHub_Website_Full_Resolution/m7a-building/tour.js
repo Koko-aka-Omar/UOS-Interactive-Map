@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { HALLS } from './halls.js';
+import { addCampusArtworkLabels } from './campus-map-labels.js';
 import { createDirectory, searchHalls, localized } from './campus-directory.js';
 import { findPath } from './directions.js';
 import { PANORAMA_FILES, VISUAL_CALIBRATION, LOCATIONS, LOCATION_AR, getHotspotStyle } from './tour-routes.js';
@@ -309,6 +310,8 @@ function initCampusMap(){
   campusMap.keyboard.disableRotation();
   campusMap.addControl(new maplibregl.AttributionControl({compact:true,customAttribution:'University of Sharjah · Campus Map 2026'}),'bottom-right');
   campusMap.addControl(new maplibregl.NavigationControl({showCompass:false,showZoom:true,visualizePitch:false}),'top-right');
+  campusMap.fitBounds([CAMPUS_MAP_CORNERS[2],CAMPUS_MAP_CORNERS[0]], {padding:{top:100,bottom:220,left:35,right:70},duration:0});
+  addCampusArtworkLabels(campusMap,CAMPUS_MAP_CORNERS,CAMPUS_BUILDINGS);
   directory.attach(campusMap);
   updateCampusMap();
 }
