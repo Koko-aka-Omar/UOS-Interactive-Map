@@ -45,10 +45,11 @@ export function searchHalls(halls, query, language) {
 
 export function createDirectory({ halls, root, language, isReady, openTour, startDirections }) {
   const copy = {
-    en: { choose: 'Choose a hall', search: 'Search halls or rooms', empty: 'No matching halls or rooms', browse: 'All halls', available: '360° tour available', soon: 'Tour coming soon', enter: 'Enter 360° tour', loading: 'Preparing 360° view…', rooms: 'Rooms', entrance: 'Hall entrance', collapse: 'Collapse details', expand: 'Expand details', group: 'Nearby halls', select: 'Select a hall', count: n => `${n} halls`, back: 'All halls' },
+    en: { choose: 'Explore campus', search: 'Search halls or rooms', empty: 'No matching halls or rooms', browse: 'All buildings', available: '360° tour available', soon: 'Tour coming soon', enter: 'Enter 360° tour', loading: 'Preparing 360° view…', rooms: 'Rooms', entrance: 'Hall entrance', collapse: 'Collapse details', expand: 'Expand details', group: 'Nearby halls', select: 'Select a hall', count: n => `${n} halls`, back: 'All buildings' },
     ar: { choose: 'اختر مبنى', search: 'ابحث عن مبنى أو قاعة', empty: 'لا توجد مبانٍ أو قاعات مطابقة', browse: 'جميع المباني', available: 'تتوفر جولة بزاوية 360°', soon: 'الجولة متاحة قريبًا', enter: 'دخول الجولة بزاوية 360°', loading: 'جارٍ تجهيز العرض بزاوية 360°…', rooms: 'القاعات', entrance: 'مدخل المبنى', collapse: 'طي التفاصيل', expand: 'عرض التفاصيل', group: 'مبانٍ متقاربة', select: 'اختر مبنى', count: n => `${n} مبانٍ`, back: 'جميع المباني' }
   };
   const title = root.querySelector('#directory-title');
+  const intro = root.querySelector('#directory-intro');
   const body = root.querySelector('#directory-body');
   const search = root.querySelector('#hall-search');
   const results = root.querySelector('#hall-results');
@@ -154,6 +155,8 @@ export function createDirectory({ halls, root, language, isReady, openTour, star
   }
   function render() {
     title.textContent = selected ? label(selected) : group ? text('group') : text('choose');
+    intro.hidden = Boolean(selected || group || collapsed);
+    intro.textContent = language() === 'ar' ? 'اختر مبنى لبدء جولة بزاوية 360°.' : 'Choose a building to start a 360° tour.';
     search.placeholder = text('search'); search.setAttribute('aria-label', text('search'));
     collapse.textContent = collapsed ? '+' : '−'; collapse.setAttribute('aria-label', text(collapsed ? 'expand' : 'collapse'));
     collapse.setAttribute('aria-expanded', String(!collapsed)); body.hidden = collapsed;

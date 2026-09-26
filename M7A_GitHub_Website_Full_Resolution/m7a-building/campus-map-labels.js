@@ -34,7 +34,7 @@ export function addCampusArtworkLabels(map, corners, halls) {
   };
   map.on('zoom', resize); map.on('resize', resize); resize();
   // Only buildings with an actual tour receive a highlight.
-  const footprints = {e2: [[540,3280],[611,3280],[620,3298],[603,3336],[551,3336],[540,3320]],
+  const footprints = {e3: [[537,3362],[581,3362],[581,3376],[594,3376],[594,3402],[581,3402],[581,3411],[537,3411]], e2: [[540,3280],[611,3280],[620,3298],[603,3336],[551,3336],[540,3320]],
     m7: [[473,987],[515,987],[515,1026],[473,1026]]};
   const features = halls.filter(hall => hall.tour && footprints[hall.id]).map(hall => {
     const ring = footprints[hall.id].map(([x,y]) => point(x,y)); ring.push(ring[0]);
