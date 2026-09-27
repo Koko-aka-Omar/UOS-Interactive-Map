@@ -1,4 +1,4 @@
-name: Deploy M7A Tour to GitHub Pages
+name: Deploy UOS Virtual Tour to GitHub Pages
 
 on:
   push:
@@ -23,11 +23,15 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Validate tour integrity
+        run: node tests/validate-tour.cjs
+      - name: Build browser QA page
+        run: node tests/build-navigation-qa.cjs
       - name: Configure Pages
         uses: actions/configure-pages@v5
         with:
           enablement: true
-      - name: Upload M7A site
+      - name: Upload UOS tour
         uses: actions/upload-pages-artifact@v3
         with:
           path: M7A_GitHub_Website_Full_Resolution/m7a-building
