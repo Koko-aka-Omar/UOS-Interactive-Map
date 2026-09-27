@@ -543,9 +543,9 @@ function autoGrade(texture){
   if(!measured)return {exposure:1,contrast:1.08,saturate:1.13};
   // Stronger—but still bounded—midtone matching after reviewing every checkpoint.
   // Saturation is adaptive: neutral interiors get more punch, naturally red/blue scenes get less.
-  const exposure=THREE.MathUtils.clamp(Math.pow(.50/Math.max(.18,measured.midtone),.60),.89,1.14);
-  const contrast=THREE.MathUtils.clamp(1.075+(.44-measured.spread)*.08,1.06,1.10);
-  const saturate=THREE.MathUtils.clamp(1.13+(.13-measured.chroma)*.22,1.085,1.155);
+  const exposure=THREE.MathUtils.clamp(Math.pow(.505/Math.max(.18,measured.midtone),.66),.90,1.13);
+  const contrast=THREE.MathUtils.clamp(1.078+(.44-measured.spread)*.065,1.065,1.095);
+  const saturate=THREE.MathUtils.clamp(1.125+(.13-measured.chroma)*.18,1.095,1.145);
   return {exposure,contrast,saturate};
 }
 function prep(root,i){
@@ -1021,7 +1021,7 @@ async function transitionTo(i,selectedRoute=null,fromMap=false){
         }else if(transitionKind==='back'){
           transform='scale('+(1-0.035*e)+')';
         }else if(transitionKind==='stairs'){
-          transform='translateY('+(stairSign*14*e)+'px) scale('+(1+0.052*e)+')';
+          transform='translateY('+(stairSign*17*e)+'px) scale('+(1+0.058*e)+')';
         }else{
           transform='scale('+(1+0.025*e)+')';
         }
