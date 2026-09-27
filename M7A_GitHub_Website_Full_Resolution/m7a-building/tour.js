@@ -208,7 +208,14 @@ const mapPanel=document.getElementById('map-panel');
 const infoPanel=document.getElementById('info-panel');
 const mapToggle=document.getElementById('map-toggle');
 const infoToggle=document.getElementById('info-toggle');
+const moreToggle=document.getElementById('more-toggle');
 const searchPanel=document.getElementById('tour-search-panel'),searchToggle=document.getElementById('search-toggle'),tourSearch=document.getElementById('tour-search-input');
+function setMobileToolsOpen(open){
+  document.body.classList.toggle('mobile-tools-open',Boolean(open));
+  moreToggle?.setAttribute('aria-expanded',String(Boolean(open)));
+  requestAnimationFrame(()=>positionTourPanels());
+}
+if(moreToggle)moreToggle.onclick=()=>setMobileToolsOpen(!document.body.classList.contains('mobile-tools-open'));
 function updateTourSearch(){
   const ar=currentLanguage==='ar',label=ar?'ابحث عن مبنى أو قاعة':'Search halls or rooms';
   searchToggle.title=label;searchToggle.setAttribute('aria-label',label);searchPanel.setAttribute('aria-label',label);
@@ -232,7 +239,7 @@ function updateTourSearch(){
   document.getElementById('tour-search-status').textContent=results.length?(ar?'النتائج: ':'Results: ')+results.length:(ar?'لا توجد مبانٍ أو قاعات مطابقة':'No matching halls or rooms');
 }
 tourSearch.addEventListener('input',updateTourSearch);
-searchToggle.onclick=()=>{togglePanel(searchPanel,searchToggle);if(searchPanel.classList.contains('open')){updateTourSearch();requestAnimationFrame(()=>tourSearch.focus());}};
+searchToggle.onclick=()=>{setMobileToolsOpen(false);togglePanel(searchPanel,searchToggle);if(searchPanel.classList.contains('open')){updateTourSearch();requestAnimationFrame(()=>tourSearch.focus());}};
 document.getElementById('tour-search-close').onclick=()=>{closePanels();searchToggle.focus();};
 // Keep overlays below the actual toolbar, including wrapped and translated layouts.
 function positionTourPanels(){
@@ -339,8 +346,8 @@ function togglePanel(panel,button){
   }
   updateRouteLabel();
 }
-mapToggle.onclick=()=>togglePanel(mapPanel,mapToggle);
-infoToggle.onclick=()=>togglePanel(infoPanel,infoToggle);
+mapToggle.onclick=()=>{setMobileToolsOpen(false);togglePanel(mapPanel,mapToggle);};
+infoToggle.onclick=()=>{setMobileToolsOpen(false);togglePanel(infoPanel,infoToggle);};
 document.querySelectorAll('[data-close-panel]').forEach(btn=>btn.addEventListener('click',()=>{const opener=btn.closest('aside')===mapPanel?mapToggle:infoToggle;closePanels();opener.focus();updateRouteLabel();}));
 mapPanel.inert=true;infoPanel.inert=true;searchPanel.inert=true;
 function setMapFloor(floor){
@@ -890,6 +897,7 @@ el.addEventListener('pointerdown',e=>{
   checkHotspotHover(e.clientX,e.clientY);
   if(hoverHotspot?.userData?.route)queueRoutePreload(hoverHotspot.userData.route.to);
   gesture={id:e.pointerId,x:e.clientX,y:e.clientY,yaw,pitch,hit:hoverHotspot,moved:false};dragging=true;
+  if(coarsePointer)document.body.classList.add('mobile-looking');
 });
 el.addEventListener('pointermove',e=>{
   if(transitioning)return;
@@ -904,12 +912,13 @@ el.addEventListener('pointermove',e=>{
 });
 function release(e,cancelled=false){
   const g=gesture;touches.delete(e.pointerId);pinchDistance=null;dragging=false;
+  if(coarsePointer)document.body.classList.remove('mobile-looking');
   if(g?.id===e.pointerId){checkHotspotHover(e.clientX,e.clientY);gesture=null;if(g.moved&&motionEnabled)motionNeedsCalibrate=true;if(!cancelled && !g.moved && Math.hypot(e.clientX-g.x,e.clientY-g.y)<8 && g.hit && hoverHotspot===g.hit && g.hit.userData.route)transitionTo(g.hit.userData.route.to,g.hit.userData.route);}
   if(el.hasPointerCapture(e.pointerId))el.releasePointerCapture(e.pointerId);
 }
 el.addEventListener('pointerup',e=>release(e));
 el.addEventListener('pointercancel',e=>release(e,true));
-el.addEventListener('lostpointercapture',()=>{gesture=null;dragging=false;});
+el.addEventListener('lostpointercapture',()=>{gesture=null;dragging=false;document.body.classList.remove('mobile-looking');});
 el.addEventListener('pointerleave',()=>{hoverHotspot=null;updateRouteLabel();el.title='';el.style.cursor='grab';});
 
 // Optional phone-motion view. It is calibrated to the current camera direction,
@@ -946,6 +955,7 @@ addEventListener('deviceorientation',e=>{
 if(screen.orientation?.addEventListener)screen.orientation.addEventListener('change',()=>{if(motionEnabled)motionNeedsCalibrate=true;});
 else addEventListener('orientationchange',()=>{if(motionEnabled)motionNeedsCalibrate=true;});
 motion.onclick=async()=>{
+  setMobileToolsOpen(false);
   const status=document.getElementById('status');
   if(motionEnabled){
     motionEnabled=false;motion.setAttribute('aria-pressed','false');motion.setAttribute('aria-label',t('motionEnable'));
@@ -966,18 +976,19 @@ motion.onclick=async()=>{
 function zoom(delta){if(!ready || transitioning)return;camera.fov=THREE.MathUtils.clamp(camera.fov+delta,35,95);camera.updateProjectionMatrix();}
 el.addEventListener('wheel',e=>{e.preventDefault();zoom(e.deltaY*0.03);},{passive:false});
 previous.onclick=()=>{const back=backTarget();if(back!=null)transitionTo(back);};
-document.getElementById('reset').onclick=()=>{if(ready&&!transitioning)resetView();};
+document.getElementById('reset').onclick=()=>{setMobileToolsOpen(false);if(ready&&!transitioning)resetView();};
 const fullscreen=document.getElementById('fullscreen');
 fullscreen.hidden=!document.fullscreenEnabled;
-fullscreen.onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch{document.getElementById('status').textContent=t('fullscreenUnavailable');}};
+fullscreen.onclick=async()=>{setMobileToolsOpen(false);try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch{document.getElementById('status').textContent=t('fullscreenUnavailable');}};
 document.addEventListener('fullscreenchange',()=>fullscreen.setAttribute('aria-label',t(document.fullscreenElement?'exitFullScreen':'fullScreen')));
-addEventListener('keydown',e=>{if(e.key==='Escape'&&(mapPanel.classList.contains('open')||infoPanel.classList.contains('open')||searchPanel.classList.contains('open'))){e.preventDefault();const opener=mapPanel.classList.contains('open')?mapToggle:searchPanel.classList.contains('open')?searchToggle:infoToggle;closePanels();opener.focus();return;}if(e.target.closest('button,input,textarea,select,[role="button"]')||e.altKey||e.ctrlKey||e.metaKey)return;if(e.key==='Backspace'||e.key==='Escape'){const back=backTarget();if(back!=null){e.preventDefault();routeTip.classList.remove('show');routeTip.setAttribute('aria-hidden','true');transitionTo(back);}}
+addEventListener('keydown',e=>{if(e.key==='Escape'&&document.body.classList.contains('mobile-tools-open')){e.preventDefault();setMobileToolsOpen(false);moreToggle?.focus();return;}if(e.key==='Escape'&&(mapPanel.classList.contains('open')||infoPanel.classList.contains('open')||searchPanel.classList.contains('open'))){e.preventDefault();const opener=mapPanel.classList.contains('open')?mapToggle:searchPanel.classList.contains('open')?searchToggle:infoToggle;closePanels();opener.focus();return;}if(e.target.closest('button,input,textarea,select,[role="button"]')||e.altKey||e.ctrlKey||e.metaKey)return;if(e.key==='Backspace'||e.key==='Escape'){const back=backTarget();if(back!=null){e.preventDefault();routeTip.classList.remove('show');routeTip.setAttribute('aria-hidden','true');transitionTo(back);}}
   if(e.key==='Home' && ready && !transitioning){e.preventDefault();resetView();}
   if(e.key==='+' || e.key==='='){e.preventDefault();zoom(-8);}
   if(e.key==='-'){e.preventDefault();zoom(8);}
 });
 applyLanguage(false);measureLabelBounds();
 addEventListener('resize', ()=>{
+  if(innerWidth>640)setMobileToolsOpen(false);
   renderQuality(current>=10);
   camera.aspect=innerWidth/innerHeight;
   camera.updateProjectionMatrix();
