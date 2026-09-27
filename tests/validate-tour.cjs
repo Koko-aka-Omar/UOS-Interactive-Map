@@ -19,7 +19,7 @@ function loadExports(file,names){
   return sandbox.module.exports;
 }
 
-const routeFiles=['m7a.js','theater.js','library.js'];
+const routeFiles=['m7a.js','theater.js','library.js','mens-hall.js'];
 const routeParts=routeFiles.map(file=>loadExports(
   path.join(root,'routes',file),
   ['PANORAMAS','VISUAL_CALIBRATION','LOCATIONS','LOCATION_AR']
@@ -32,7 +32,7 @@ const i18n=loadExports(path.join(root,'tour-i18n.js'),['I18N']).I18N;
 
 check(PANORAMAS.length===LOCATIONS.length,'panorama/location counts match ('+PANORAMAS.length+')');
 check(LOCATIONS.length===LOCATION_AR.length,'English/Arabic location counts match ('+LOCATIONS.length+')');
-check(LOCATIONS.length===47,'expected 47 tour checkpoints');
+check(LOCATIONS.length===57,'expected 57 tour checkpoints');
 
 const ids=new Set();
 for(let i=0;i<LOCATIONS.length;i++){
@@ -62,8 +62,12 @@ for(const part of routeParts){
 }
 
 for(const panorama of PANORAMAS){
-  check(fs.existsSync(path.join(root,'assets',panorama)),'desktop panorama exists: '+panorama);
-  check(fs.existsSync(path.join(root,'assets-mobile',panorama)),'mobile panorama exists: '+panorama);
+  if(/\.(?:png|jpe?g|webp)$/i.test(panorama)){
+    check(fs.existsSync(path.join(root,'panoramas',panorama)),'image panorama exists: '+panorama);
+  }else{
+    check(fs.existsSync(path.join(root,'assets',panorama)),'desktop panorama exists: '+panorama);
+    check(fs.existsSync(path.join(root,'assets-mobile',panorama)),'mobile panorama exists: '+panorama);
+  }
 }
 
 const hallIds=new Set();

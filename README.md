@@ -2,11 +2,12 @@
 
 An interactive **360° campus tour system for the University of Sharjah (UOS)**, built with Three.js and deployed through GitHub Pages.
 
-The project currently connects three tour areas:
+The project currently contains four standalone tour areas:
 
 - **M7A / College of Science**
 - **Al Razi Auditorium**
 - **Library**
+- **Men's Hall (A4)**
 
 Live site: **https://koko-aka-omar.github.io/hallV3/**
 
@@ -16,14 +17,15 @@ Live site: **https://koko-aka-omar.github.io/hallV3/**
 
 The project is designed as a lightweight indoor/campus experience inspired by Street View. Visitors can explore connected 360° checkpoints, follow floor arrows, search for destinations, return to the campus map, and open direct links to individual scenes.
 
-The current tour contains **35 panorama checkpoints**:
+The current tour contains **57 panorama checkpoints**:
 
 | Area | Checkpoints |
 | --- | ---: |
 | M7A | 10 |
 | Al Razi Auditorium | 13 |
-| Library | 12 |
-| **Total** | **35** |
+| Library | 24 |
+| Men's Hall (A4) | 10 |
+| **Total** | **57** |
 
 Navigation follows explicit physical routes rather than allowing arbitrary jumps between panorama images.
 
@@ -108,6 +110,10 @@ Includes:
 - Study Area 9
 - Study Area 10
 
+### Men's Hall (A4)
+
+A standalone 10-checkpoint walkthrough covering the A4 exterior entrance, dining areas, food-service counters, booth seating, recreation area, lounge, Dunkin' area, and restroom corridor.
+
 ---
 
 ## Technology
@@ -157,9 +163,11 @@ hallV3/
 │       ├── routes/
 │       │   ├── m7a.js
 │       │   ├── theater.js
-│       │   └── library.js
+│       │   ├── library.js
+│       │   └── mens-hall.js
 │       ├── assets/
 │       ├── assets-mobile/
+│       ├── panoramas/
 │       └── panoramas-mobile/
 ├── tests/
 ├── NAVIGATION.md

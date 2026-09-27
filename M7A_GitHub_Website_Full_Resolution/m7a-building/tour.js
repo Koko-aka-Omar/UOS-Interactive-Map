@@ -1,10 +1,10 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { HALLS } from './halls.js?v=20260927-final2';
+import { HALLS } from './halls.js?v=20260928-mens1';
 import { addCampusArtworkLabels } from './campus-map-labels.js?v=20260927-3';
 import { createDirectory, searchHalls, localized } from './campus-directory.js?v=20260927-final2';
 import { findPath } from './directions.js';
-import { PANORAMA_FILES, VISUAL_CALIBRATION, LOCATIONS, LOCATION_AR, getHotspotStyle } from './tour-routes.js?v=20260928-library-shortcuts8';
+import { PANORAMA_FILES, VISUAL_CALIBRATION, LOCATIONS, LOCATION_AR, getHotspotStyle } from './tour-routes.js?v=20260928-mens1';
 import { I18N } from './tour-i18n.js?v=20260927-vivid1';
 
 const app=document.getElementById('app');
@@ -21,8 +21,13 @@ const languageKey='m7a-language-v1';
 let currentLanguage='en';
 try{if(localStorage.getItem(languageKey)==='ar')currentLanguage='ar';}catch{}
 function t(key,...args){const value=I18N[currentLanguage][key]??I18N.en[key]??key;return typeof value==='function'?value(...args):value;}
-// Phones/tablets use dedicated 3K/4K panoramas. Desktop keeps the full 8K originals.
-const DATA=PANORAMA_FILES.map(file=>(coarsePointer?'./assets-mobile/':'./assets/')+file+(file==='library-study-020.glb'?'?v=20260927-study1':file==='library-study-021.glb'?'?v=20260927-3':''));
+// Phones/tablets use dedicated GLBs where available. Raw equirectangular images
+// (currently the standalone Men's Hall tour) are already lightweight and shared.
+const IMAGE_PANORAMA=/\.(?:png|jpe?g|webp)$/i;
+const DATA=PANORAMA_FILES.map(file=>{
+  if(IMAGE_PANORAMA.test(file))return './panoramas/'+file;
+  return (coarsePointer?'./assets-mobile/':'./assets/')+file+(file==='library-study-020.glb'?'?v=20260927-study1':file==='library-study-021.glb'?'?v=20260927-3':'');
+});
 
 const scene=new THREE.Scene();
 const camera=new THREE.PerspectiveCamera(72,innerWidth/innerHeight,0.01,50);
@@ -47,6 +52,7 @@ app.appendChild(renderer.domElement);
 const el=renderer.domElement;
 
 const loader=new GLTFLoader();
+const textureLoader=new THREE.TextureLoader();
 
 // Two levels of caching:
 // 1) on desktop, connected GLBs are fetched into the browser HTTP cache;
@@ -95,7 +101,7 @@ function preloadCheckpoint(i,warmTexture=false){
     return task;
   }
   const networkWarm=coarsePointer?(networkPrefetches.get(i)??prefetchNetwork(i)):null;
-  const task=(networkWarm??Promise.resolve()).then(()=>loader.loadAsync(DATA[i])).then(gltf=>{
+  const task=(networkWarm??Promise.resolve()).then(()=>loadPanoramaAsset(i)).then(gltf=>{
     prepareCheckpointScene(gltf,i,warmTexture);
     return gltf;
   }).catch(err=>{
@@ -889,15 +895,35 @@ function takeRecentScene(i){
   if(root)recentScenes.delete(i);
   return root;
 }
-function loadGLTF(i,onProgress=null){
+function loadPanoramaAsset(i,onProgress=null){
+  const url=DATA[i];
+  if(IMAGE_PANORAMA.test(url.split('?')[0])){
+    return new Promise((resolve,reject)=>{
+      textureLoader.load(url,texture=>{
+        texture.colorSpace=THREE.SRGBColorSpace;
+        const root=new THREE.Group();
+        root.add(new THREE.Mesh(
+          new THREE.BufferGeometry(),
+          new THREE.MeshBasicMaterial({map:texture,side:THREE.DoubleSide,toneMapped:false})
+        ));
+        if(onProgress)onProgress(1);
+        resolve({scene:root});
+      },xhr=>{
+        if(!onProgress)return;
+        if(xhr.total>0)onProgress(THREE.MathUtils.clamp(xhr.loaded/xhr.total,0,1));
+        else onProgress(null);
+      },reject);
+    });
+  }
   return new Promise((resolve,reject)=>{
-    loader.load(DATA[i],resolve,xhr=>{
+    loader.load(url,resolve,xhr=>{
       if(!onProgress)return;
       if(xhr.total>0)onProgress(THREE.MathUtils.clamp(xhr.loaded/xhr.total,0,1));
       else onProgress(null);
     },reject);
   });
 }
+function loadGLTF(i,onProgress=null){return loadPanoramaAsset(i,onProgress);}
 let lastInitialProgress=0;
 function setInitialProgress(value){
   lastInitialProgress=value;
