@@ -1,10 +1,10 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { HALLS } from './halls.js';
-import { addCampusArtworkLabels } from './campus-map-labels.js';
-import { createDirectory, searchHalls, localized } from './campus-directory.js';
+import { HALLS } from './halls.js?v=20260927-1';
+import { addCampusArtworkLabels } from './campus-map-labels.js?v=20260927-1';
+import { createDirectory, searchHalls, localized } from './campus-directory.js?v=20260927-1';
 import { findPath } from './directions.js';
-import { PANORAMA_FILES, VISUAL_CALIBRATION, LOCATIONS, LOCATION_AR, getHotspotStyle } from './tour-routes.js';
+import { PANORAMA_FILES, VISUAL_CALIBRATION, LOCATIONS, LOCATION_AR, getHotspotStyle } from './tour-routes.js?v=20260927-1';
 import { I18N } from './tour-i18n.js';
 
 const app=document.getElementById('app');
