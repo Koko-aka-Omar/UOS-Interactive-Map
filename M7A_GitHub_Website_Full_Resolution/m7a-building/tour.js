@@ -4,7 +4,7 @@ import { HALLS } from './halls.js?v=20260927-final2';
 import { addCampusArtworkLabels } from './campus-map-labels.js?v=20260927-3';
 import { createDirectory, searchHalls, localized } from './campus-directory.js?v=20260927-final2';
 import { findPath } from './directions.js';
-import { PANORAMA_FILES, VISUAL_CALIBRATION, LOCATIONS, LOCATION_AR, getHotspotStyle } from './tour-routes.js?v=20260927-3';
+import { PANORAMA_FILES, VISUAL_CALIBRATION, LOCATIONS, LOCATION_AR, getHotspotStyle } from './tour-routes.js?v=20260928-library-shortcuts8';
 import { I18N } from './tour-i18n.js?v=20260927-vivid1';
 
 const app=document.getElementById('app');
