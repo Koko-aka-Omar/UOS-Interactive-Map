@@ -794,6 +794,9 @@ function applyLanguage(persist=true){
   document.getElementById('campus-home-kicker').textContent=t('university');
   document.getElementById('campus-home-title').textContent=t('homeTitle');
   document.getElementById('campus-home-copy').textContent=t('homeCopy');
+  document.getElementById('campus-home-areas').textContent=t('homeAreas');
+  document.getElementById('campus-home-views').textContent=t('homeViews');
+  document.getElementById('campus-home-action').textContent=t('homeAction');
   cp.textContent=locationLabel();
   updateControls();updateRouteLabel();
   if(!loading.classList.contains('done'))setInitialProgress(lastInitialProgress);
