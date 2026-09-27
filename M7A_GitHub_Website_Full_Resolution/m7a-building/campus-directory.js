@@ -160,7 +160,7 @@ export function createDirectory({ halls, root, language, isReady, openTour, star
     card.classList.toggle('sheet-expanded', sheetExpanded);
     title.textContent = selected ? label(selected) : group ? text('group') : text('choose');
     intro.hidden = Boolean(selected || group || collapsed);
-    intro.textContent = language() === 'ar' ? 'اختر مبنى لبدء جولة بزاوية 360°.' : 'Choose a building to start a 360° tour.';
+    intro.textContent = language() === 'ar' ? 'اختر مبنى أو ابحث عن قاعة.' : 'Choose a building or search for a room.';
     search.placeholder = text('search'); search.setAttribute('aria-label', text('search'));
     collapse.textContent = collapsed ? '+' : '−'; collapse.setAttribute('aria-label', text(collapsed ? 'expand' : 'collapse'));
     collapse.setAttribute('aria-expanded', String(!collapsed)); body.hidden = collapsed;
