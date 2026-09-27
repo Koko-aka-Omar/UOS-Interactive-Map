@@ -17,7 +17,7 @@
 <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
 <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
 <link rel="manifest" href="./manifest.webmanifest" />
-<link rel="stylesheet" href="./styles.css?v=20260927-4" />
+<link rel="stylesheet" href="./styles.css?v=20260927-mobile-polish1" />
 <link href="https://unpkg.com/maplibre-gl@5/dist/maplibre-gl.css" rel="stylesheet">
 <script src="https://unpkg.com/maplibre-gl@5/dist/maplibre-gl.js"></script>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"}}</script>
@@ -37,6 +37,7 @@
     <button class="tool" id="motion" title="Use phone motion" aria-label="Enable phone motion view" data-i18n-title="motionTitle" hidden>◎</button>
     <button class="tool" id="map-toggle" title="Tour map" aria-label="Open tour map" data-i18n-title="tourMap" data-i18n-aria="openMap" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 5 6-2 6 2 6-2v16l-6 2-6-2-6 2V5Zm6-2v16m6-14v16"/></svg><span data-i18n="backToCampus">Back to campus</span></button>
     <button class="tool" id="search-toggle" type="button" aria-label="Search halls or rooms" title="Search halls or rooms" aria-pressed="false" aria-controls="tour-search-panel"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg></button>
+    <button class="tool" id="more-toggle" type="button" aria-label="More view controls" title="More controls" aria-expanded="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg></button>
     <button class="tool info-tool" id="info-toggle" title="Tour information" aria-label="Open tour information" data-i18n-title="tourInfo" data-i18n-aria="openInfo" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v6m0-10v.5"/></svg></button>
     <button class="tool" id="reset" title="Reset view" aria-label="Reset and level view" data-i18n-title="resetView" data-i18n-aria="resetView"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10a8 8 0 1 1 1 7M4 4v6h6"/></svg></button>
     <button class="tool" id="fullscreen" title="Full screen" aria-label="Full screen" data-i18n-title="fullScreen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg></button>
@@ -125,6 +126,7 @@
   <div class="panel-head"><div><strong data-i18n="aboutTitle">About this tour</strong><small data-i18n="aboutSubtitle">University of Sharjah · Building M7A</small></div><button class="panel-close" data-close-panel aria-label="Close information" data-i18n-aria="closeInfo">×</button></div>
   <div class="info-copy">
     <p data-i18n="aboutCopy">Drag to look around. Use a floor arrow or the map to move between locations. On supported phones, you can also look around by moving your device.</p>
+    <div class="mobile-tour-meta" dir="ltr"><span>Last edited on: <time datetime="2026-09-27">27 September 2026</time></span><br><span>Made by Omar Yasser for UOS under Doctor Afra Alteniji’s instructions.</span></div>
     <div class="share-card">
       <div class="share-head"><div class="share-copy"><b data-i18n="shareTitle">Share this location</b><span id="share-location">Main Hall · Entrance</span></div><button class="share-button" id="share-scene" type="button" data-i18n="copyLink">Copy link</button></div>
       <a class="scene-link" id="scene-link" href="?scene=entrance" target="_blank" rel="noopener">?scene=entrance</a>
@@ -143,7 +145,7 @@
 <footer class="site-footer" dir="ltr"><span>Last edited on: <time datetime="2026-09-27">27 September 2026</time></span><span>Made by Omar Yasser for UOS under Doctor Afra Alteniji’s instructions.</span></footer>
 <div id="loading"><div class="loading-card"><span class="eyebrow" data-i18n="university">University of Sharjah</span><div class="loader-title">Preparing your 360° view</div><div class="spinner"></div><div class="progress-track" role="progressbar" aria-label="Loading 360° view" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="load-progress-bar"></span></div><p id="load-progress-text">Loading 360° view · 0%</p></div></div>
 <script src="./tour-boot.js?v=20260927-3"></script>
-<script type="module" src="./tour.js?v=20260927-study1"></script>
+<script type="module" src="./tour.js?v=20260927-mobile-polish1"></script>
 </body>
 </html>
 
