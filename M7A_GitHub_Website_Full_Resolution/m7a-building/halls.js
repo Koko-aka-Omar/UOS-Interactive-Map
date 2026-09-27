@@ -18,7 +18,18 @@ export const HALLS = [
     mapCoordinates: [55.46958970693754, 25.279927082215018],
     thumbnail: './panoramas-mobile/library-entrance-018.jpg',
     tour: { scene: 'library-entrance-018' },
-    rooms: []
+    rooms: [
+      { id: 'library-study-020', name: { en: 'Study Area 1', ar: 'منطقة الدراسة 1' }, floor: { en: 'Library', ar: 'المكتبة' }, tour: { scene: 'library-study-020' } },
+      { id: 'library-study-021', name: { en: 'Study Area 2', ar: 'منطقة الدراسة 2' }, floor: { en: 'Library', ar: 'المكتبة' }, tour: { scene: 'library-study-021' } },
+      { id: 'library-study-022', name: { en: 'Study Area 3', ar: 'منطقة الدراسة 3' }, floor: { en: 'Library', ar: 'المكتبة' }, tour: { scene: 'library-study-022' } },
+      { id: 'library-study-023', name: { en: 'Study Area 4', ar: 'منطقة الدراسة 4' }, floor: { en: 'Library', ar: 'المكتبة' }, tour: { scene: 'library-study-023' } },
+      { id: 'library-study-024', name: { en: 'Study Area 5', ar: 'منطقة الدراسة 5' }, floor: { en: 'Library', ar: 'المكتبة' }, tour: { scene: 'library-study-024' } },
+      { id: 'library-study-025', name: { en: 'Study Area 6', ar: 'منطقة الدراسة 6' }, floor: { en: 'Library', ar: 'المكتبة' }, tour: { scene: 'library-study-025' } },
+      { id: 'library-study-026', name: { en: 'Study Area 7', ar: 'منطقة الدراسة 7' }, floor: { en: 'Library', ar: 'المكتبة' }, tour: { scene: 'library-study-026' } },
+      { id: 'library-study-027', name: { en: 'Study Area 8', ar: 'منطقة الدراسة 8' }, floor: { en: 'Library', ar: 'المكتبة' }, tour: { scene: 'library-study-027' } },
+      { id: 'library-study-028', name: { en: 'Study Area 9', ar: 'منطقة الدراسة 9' }, floor: { en: 'Library', ar: 'المكتبة' }, tour: { scene: 'library-study-028' } },
+      { id: 'library-study-029', name: { en: 'Study Area 10', ar: 'منطقة الدراسة 10' }, floor: { en: 'Library', ar: 'المكتبة' }, tour: { scene: 'library-study-029' } }
+    ]
   },
   {
     id: 'm7', code: 'M7A',
