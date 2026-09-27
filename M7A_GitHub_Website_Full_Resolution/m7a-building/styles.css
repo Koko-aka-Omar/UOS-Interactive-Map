@@ -3,7 +3,7 @@
   html[data-map-enabled="false"] #map-toggle,html[data-map-enabled="false"] #map-panel{display:none!important}
   :root{
     color-scheme:dark;
-    --uos:#007d80;
+    --uos:#00c389;
     --uos-deep:#004f55;
     --uos-ink:#052e33;
     --uos-soft:#79d5d0;
@@ -366,3 +366,26 @@
 @media(prefers-reduced-motion:reduce){
   .topbar,.bottom{transition:none!important}
 }
+
+
+/* UOS brand accent — official teal reserved for interactive/highlight states. */
+:root{
+  --uos:#00c389;
+  --uos-accent:#00c389;
+  --uos-accent-soft:#7ee8c8;
+}
+.brand:before{background:linear-gradient(var(--uos-accent),var(--uos-accent-soft))}
+.tool[aria-pressed="true"]{background:#00a979;border-color:#7ee8c8;box-shadow:0 0 0 3px rgba(0,195,137,.18)}
+.map-tab.active{background:#008f69;border-color:#72e4c2}
+.location-chip{border-color:rgba(0,195,137,.42);background:linear-gradient(180deg,rgba(0,195,137,.30),rgba(0,92,88,.34))}
+.location-dot{background:var(--uos-accent);box-shadow:0 0 0 4px rgba(0,195,137,.15),0 0 16px rgba(0,195,137,.55),0 0 28px rgba(0,195,137,.28)}
+#route-label{text-shadow:0 0 10px rgba(0,195,137,.20)}
+.map-position{background:rgba(0,195,137,.08);border-color:rgba(0,195,137,.20)}
+.map-position-dot{background:var(--uos-accent);box-shadow:0 0 0 4px rgba(0,195,137,.12)}
+.map-node.current circle{fill:var(--uos-accent);stroke:#eafff8;filter:drop-shadow(0 0 5px rgba(0,195,137,.55))}
+.map-node.current .map-room{fill:#0d5e49;stroke:var(--uos-accent)}
+.share-card{background:rgba(0,195,137,.07);border-color:rgba(0,195,137,.18)}
+.share-button{background:#008f69;border-color:rgba(126,232,200,.32)}
+.share-button:hover{background:#00a979}
+.progress-track span{background:linear-gradient(90deg,var(--uos-accent),var(--uos-accent-soft))}
+.spinner{border-top-color:var(--uos-accent)}
