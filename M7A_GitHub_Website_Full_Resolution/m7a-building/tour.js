@@ -901,6 +901,11 @@ function loadPanoramaAsset(i,onProgress=null){
     return new Promise((resolve,reject)=>{
       textureLoader.load(url,texture=>{
         texture.colorSpace=THREE.SRGBColorSpace;
+        // GLTFLoader uses flipY=false for the existing panorama textures. The shared
+        // sphere UVs are calibrated for that convention, so raw equirectangular
+        // Men's Hall images must match it or they render vertically inverted.
+        texture.flipY=false;
+        texture.needsUpdate=true;
         const root=new THREE.Group();
         root.add(new THREE.Mesh(
           new THREE.BufferGeometry(),
