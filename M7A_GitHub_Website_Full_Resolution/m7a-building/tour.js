@@ -518,10 +518,16 @@ function measurePanorama(texture){
   let pixels;
   try{pixels=ctx.getImageData(0,0,canvas.width,canvas.height).data;}catch{return null;}
   const luma=[];
+  let chromaSum=0,chromaCount=0;
   for(let p=0;p<pixels.length;p+=4){
     if(pixels[p+3]<64)continue;
     const r=pixels[p]/255,g=pixels[p+1]/255,b=pixels[p+2]/255;
-    luma.push(.2126*r+.7152*g+.0722*b);
+    const y=.2126*r+.7152*g+.0722*b;
+    luma.push(y);
+    if(y>.08&&y<.92){
+      chromaSum+=Math.max(r,g,b)-Math.min(r,g,b);
+      chromaCount++;
+    }
   }
   if(luma.length<64)return null;
   luma.sort((a,b)=>a-b);
@@ -530,15 +536,17 @@ function measurePanorama(texture){
   for(let n=from;n<to;n++)sum+=luma[n];
   const midtone=sum/Math.max(1,to-from);
   const p20=luma[Math.floor(luma.length*.20)],p80=luma[Math.floor(luma.length*.80)];
-  return {midtone,spread:p80-p20};
+  return {midtone,spread:p80-p20,chroma:chromaSum/Math.max(1,chromaCount)};
 }
 function autoGrade(texture){
   const measured=measurePanorama(texture);
-  if(!measured)return {exposure:1,contrast:1.08,saturate:1.115};
-  // Bring trimmed midtones toward one shared level while protecting scene character/highlights.
-  const exposure=THREE.MathUtils.clamp(Math.pow(.50/Math.max(.18,measured.midtone),.52),.90,1.13);
-  const contrast=THREE.MathUtils.clamp(1.07+(.44-measured.spread)*.09,1.055,1.105);
-  return {exposure,contrast,saturate:1.115};
+  if(!measured)return {exposure:1,contrast:1.08,saturate:1.13};
+  // Stronger—but still bounded—midtone matching after reviewing every checkpoint.
+  // Saturation is adaptive: neutral interiors get more punch, naturally red/blue scenes get less.
+  const exposure=THREE.MathUtils.clamp(Math.pow(.50/Math.max(.18,measured.midtone),.60),.89,1.14);
+  const contrast=THREE.MathUtils.clamp(1.075+(.44-measured.spread)*.08,1.06,1.10);
+  const saturate=THREE.MathUtils.clamp(1.13+(.13-measured.chroma)*.22,1.085,1.155);
+  return {exposure,contrast,saturate};
 }
 function prep(root,i){
   const aniso=Math.min(renderer.capabilities.getMaxAnisotropy(),coarsePointer?4:Infinity);
@@ -550,11 +558,13 @@ function prep(root,i){
       const source=oldMats.find(m=>m?.map)?.map;
       sceneGradeCache.set(i,autoGrade(source));
     }
-    const grade=sceneGradeCache.get(i)??{exposure:1,contrast:1.08,saturate:1.115};
+    const grade=sceneGradeCache.get(i)??{exposure:1,contrast:1.08,saturate:1.13};
+    const gainMean=Math.max(.001,(gain[0]+gain[1]+gain[2])/3);
     const newMats=oldMats.map(m=>{
       const bm=new THREE.MeshBasicMaterial({
         map:m && m.map ? m.map : null,
-        color:new THREE.Color(gain[0]*grade.exposure,gain[1]*grade.exposure,gain[2]*grade.exposure),
+        // Preserve any existing RGB tint calibration, but let auto-exposure own overall brightness.
+        color:new THREE.Color((gain[0]/gainMean)*grade.exposure,(gain[1]/gainMean)*grade.exposure,(gain[2]/gainMean)*grade.exposure),
         side:THREE.DoubleSide,
         toneMapped:false
       });
@@ -706,9 +716,9 @@ function updateRouteLabel(){
   routeTip.style.top=(position.y-12)+'px';routeTip.classList.add('show');routeTip.setAttribute('aria-hidden','false');
 }
 
-let canvasGrade={brightness:1,contrast:1.08,saturate:1.115};
+let canvasGrade={brightness:1,contrast:1.08,saturate:1.13};
 function setSceneGrade(i){
-  const grade=sceneGradeCache.get(i)??{contrast:1.08,saturate:1.115};
+  const grade=sceneGradeCache.get(i)??{contrast:1.08,saturate:1.13};
   // Exposure is applied to the panorama material; canvas filtering adds one consistent vivid finish.
   canvasGrade={brightness:1,contrast:grade.contrast,saturate:grade.saturate};
   setCanvasFx(1,0,1);
@@ -1011,7 +1021,7 @@ async function transitionTo(i,selectedRoute=null,fromMap=false){
         }else if(transitionKind==='back'){
           transform='scale('+(1-0.035*e)+')';
         }else if(transitionKind==='stairs'){
-          transform='translateY('+(stairSign*10*e)+'px) scale('+(1+0.045*e)+')';
+          transform='translateY('+(stairSign*14*e)+'px) scale('+(1+0.052*e)+')';
         }else{
           transform='scale('+(1+0.025*e)+')';
         }
