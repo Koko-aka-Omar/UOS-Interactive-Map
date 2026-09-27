@@ -1,14 +1,14 @@
 const CACHE_PREFIX='uos-tour:'+self.registration.scope+':';
-const SHELL_CACHE=CACHE_PREFIX+'shell-v45';
+const SHELL_CACHE=CACHE_PREFIX+'shell-v46';
 // Keep panorama downloads across UI releases.
 const PANORAMA_CACHE=CACHE_PREFIX+'panoramas-v3';
 const LEGACY_CACHES=['m7a-tour-v7','m7a-tour:'+self.registration.scope+':panoramas-v3'];
 
 const CORE_ASSETS=[
   './','./index.html',
-  './styles.css?v=20260927-system1','./ui-polish.css?v=20260927-final2',
-  './tour-boot.js?v=20260927-3','./tour.js?v=20260927-final2',
-  './tour-i18n.js?v=20260927-final2','./halls.js?v=20260927-final2',
+  './styles.css?v=20260927-system1','./ui-polish.css?v=20260927-finish1',
+  './tour-boot.js?v=20260927-3','./tour.js?v=20260927-finish1',
+  './tour-i18n.js?v=20260927-finish1','./halls.js?v=20260927-final2',
   './campus-directory.js?v=20260927-final2','./campus-map-labels.js?v=20260927-3',
   './directions.js','./tour-routes.js?v=20260927-3',
   './routes/m7a.js','./routes/theater.js?v=20260927-3','./routes/library.js?v=20260927-3',
