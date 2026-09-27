@@ -1,9 +1,27 @@
-const CACHE_PREFIX='m7a-tour:'+self.registration.scope+':';
-const SHELL_CACHE=CACHE_PREFIX+'shell-v43';
-// Bump only when panorama files change; UI releases retain full-resolution downloads.
+const CACHE_PREFIX='uos-tour:'+self.registration.scope+':';
+const SHELL_CACHE=CACHE_PREFIX+'shell-v45';
+// Keep panorama downloads across UI releases.
 const PANORAMA_CACHE=CACHE_PREFIX+'panoramas-v3';
-const LEGACY_CACHE='m7a-tour-v7';
-const CORE_ASSETS=['./','./index.html','./halls.js','./campus-directory.js','./campus-map-labels.js','./directions.js','./favicon.svg','./manifest.webmanifest','./apple-touch-icon.png','./social-preview.png','./campus-map-2026.webp'];
+const LEGACY_CACHES=['m7a-tour-v7','m7a-tour:'+self.registration.scope+':panoramas-v3'];
+
+const CORE_ASSETS=[
+  './','./index.html',
+  './styles.css?v=20260927-system1','./ui-polish.css?v=20260927-system1',
+  './tour-boot.js?v=20260927-3','./tour.js?v=20260927-system1',
+  './tour-i18n.js?v=20260927-polish1','./halls.js?v=20260927-3',
+  './campus-directory.js?v=20260927-polish1','./campus-map-labels.js?v=20260927-3',
+  './directions.js','./tour-routes.js?v=20260927-3',
+  './routes/m7a.js','./routes/theater.js?v=20260927-3','./routes/library.js?v=20260927-3',
+  './favicon.svg','./manifest.webmanifest','./apple-touch-icon.png','./social-preview.png','./campus-map-2026.webp'
+];
+const EXTERNAL_ASSETS=[
+  'https://unpkg.com/maplibre-gl@5/dist/maplibre-gl.css',
+  'https://unpkg.com/maplibre-gl@5/dist/maplibre-gl.js',
+  'https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js',
+  'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/GLTFLoader.js'
+];
+const CDN_ORIGINS=new Set(['https://unpkg.com','https://cdn.jsdelivr.net']);
+const STATIC_FILE=/\.(?:js|css|json|webmanifest|svg|png|webp|jpe?g)$/i;
 const PANORAMA_NAMES=[
   'ground-entrance','ground-study-rooms','ground-hall-end',
   'top-stair-landing','top-faculty-offices','top-seating-area',
@@ -22,24 +40,32 @@ const PANORAMAS=new Set(
   )
 );
 const INDEX_URL=new URL('./index.html',self.registration.scope).href;
+const CORE_URLS=new Set(CORE_ASSETS.map(path=>new URL(path,self.registration.scope).href));
+const EXTERNAL_URLS=new Set(EXTERNAL_ASSETS);
 
 async function cached(name,request){
   try{return await (await caches.open(name)).match(request);}
   catch{return undefined;}
 }
 async function save(name,request,response){
-  if(response.status!==200)return;
+  if(!(response.ok||response.type==='opaque'))return;
   try{await (await caches.open(name)).put(request,response);}
   catch(error){console.warn('Tour cache unavailable; continuing online.',error);}
+}
+async function warmShell(){
+  const cache=await caches.open(SHELL_CACHE);
+  for(const url of [...CORE_URLS,...EXTERNAL_URLS]){
+    try{
+      const request=new Request(url,{cache:'reload'});
+      const response=await fetch(request);
+      if(response.ok||response.type==='opaque')await cache.put(request,response);
+    }catch(error){console.warn('Could not pre-cache',url,error);}
+  }
 }
 
 self.addEventListener('install',event=>{
   event.waitUntil((async()=>{
-    // Storage restrictions must not stop an online tour from working.
-    try{
-      const cache=await caches.open(SHELL_CACHE);
-      await cache.addAll(CORE_ASSETS);
-    }catch(error){console.warn('Tour shell cache unavailable.',error);}
+    try{await warmShell();}catch(error){console.warn('Tour shell cache unavailable.',error);}
     await self.skipWaiting();
   })());
 });
@@ -48,9 +74,10 @@ self.addEventListener('activate',event=>{
   event.waitUntil((async()=>{
     try{
       const keys=await caches.keys();
-      // Preserve downloads from the existing worker without fetching them again.
-      if(keys.includes(LEGACY_CACHE)){
-        const legacy=await caches.open(LEGACY_CACHE);
+      // Preserve existing panorama downloads from older cache names.
+      for(const legacyName of LEGACY_CACHES){
+        if(legacyName===PANORAMA_CACHE||!keys.includes(legacyName))continue;
+        const legacy=await caches.open(legacyName);
         const requests=await legacy.keys();
         for(const request of requests){
           if(PANORAMAS.has(request.url)&&!await cached(PANORAMA_CACHE,request)){
@@ -58,13 +85,11 @@ self.addEventListener('activate',event=>{
             if(response)await save(PANORAMA_CACHE,request,response);
           }
         }
-        // Keep the legacy cache if storage failed or it contains another site's data.
-        const migrated=await Promise.all(requests.filter(r=>PANORAMAS.has(r.url)).map(r=>cached(PANORAMA_CACHE,r)));
-        if(requests.every(r=>r.url.startsWith(self.registration.scope))&&migrated.every(Boolean)){
-          await caches.delete(LEGACY_CACHE);
-        }
       }
-      await Promise.all(keys.filter(key=>key.startsWith(CACHE_PREFIX)&&key!==SHELL_CACHE&&key!==PANORAMA_CACHE).map(key=>caches.delete(key)));
+      await Promise.all(keys.filter(key=>
+        (key.startsWith('m7a-tour:')||key.startsWith(CACHE_PREFIX))&&
+        key!==SHELL_CACHE&&key!==PANORAMA_CACHE
+      ).map(key=>caches.delete(key)));
     }catch(error){console.warn('Tour cache maintenance unavailable.',error);}
     await self.clients.claim();
   })());
@@ -78,17 +103,32 @@ async function panorama(request,writes){
   return response;
 }
 
+async function shellAsset(request,writes){
+  const hit=await cached(SHELL_CACHE,request);
+  const refresh=fetch(request).then(async fresh=>{
+    if(fresh.ok||fresh.type==='opaque')await save(SHELL_CACHE,request,fresh.clone());
+    return fresh;
+  });
+  if(hit){
+    writes.push(refresh.catch(()=>{}));
+    return hit;
+  }
+  return refresh;
+}
+
 self.addEventListener('fetch',event=>{
   const request=event.request;
   const url=new URL(request.url);
-  if(request.method!=='GET'||url.origin!==self.location.origin||!url.href.startsWith(self.registration.scope)||request.headers.has('range'))return;
+  if(request.method!=='GET'||request.headers.has('range'))return;
+  const sameOrigin=url.origin===self.location.origin;
+  const supportedExternal=CDN_ORIGINS.has(url.origin);
+  if(!sameOrigin&&!supportedExternal)return;
+
   const writes=[];
   const response=(async()=>{
-    if(PANORAMAS.has(url.href))return panorama(request,writes);
-    // Only the tour entry page and known shell resources belong in this cache.
-    const shell=CORE_ASSETS.some(path=>new URL(path,self.registration.scope).href===url.href);
-    if(!shell)return fetch(request);
-    if(request.mode==='navigate'){
+    if(sameOrigin&&PANORAMAS.has(url.href))return panorama(request,writes);
+
+    if(sameOrigin&&request.mode==='navigate'){
       try{
         const fresh=await fetch(request);
         if(fresh.ok){
@@ -102,24 +142,18 @@ self.addEventListener('fetch',event=>{
         throw error;
       }
     }
-    const hit=await cached(SHELL_CACHE,request);
-    const refresh=fetch(request).then(async fresh=>{
-      await save(SHELL_CACHE,request,fresh.clone());
-      return fresh;
-    });
-    if(hit){
-      writes.push(refresh.catch(()=>{}));
-      return hit;
-    }
-    return refresh;
+
+    const explicit=CORE_URLS.has(url.href)||EXTERNAL_URLS.has(url.href);
+    const staticAsset=STATIC_FILE.test(url.pathname);
+    if(!explicit&&!staticAsset)return fetch(request);
+    return shellAsset(request,writes);
   })();
+
   event.respondWith(response);
-  // Keep the worker alive until streamed downloads have finished writing.
   event.waitUntil(response.then(()=>Promise.all(writes)).catch(()=>{}));
 });
 
 self.addEventListener('message',event=>{
-  // The first visit can finish its initial download before this worker controls it.
   if(event.data?.type!=='CACHE_VIEWED_PANORAMA'||!PANORAMAS.has(event.data.url))return;
   event.waitUntil((async()=>{
     const request=new Request(event.data.url,{cache:'force-cache'});
@@ -128,4 +162,3 @@ self.addEventListener('message',event=>{
     await Promise.all(writes);
   })().catch(error=>console.warn('Viewed panorama could not be cached.',error)));
 });
-
