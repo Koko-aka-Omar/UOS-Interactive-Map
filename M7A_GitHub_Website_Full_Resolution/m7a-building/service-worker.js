@@ -1,5 +1,5 @@
 const CACHE_PREFIX='m7a-tour:'+self.registration.scope+':';
-const SHELL_CACHE=CACHE_PREFIX+'shell-v42';
+const SHELL_CACHE=CACHE_PREFIX+'shell-v43';
 // Bump only when panorama files change; UI releases retain full-resolution downloads.
 const PANORAMA_CACHE=CACHE_PREFIX+'panoramas-v3';
 const LEGACY_CACHE='m7a-tour-v7';
@@ -18,7 +18,7 @@ const PANORAMA_NAMES=[
 ];
 const PANORAMAS=new Set(
   ['assets','assets-mobile'].flatMap(dir=>
-    PANORAMA_NAMES.map(name=>new URL('./'+dir+'/'+name+'.glb'+(name==='library-study-021'?'?v=20260927-3':''),self.registration.scope).href)
+    PANORAMA_NAMES.map(name=>new URL('./'+dir+'/'+name+'.glb'+(name==='library-study-020'?'?v=20260927-study1':name==='library-study-021'?'?v=20260927-3':''),self.registration.scope).href)
   )
 );
 const INDEX_URL=new URL('./index.html',self.registration.scope).href;
