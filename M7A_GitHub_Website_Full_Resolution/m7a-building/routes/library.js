@@ -280,6 +280,15 @@ export const LOCATIONS=[
         back: true,
         hotspotAngle: 6.05,
         hotspotDistance: 1.2
+      },
+      {
+        to: 45,
+        angle: 0.48,
+        arrowAngle: 0.48,
+        hotspotAngle: 0.98,
+        hotspotDistance: 1,
+        arrivalAngle: 4.4,
+        departureAngle: 0.48
       }
     ]
   },
@@ -649,6 +658,15 @@ export const LOCATIONS=[
         "arrivalAngle": 0.16,
         "departureAngle": 0.19,
         "back": true
+      },
+      {
+        "to": 31,
+        "angle": 4.4,
+        "arrowAngle": 4.05,
+        "hotspotAngle": 4.05,
+        "hotspotDistance": 1,
+        "arrivalAngle": 0.48,
+        "departureAngle": 4.4
       }
     ]
   },

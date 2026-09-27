@@ -1,5 +1,5 @@
 const CACHE_PREFIX='uos-tour:'+self.registration.scope+':';
-const SHELL_CACHE=CACHE_PREFIX+'shell-v49';
+const SHELL_CACHE=CACHE_PREFIX+'shell-v57';
 // Keep panorama downloads across UI releases.
 const PANORAMA_CACHE=CACHE_PREFIX+'panoramas-v3';
 const LEGACY_CACHES=['m7a-tour-v7','m7a-tour:'+self.registration.scope+':panoramas-v3'];
