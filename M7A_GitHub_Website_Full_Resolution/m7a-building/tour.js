@@ -644,6 +644,8 @@ function updateControls(){
   document.title=object?(current<10?t('pageTitle'):localizedLocation(current<23?10:23).area+' — 360° Tour | University of Sharjah'):'Campus 360° Tours | University of Sharjah';
   floorBadge.textContent=floorLabel();
   document.querySelector('.brand-row [data-i18n="building"]').textContent=current<10?t('building'):localizedLocation(current<23?10:23).area;
+  const infoArea=current<10?t('building'):localizedLocation(current<23?10:23).area;
+  document.getElementById('info-subtitle').textContent=t('university')+' · '+infoArea;
   updateMap();
   updateGuidance();
   updateSceneShare();
