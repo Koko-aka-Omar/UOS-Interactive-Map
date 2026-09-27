@@ -2,10 +2,10 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { HALLS } from './halls.js?v=20260927-3';
 import { addCampusArtworkLabels } from './campus-map-labels.js?v=20260927-3';
-import { createDirectory, searchHalls, localized } from './campus-directory.js?v=20260927-3';
+import { createDirectory, searchHalls, localized } from './campus-directory.js?v=20260927-polish1';
 import { findPath } from './directions.js';
 import { PANORAMA_FILES, VISUAL_CALIBRATION, LOCATIONS, LOCATION_AR, getHotspotStyle } from './tour-routes.js?v=20260927-3';
-import { I18N } from './tour-i18n.js';
+import { I18N } from './tour-i18n.js?v=20260927-polish1';
 
 const app=document.getElementById('app');
 const loading=document.getElementById('loading');
@@ -163,6 +163,32 @@ const pointer=new THREE.Vector2();
 const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
 let ready=false;
 let current=0, object=null, yaw=0, pitch=0, dragging=false, sx=0, sy=0, syaw=0, spitch=0, transitioning=false, downX=0, downY=0;
+const travelError=document.getElementById('travel-error');
+const travelErrorTitle=document.getElementById('travel-error-title');
+const travelErrorCopy=document.getElementById('travel-error-copy');
+const travelErrorBack=document.getElementById('travel-error-back');
+const travelErrorRetry=document.getElementById('travel-error-retry');
+let failedTravel=null;
+function hideTravelError(){travelError.hidden=true;failedTravel=null;}
+function showTravelError(target,retry){
+  failedTravel=retry;
+  travelErrorTitle.textContent=t('locationUnavailable');
+  travelErrorCopy.textContent=retry?.kind==='reload'?t('checkConnection'):t('errorCopy',locationLabel(target));
+  travelErrorBack.textContent=object?t('backToTour'):t('backToCampusError');
+  travelErrorRetry.textContent=t('retry');
+  travelError.hidden=false;
+}
+travelErrorBack.onclick=()=>{
+  const hasView=Boolean(object);hideTravelError();
+  if(!hasView){const url=new URL(location.href);url.search='';url.hash='';location.assign(url.href);}
+};
+travelErrorRetry.onclick=()=>{
+  const retry=failedTravel;hideTravelError();
+  if(!retry)return;
+  if(retry.kind==='transition')transitionTo(retry.target,retry.route,retry.fromMap);
+  else if(retry.kind==='campus')openPanoramaFromCampus(retry.target);
+  else location.reload();
+};
 // Bearings are local to each panorama: angle = horizontal image fraction * 2PI.
 // Aim at corridor vanishing points / doorway centres, not floor-tile seams.
 // Reverse routes must be calibrated in their own image, not by adding PI.
@@ -209,44 +235,32 @@ const infoPanel=document.getElementById('info-panel');
 const mapToggle=document.getElementById('map-toggle');
 const infoToggle=document.getElementById('info-toggle');
 const moreToggle=document.getElementById('more-toggle');
-const mobileMoreMenu=document.getElementById('mobile-more-menu');
-const toolsBar=document.querySelector('.tools');
-const mobileMoreControls=['motion','info-toggle','reset','fullscreen'].map(id=>document.getElementById(id));
+const moreMenu=document.getElementById('more-menu');
 const searchPanel=document.getElementById('tour-search-panel'),searchToggle=document.getElementById('search-toggle'),tourSearch=document.getElementById('tour-search-input');
-function setMobileToolsOpen(open){
-  const show=Boolean(open)&&innerWidth<=640;
-  document.body.classList.toggle('mobile-tools-open',show);
+function setMoreMenuOpen(open){
+  const show=Boolean(open);
+  document.body.classList.toggle('more-open',show);
   moreToggle?.setAttribute('aria-expanded',String(show));
-  if(mobileMoreMenu){
-    mobileMoreMenu.hidden=!show;
-    mobileMoreMenu.inert=!show;
-    mobileMoreMenu.setAttribute('aria-hidden',String(!show));
+  if(moreMenu){
+    moreMenu.hidden=!show;
+    moreMenu.inert=!show;
+    moreMenu.setAttribute('aria-hidden',String(!show));
   }
   requestAnimationFrame(()=>positionTourPanels());
 }
-function syncMobileMoreLayout(){
-  if(!mobileMoreMenu||!toolsBar)return;
-  if(innerWidth<=640){
-    for(const control of mobileMoreControls)if(control)mobileMoreMenu.append(control);
-  }else{
-    setMobileToolsOpen(false);
-    const mapButton=document.getElementById('map-toggle');
-    const motionButton=document.getElementById('motion');
-    if(motionButton&&mapButton)toolsBar.insertBefore(motionButton,mapButton);
-    for(const id of ['info-toggle','reset','fullscreen']){
-      const control=document.getElementById(id);if(control)toolsBar.append(control);
-    }
-  }
-}
-syncMobileMoreLayout();
-if(moreToggle)moreToggle.onclick=()=>setMobileToolsOpen(!document.body.classList.contains('mobile-tools-open'));
+if(moreToggle)moreToggle.onclick=()=>setMoreMenuOpen(!document.body.classList.contains('more-open'));
+document.addEventListener('pointerdown',event=>{
+  if(!document.body.classList.contains('more-open'))return;
+  if(moreMenu?.contains(event.target)||moreToggle?.contains(event.target))return;
+  setMoreMenuOpen(false);
+});
 function updateTourSearch(){
   const ar=currentLanguage==='ar',label=ar?'ابحث عن مبنى أو قاعة':'Search halls or rooms';
   searchToggle.title=label;searchToggle.setAttribute('aria-label',label);searchPanel.setAttribute('aria-label',label);
   tourSearch.placeholder=label;tourSearch.setAttribute('aria-label',label);
   document.getElementById('tour-search-title').textContent=ar?'ابحث عن قاعة':'Find a room';
   document.getElementById('tour-search-close').setAttribute('aria-label',ar?'إغلاق البحث':'Close search');
-  const results=tourSearch.value.trim()?searchHalls(CAMPUS_BUILDINGS,tourSearch.value,currentLanguage):CAMPUS_BUILDINGS.flatMap(hall=>(hall.rooms||[]).map(room=>({hall,room,label:localized(room.name,currentLanguage)})));
+  const results=tourSearch.value.trim()?searchHalls(CAMPUS_BUILDINGS,tourSearch.value,currentLanguage):CAMPUS_BUILDINGS.flatMap(hall=>[{hall,room:null,label:`${hall.code} · ${localized(hall.name,currentLanguage)}`},...(hall.rooms||[]).map(room=>({hall,room,label:`${localized(room.name,currentLanguage)} · ${hall.code}`}))]);
   const root=document.getElementById('tour-search-results');root.replaceChildren();
   for(const {hall,room,label:resultLabel} of results){
     const row=document.createElement('div');row.className='tour-search-result';
@@ -263,7 +277,7 @@ function updateTourSearch(){
   document.getElementById('tour-search-status').textContent=results.length?(ar?'النتائج: ':'Results: ')+results.length:(ar?'لا توجد مبانٍ أو قاعات مطابقة':'No matching halls or rooms');
 }
 tourSearch.addEventListener('input',updateTourSearch);
-searchToggle.onclick=()=>{setMobileToolsOpen(false);togglePanel(searchPanel,searchToggle);if(searchPanel.classList.contains('open')){updateTourSearch();requestAnimationFrame(()=>tourSearch.focus());}};
+searchToggle.onclick=()=>{setMoreMenuOpen(false);togglePanel(searchPanel,searchToggle);if(searchPanel.classList.contains('open')){updateTourSearch();requestAnimationFrame(()=>tourSearch.focus());}};
 document.getElementById('tour-search-close').onclick=()=>{closePanels();searchToggle.focus();};
 // Keep overlays below the actual toolbar, including wrapped and translated layouts.
 function positionTourPanels(){
@@ -306,7 +320,7 @@ function openDirectoryTour(target){
   if(target.scene){const index=LOCATIONS.findIndex(item=>item.id===target.scene);if(index>=0)openPanoramaFromCampus(index);}
   else if(target.url){const url=new URL(target.url,location.href);if(['https:','http:'].includes(url.protocol))location.assign(url.href);}
 }
-const directory=createDirectory({halls:CAMPUS_BUILDINGS,root:mapPanel,language:()=>currentLanguage,isReady:()=>!transitioning,startDirections:startRoomDirections,openTour:openDirectoryTour});
+const directory=createDirectory({halls:CAMPUS_BUILDINGS,root:mapPanel,language:()=>currentLanguage,isReady:()=>!transitioning,startDirections:startRoomDirections,openTour:openDirectoryTour,currentHallId:()=>current<10?'m7':current<23?'e2':'e3'});
 function initCampusMap(){
   if(campusMap||!window.maplibregl)return;
   const building=CAMPUS_BUILDINGS[0];
@@ -370,8 +384,8 @@ function togglePanel(panel,button){
   }
   updateRouteLabel();
 }
-mapToggle.onclick=()=>{setMobileToolsOpen(false);togglePanel(mapPanel,mapToggle);};
-infoToggle.onclick=()=>{setMobileToolsOpen(false);togglePanel(infoPanel,infoToggle);};
+mapToggle.onclick=()=>{setMoreMenuOpen(false);togglePanel(mapPanel,mapToggle);};
+infoToggle.onclick=()=>{setMoreMenuOpen(false);togglePanel(infoPanel,infoToggle);};
 document.querySelectorAll('[data-close-panel]').forEach(btn=>btn.addEventListener('click',()=>{const opener=btn.closest('aside')===mapPanel?mapToggle:infoToggle;closePanels();opener.focus();updateRouteLabel();}));
 mapPanel.inert=true;infoPanel.inert=true;searchPanel.inert=true;
 function setMapFloor(floor){
@@ -423,6 +437,7 @@ async function openPanoramaFromCampus(target){
     loading.classList.add('done');loading.style.display='none';
     const message=document.querySelector('#hall-detail .hall-status');
     if(message){message.textContent=t('loadLocationError');message.setAttribute('role','alert');}
+    showTravelError(target,{kind:'campus',target});
     console.error(error);
   }finally{
     transitioning=false;app.setAttribute('aria-busy','false');updateControls();
@@ -648,9 +663,14 @@ function localizedLocation(i=current){
   return {area:loc.area,name:loc.name};
 }
 function locationLabel(i=current){const loc=localizedLocation(i);return loc.area+' · '+loc.name;}
+function tourAreaTitle(i=current){
+  if(i<10)return t('building');
+  const hall=CAMPUS_BUILDINGS.find(item=>item.id===(i<23?'e2':'e3'));
+  return hall?localized(hall.name,currentLanguage):localizedLocation(i).area;
+}
 function backTarget(){return LOCATIONS[current]?.back ?? null;}
 function floorLabel(i=current){
-  if(i>=10)return localizedLocation(i).area;
+  if(i>=10)return '360°';
   return LOCATIONS[i]?.area==='Top Floor'?t('topFloorBadge'):t('groundFloorBadge');
 }
 function sceneLink(i=current){
@@ -665,11 +685,10 @@ function updateControls(){
   updateDirections();
   previous.disabled=!ready || transitioning || backTarget()==null;
   document.getElementById('route-label').textContent=locationLabel();
-  document.title=object?(current<10?t('pageTitle'):localizedLocation(current<23?10:23).area+' — 360° Tour | University of Sharjah'):'Campus 360° Tours | University of Sharjah';
+  document.title=object?tourAreaTitle()+' — 360° Tour | University of Sharjah':'Campus 360° Tours | University of Sharjah';
   floorBadge.textContent=floorLabel();
-  document.querySelector('.brand-row [data-i18n="building"]').textContent=current<10?t('building'):localizedLocation(current<23?10:23).area;
-  const infoArea=current<10?t('building'):localizedLocation(current<23?10:23).area;
-  document.getElementById('info-subtitle').textContent=t('university')+' · '+infoArea;
+  document.querySelector('.brand-row [data-i18n="building"]').textContent=tourAreaTitle();
+  document.getElementById('info-subtitle').textContent=t('university')+' · '+tourAreaTitle();
   updateMap();
   updateGuidance();
   updateSceneShare();
@@ -691,8 +710,10 @@ function applyLanguage(persist=true){
   fullscreen.setAttribute('aria-label',t(document.fullscreenElement?'exitFullScreen':'fullScreen'));
   if(moreToggle){
     const moreLabel=currentLanguage==='ar'?'المزيد من أدوات العرض':'More view controls';
-    moreToggle.setAttribute('aria-label',moreLabel);moreToggle.title=moreLabel;
+    moreToggle.setAttribute('aria-label',moreLabel);moreToggle.title=moreLabel;moreMenu?.setAttribute('aria-label',moreLabel);
   }
+  document.getElementById('more-view-label').textContent=t('moreView');
+  document.getElementById('more-tour-label').textContent=t('moreTour');
   cp.textContent=locationLabel();
   updateControls();updateRouteLabel();
   if(!loading.classList.contains('done'))setInitialProgress(lastInitialProgress);
@@ -788,17 +809,18 @@ let lastInitialProgress=0;
 function setInitialProgress(value){
   lastInitialProgress=value;
   const progressTrack=loadProgressBar.parentElement;
-  const name=loadingScene<10?t('building'):localizedLocation(loadingScene<23?10:23).area;
-  loading.querySelector('.loader-title').textContent=name;
-  progressTrack.setAttribute('aria-label',(currentLanguage==='ar'?'جارٍ تحميل ':'Loading ')+name);
+  const area=tourAreaTitle(loadingScene),destination=locationLabel(loadingScene);
+  loading.querySelector('.loader-title').textContent=area;
+  document.getElementById('loader-location').textContent=destination;
+  progressTrack.setAttribute('aria-label',t('loadingLocation',destination,null));
   if(value==null){
     progressTrack.removeAttribute('aria-valuenow');
-    loadProgressText.textContent=loadingScene<10?t('loading'):t('loadingNext');return;
+    loadProgressText.textContent=t('loadingLocation',destination,null);return;
   }
   const pct=Math.round(THREE.MathUtils.clamp(value,0,1)*100);
   loadProgressBar.style.width=pct+'%';
   progressTrack.setAttribute('aria-valuenow',String(pct));
-  loadProgressText.textContent=loadingScene<10?(pct===100?t('preparing'):t('loadingPct',pct)):(pct===100?t('preparingNext'):t('loadingNextPct',pct));
+  loadProgressText.textContent=pct===100?t('preparingLocation',destination):t('loadingLocation',destination,pct);
 }
 async function loadCheckpoint(i, prepared=null, onProgress=null){
   let replacement;
@@ -850,9 +872,10 @@ async function transitionTo(i,selectedRoute=null,fromMap=false){
   const ox=THREE.MathUtils.clamp((anchor.x+1)*50,15,85);
   const oy=THREE.MathUtils.clamp((1-anchor.y)*50,20,80);
   travelFrame.style.transformOrigin=ox+'% '+oy+'%';
-  travelFrame.style.transform='scale(1.008)';travelFrame.style.opacity='1';travelFrame.style.display='block';
+  travelFrame.style.transform='scale(1.012)';travelFrame.style.opacity='1';travelFrame.style.filter='none';travelFrame.style.display='block';
 
-  const slowLoad=setTimeout(()=>{if(!status.textContent)status.textContent=t('loadingNext');},850);
+  const destination=locationLabel(i);loadingScene=i;
+  const slowLoad=setTimeout(()=>{if(!status.textContent)status.textContent=t('loadingLocation',destination,null);},650);
   try{
     // Let the snapshot paint first.
     await new Promise(resolve=>requestAnimationFrame(resolve));
@@ -884,7 +907,7 @@ async function transitionTo(i,selectedRoute=null,fromMap=false){
       const warming=networkPrefetches.get(i);
       if(coarsePointer && warming)await warming;
       const gltf=cached?await cached:await loadGLTF(i,p=>{
-        status.textContent=p==null?t('loadingNext'):p>=1?t('preparingNext'):t('loadingNextPct',Math.min(99,Math.round(p*100)));
+        status.textContent=p==null?t('loadingLocation',destination,null):p>=1?t('preparingLocation',destination):t('loadingLocation',destination,Math.min(99,Math.round(p*100)));
       });
       preloadCache.delete(i);
       if(!gltf)throw new Error('Checkpoint preload failed');
@@ -894,17 +917,18 @@ async function transitionTo(i,selectedRoute=null,fromMap=false){
     await loadCheckpoint(i,prepared);
     yaw=arrivalYaw;pitch=(fromMap || centerArrival)?(LOCATIONS[i]?.viewPitch ?? 0):(route.arrivalPitch ?? oldPitch);camera.fov=oldFov;camera.updateProjectionMatrix();camera.rotation.set(pitch,yaw,0);
     if(coarsePointer){updateHotspotVisuals(performance.now());renderer.render(scene,camera);}
-    await tween(reducedMotion?100:(coarsePointer?180:220),(e,t)=>{
+    await tween(reducedMotion?100:(coarsePointer?190:240),(e,t)=>{
       if(!reducedMotion&&!fromMap){
-        const push=1+0.075*e*Math.max(0.35,facingTravel);
+        const push=1+0.095*e*Math.max(0.35,facingTravel);
         travelFrame.style.transform='scale('+push+')';
+        travelFrame.style.filter='blur('+(1.2*e)+'px) brightness('+(1-.05*e)+')';
       }
       travelFrame.style.opacity=String(1-THREE.MathUtils.smoothstep(t,reducedMotion?0:0.08,1));
     });
     completeGuidance();return true;
   }catch(err){
     console.error(err);
-    status.textContent=t('loadLocationError');
+    status.textContent='';
     // Mobile may have released the previous panorama to stay within Safari's GPU budget.
     // Restore it from cache if the destination failed to load.
     if(coarsePointer && !object){
@@ -913,15 +937,16 @@ async function transitionTo(i,selectedRoute=null,fromMap=false){
         yaw=oldYaw;pitch=oldPitch;camera.fov=oldFov;camera.updateProjectionMatrix();camera.rotation.set(pitch,yaw,0);
       }catch(restoreError){console.warn('Could not restore previous view',restoreError);}
     }
+    showTravelError(i,{kind:'transition',target:i,route,fromMap});
   }finally{
-    clearTimeout(slowLoad);travelFrame.style.display='none';travelContext.clearRect(0,0,travelFrame.width,travelFrame.height);
+    clearTimeout(slowLoad);travelFrame.style.display='none';travelFrame.style.filter='none';travelFrame.style.transform='';travelContext.clearRect(0,0,travelFrame.width,travelFrame.height);
     camera.position.set(0,CAMERA_HEIGHT,0);hotspotGroup.visible=true;
     document.body.classList.remove('moving');app.setAttribute('aria-busy','false');transitioning=false;el.style.cursor='grab';updateControls();scheduleLikelyPreload();
   }
 }
 const touches=new Map();let gesture=null, pinchDistance=null;
 el.addEventListener('pointerdown',e=>{
-  if(document.body.classList.contains('mobile-tools-open'))setMobileToolsOpen(false);
+  if(document.body.classList.contains('more-open'))setMoreMenuOpen(false);
   if(!ready || transitioning || e.button!==0)return;
   touches.set(e.pointerId,{x:e.clientX,y:e.clientY});el.setPointerCapture(e.pointerId);
   if(touches.size>1){gesture=null;dragging=false;pinchDistance=null;return;}
@@ -986,7 +1011,7 @@ addEventListener('deviceorientation',e=>{
 if(screen.orientation?.addEventListener)screen.orientation.addEventListener('change',()=>{if(motionEnabled)motionNeedsCalibrate=true;});
 else addEventListener('orientationchange',()=>{if(motionEnabled)motionNeedsCalibrate=true;});
 motion.onclick=async()=>{
-  setMobileToolsOpen(false);
+  setMoreMenuOpen(false);
   const status=document.getElementById('status');
   if(motionEnabled){
     motionEnabled=false;motion.setAttribute('aria-pressed','false');motion.setAttribute('aria-label',t('motionEnable'));
@@ -1007,19 +1032,18 @@ motion.onclick=async()=>{
 function zoom(delta){if(!ready || transitioning)return;camera.fov=THREE.MathUtils.clamp(camera.fov+delta,35,95);camera.updateProjectionMatrix();}
 el.addEventListener('wheel',e=>{e.preventDefault();zoom(e.deltaY*0.03);},{passive:false});
 previous.onclick=()=>{const back=backTarget();if(back!=null)transitionTo(back);};
-document.getElementById('reset').onclick=()=>{setMobileToolsOpen(false);if(ready&&!transitioning)resetView();};
+document.getElementById('reset').onclick=()=>{setMoreMenuOpen(false);if(ready&&!transitioning)resetView();};
 const fullscreen=document.getElementById('fullscreen');
 fullscreen.hidden=!document.fullscreenEnabled;
-fullscreen.onclick=async()=>{setMobileToolsOpen(false);try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch{document.getElementById('status').textContent=t('fullscreenUnavailable');}};
+fullscreen.onclick=async()=>{setMoreMenuOpen(false);try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch{document.getElementById('status').textContent=t('fullscreenUnavailable');}};
 document.addEventListener('fullscreenchange',()=>fullscreen.setAttribute('aria-label',t(document.fullscreenElement?'exitFullScreen':'fullScreen')));
-addEventListener('keydown',e=>{if(e.key==='Escape'&&document.body.classList.contains('mobile-tools-open')){e.preventDefault();setMobileToolsOpen(false);moreToggle?.focus();return;}if(e.key==='Escape'&&(mapPanel.classList.contains('open')||infoPanel.classList.contains('open')||searchPanel.classList.contains('open'))){e.preventDefault();const opener=mapPanel.classList.contains('open')?mapToggle:searchPanel.classList.contains('open')?searchToggle:infoToggle;closePanels();opener.focus();return;}if(e.target.closest('button,input,textarea,select,[role="button"]')||e.altKey||e.ctrlKey||e.metaKey)return;if(e.key==='Backspace'||e.key==='Escape'){const back=backTarget();if(back!=null){e.preventDefault();routeTip.classList.remove('show');routeTip.setAttribute('aria-hidden','true');transitionTo(back);}}
+addEventListener('keydown',e=>{if(e.key==='Escape'&&document.body.classList.contains('more-open')){e.preventDefault();setMoreMenuOpen(false);moreToggle?.focus();return;}if(e.key==='Escape'&&(mapPanel.classList.contains('open')||infoPanel.classList.contains('open')||searchPanel.classList.contains('open'))){e.preventDefault();const opener=mapPanel.classList.contains('open')?mapToggle:searchPanel.classList.contains('open')?searchToggle:infoToggle;closePanels();opener.focus();return;}if(e.target.closest('button,input,textarea,select,[role="button"]')||e.altKey||e.ctrlKey||e.metaKey)return;if(e.key==='Backspace'||e.key==='Escape'){const back=backTarget();if(back!=null){e.preventDefault();routeTip.classList.remove('show');routeTip.setAttribute('aria-hidden','true');transitionTo(back);}}
   if(e.key==='Home' && ready && !transitioning){e.preventDefault();resetView();}
   if(e.key==='+' || e.key==='='){e.preventDefault();zoom(-8);}
   if(e.key==='-'){e.preventDefault();zoom(8);}
 });
 applyLanguage(false);measureLabelBounds();
 addEventListener('resize', ()=>{
-  syncMobileMoreLayout();
   renderQuality(current>=10);
   camera.aspect=innerWidth/innerHeight;
   camera.updateProjectionMatrix();
@@ -1058,6 +1082,7 @@ if(requestedSceneIndex>=0)loadCheckpoint(INITIAL_SCENE,null,p=>setInitialProgres
     type:'CACHE_VIEWED_PANORAMA',url:new URL(DATA[INITIAL_SCENE],location.href).href
   })).catch(err=>console.warn('Initial panorama cache unavailable',err));
 }).catch(err=>{
-  loading.classList.remove('done');loading.style.display='grid';loading.innerHTML='<div class="loading-card error"><b>'+t('tourLoadError')+'</b><p>'+t('checkConnection')+'</p><button class="tool" onclick="location.reload()" aria-label="'+t('retry')+'">↻</button></div>';
+  loading.classList.add('done');loading.style.display='none';
+  showTravelError(INITIAL_SCENE,{kind:'reload',target:INITIAL_SCENE});
   console.error(err);
 });
