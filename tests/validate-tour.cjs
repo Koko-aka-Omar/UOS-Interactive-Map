@@ -32,7 +32,7 @@ const i18n=loadExports(path.join(root,'tour-i18n.js'),['I18N']).I18N;
 
 check(PANORAMAS.length===LOCATIONS.length,'panorama/location counts match ('+PANORAMAS.length+')');
 check(LOCATIONS.length===LOCATION_AR.length,'English/Arabic location counts match ('+LOCATIONS.length+')');
-check(LOCATIONS.length===35,'expected 35 tour checkpoints');
+check(LOCATIONS.length===47,'expected 47 tour checkpoints');
 
 const ids=new Set();
 for(let i=0;i<LOCATIONS.length;i++){

@@ -1,4 +1,4 @@
-// Library-only tour data. Global scene indices: 23–34.
+// Library-only tour data. Global scene indices: 23–46.
 // Edit this file for Library links, bearings, checkpoint names, and panorama files.
 
 export const PANORAMAS=[
@@ -13,7 +13,19 @@ export const PANORAMAS=[
   "library-study-026.glb",
   "library-study-027.glb",
   "library-study-028.glb",
-  "library-study-029.glb"
+  "library-study-029.glb",
+  "library-corridor-030.glb",
+  "library-corridor-031.glb",
+  "library-corridor-032.glb",
+  "library-corridor-033.glb",
+  "library-corridor-034.glb",
+  "library-corridor-036.glb",
+  "library-corridor-037.glb",
+  "library-corridor-038.glb",
+  "library-corridor-039.glb",
+  "library-corridor-040.glb",
+  "library-corridor-041.glb",
+  "library-corridor-035.glb"
 ];
 
 // Only scenes that had explicit calibration in the original file are listed.
@@ -80,6 +92,15 @@ export const LOCATIONS=[
     back: 24,
     view: 3.14,
     routes: [
+      {
+        "to": 38,
+        "angle": 1.64,
+        "arrowAngle": 1.64,
+        "hotspotAngle": 1.64,
+        "hotspotDistance": 1.05,
+        "arrivalAngle": 3.45,
+        "departureAngle": 1.64
+      },
       {
         to: 24,
         angle: 0,
@@ -313,11 +334,350 @@ export const LOCATIONS=[
     view: 2.15,
     routes: [
       {
+        "to": 35,
+        "angle": 4.43,
+        "arrowAngle": 4.43,
+        "hotspotAngle": 4.43,
+        "hotspotDistance": 1.05,
+        "arrivalAngle": 3.34,
+        "departureAngle": 4.43
+      },
+      {
         to: 33,
         angle: 1.95,
         arrowAngle: 2.15,
         back: true,
         hotspotAngle: 2.22
+      }
+    ]
+  },
+  {
+    "id": "library-corridor-030",
+    "area": "Library",
+    "name": "Glass-Room Corridor · 30",
+    "centerArrival": true,
+    "back": 34,
+    "view": 3.34,
+    "routes": [
+      {
+        "to": 34,
+        "angle": 0.17,
+        "arrowAngle": 0.17,
+        "hotspotAngle": 0.17,
+        "hotspotDistance": 1.05,
+        "arrivalAngle": 2.15,
+        "departureAngle": 0.17,
+        "back": true
+      },
+      {
+        "to": 36,
+        "angle": 3.34,
+        "arrowAngle": 3.34,
+        "hotspotAngle": 3.34,
+        "hotspotDistance": 1.05,
+        "arrivalAngle": 3.03,
+        "departureAngle": 3.34
+      }
+    ]
+  },
+  {
+    "id": "library-corridor-031",
+    "area": "Library",
+    "name": "Glass-Room Corridor · 31",
+    "centerArrival": true,
+    "back": 35,
+    "view": 3.03,
+    "routes": [
+      {
+        "to": 35,
+        "angle": 0.83,
+        "arrowAngle": 0.83,
+        "hotspotAngle": 0.83,
+        "hotspotDistance": 1.05,
+        "arrivalAngle": 0.17,
+        "departureAngle": 0.83,
+        "back": true
+      },
+      {
+        "to": 37,
+        "angle": 3.03,
+        "arrowAngle": 3.03,
+        "hotspotAngle": 3.03,
+        "hotspotDistance": 1.05,
+        "arrivalAngle": 3.35,
+        "departureAngle": 3.03
+      }
+    ]
+  },
+  {
+    "id": "library-corridor-032",
+    "area": "Library",
+    "name": "Bookshelf Entrance · 32",
+    "centerArrival": true,
+    "back": 36,
+    "view": 3.35,
+    "routes": [
+      {
+        "to": 36,
+        "angle": 0.86,
+        "arrowAngle": 0.86,
+        "hotspotAngle": 0.86,
+        "hotspotDistance": 1.05,
+        "arrivalAngle": 0.83,
+        "departureAngle": 0.86,
+        "back": true
+      }
+    ]
+  },
+  {
+    "id": "library-corridor-033",
+    "area": "Library",
+    "name": "Left Study Wing · 33",
+    "centerArrival": true,
+    "back": 25,
+    "view": 3.45,
+    "routes": [
+      {
+        "to": 25,
+        "angle": 0.18,
+        "arrowAngle": 0.18,
+        "hotspotAngle": 0.18,
+        "hotspotDistance": 1.05,
+        "arrivalAngle": 3.14,
+        "departureAngle": 0.18,
+        "back": true
+      },
+      {
+        "to": 39,
+        "angle": 3.45,
+        "arrowAngle": 2.95,
+        "hotspotAngle": 3.45,
+        "hotspotDistance": 1.05,
+        "arrivalAngle": 3.13,
+        "departureAngle": 3.45
+      }
+    ]
+  },
+  {
+    "id": "library-corridor-034",
+    "area": "Library",
+    "name": "Window Study Area · 34",
+    "centerArrival": true,
+    "back": 38,
+    "view": 3.13,
+    "routes": [
+      {
+        "to": 38,
+        "angle": 0.2,
+        "arrowAngle": 0.2,
+        "hotspotAngle": 0.2,
+        "hotspotDistance": 1.05,
+        "arrivalAngle": 0.18,
+        "departureAngle": 0.2,
+        "back": true
+      },
+      {
+        "to": 46,
+        "angle": 3.14,
+        "arrowAngle": 3.14,
+        "hotspotAngle": 3.14,
+        "hotspotDistance": 1.05,
+        "arrivalAngle": 3.22,
+        "departureAngle": 3.14
+      }
+    ]
+  },
+  {
+    "id": "library-corridor-036",
+    "area": "Library",
+    "name": "Quiet Study Area · 36",
+    "centerArrival": true,
+    "back": 46,
+    "view": 3.22,
+    "routes": [
+      {
+        "to": 46,
+        "angle": 5.87,
+        "arrowAngle": 5.87,
+        "hotspotAngle": 5.87,
+        "hotspotDistance": 1.05,
+        "arrivalAngle": 5.38,
+        "departureAngle": 5.87,
+        "back": true
+      },
+      {
+        "to": 41,
+        "angle": 3.22,
+        "arrowAngle": 3.22,
+        "hotspotAngle": 3.22,
+        "hotspotDistance": 1.05,
+        "arrivalAngle": 3.04,
+        "departureAngle": 3.22
+      }
+    ]
+  },
+  {
+    "id": "library-corridor-037",
+    "area": "Library",
+    "name": "Quiet Study Area · 37",
+    "centerArrival": true,
+    "back": 40,
+    "view": 3.04,
+    "routes": [
+      {
+        "to": 40,
+        "angle": 4.65,
+        "arrowAngle": 4.65,
+        "hotspotAngle": 4.65,
+        "hotspotDistance": 1.05,
+        "arrivalAngle": 5.87,
+        "departureAngle": 4.65,
+        "back": true
+      },
+      {
+        "to": 42,
+        "angle": 3.04,
+        "arrowAngle": 3.04,
+        "hotspotAngle": 3.04,
+        "hotspotDistance": 1.05,
+        "arrivalAngle": 3.0,
+        "departureAngle": 3.04
+      }
+    ]
+  },
+  {
+    "id": "library-corridor-038",
+    "area": "Library",
+    "name": "Bookshelf Passage · 38",
+    "centerArrival": true,
+    "back": 41,
+    "view": 3.0,
+    "routes": [
+      {
+        "to": 41,
+        "angle": 1.44,
+        "arrowAngle": 1.44,
+        "hotspotAngle": 1.44,
+        "hotspotDistance": 1.05,
+        "arrivalAngle": 4.65,
+        "departureAngle": 1.44,
+        "back": true
+      },
+      {
+        "to": 43,
+        "angle": 3.0,
+        "arrowAngle": 3.0,
+        "hotspotAngle": 3.0,
+        "hotspotDistance": 1.05,
+        "arrivalAngle": 3.12,
+        "departureAngle": 3.0
+      }
+    ]
+  },
+  {
+    "id": "library-corridor-039",
+    "area": "Library",
+    "name": "Bookshelf Aisle · 39",
+    "centerArrival": true,
+    "back": 42,
+    "view": 3.12,
+    "routes": [
+      {
+        "to": 42,
+        "angle": 4.82,
+        "arrowAngle": 4.82,
+        "hotspotAngle": 4.82,
+        "hotspotDistance": 1.05,
+        "arrivalAngle": 1.44,
+        "departureAngle": 4.82,
+        "back": true
+      },
+      {
+        "to": 44,
+        "angle": 3.12,
+        "arrowAngle": 3.12,
+        "hotspotAngle": 3.12,
+        "hotspotDistance": 1.05,
+        "arrivalAngle": 2.62,
+        "departureAngle": 3.12
+      }
+    ]
+  },
+  {
+    "id": "library-corridor-040",
+    "area": "Library",
+    "name": "Reading Hall · 40",
+    "centerArrival": true,
+    "back": 43,
+    "view": 2.62,
+    "routes": [
+      {
+        "to": 43,
+        "angle": 0.16,
+        "arrowAngle": 0.16,
+        "hotspotAngle": 0.16,
+        "hotspotDistance": 1.05,
+        "arrivalAngle": 4.82,
+        "departureAngle": 0.16,
+        "back": true
+      },
+      {
+        "to": 45,
+        "angle": 2.62,
+        "arrowAngle": 2.62,
+        "hotspotAngle": 2.62,
+        "hotspotDistance": 1.05,
+        "arrivalAngle": 4.4,
+        "departureAngle": 2.62
+      }
+    ]
+  },
+  {
+    "id": "library-corridor-041",
+    "area": "Library",
+    "name": "Glass Study Rooms · 41",
+    "centerArrival": true,
+    "back": 44,
+    "view": 4.4,
+    "routes": [
+      {
+        "to": 44,
+        "angle": 0.19,
+        "arrowAngle": 0.45,
+        "hotspotAngle": 0.19,
+        "hotspotDistance": 1.05,
+        "arrivalAngle": 0.16,
+        "departureAngle": 0.19,
+        "back": true
+      }
+    ]
+  },
+  {
+    "id": "library-corridor-035",
+    "area": "Library",
+    "name": "Window Reception · 35",
+    "centerArrival": true,
+    "back": 39,
+    "view": 3.22,
+    "routes": [
+      {
+        "to": 39,
+        "angle": 5.38,
+        "arrowAngle": 5.38,
+        "hotspotAngle": 5.38,
+        "hotspotDistance": 1.05,
+        "arrivalAngle": 0.2,
+        "departureAngle": 5.38,
+        "back": true
+      },
+      {
+        "to": 40,
+        "angle": 3.22,
+        "arrowAngle": 3.17,
+        "hotspotAngle": 3.46,
+        "hotspotDistance": 0.78,
+        "arrivalAngle": 3.22,
+        "departureAngle": 3.22
       }
     ]
   }
@@ -371,5 +731,17 @@ export const LOCATION_AR=[
   [
     "المكتبة",
     "منطقة الدراسة 10"
-  ]
+  ],
+  ["المكتبة", "ممر غرف الدراسة · 30"],
+  ["المكتبة", "ممر غرف الدراسة · 31"],
+  ["المكتبة", "مدخل رفوف الكتب · 32"],
+  ["المكتبة", "جناح الدراسة الأيسر · 33"],
+  ["المكتبة", "منطقة الدراسة بجانب النوافذ · 34"],
+  ["المكتبة", "منطقة الدراسة الهادئة · 36"],
+  ["المكتبة", "منطقة الدراسة الهادئة · 37"],
+  ["المكتبة", "ممر رفوف الكتب · 38"],
+  ["المكتبة", "ممر الكتب · 39"],
+  ["المكتبة", "قاعة القراءة · 40"],
+  ["المكتبة", "غرف الدراسة الزجاجية · 41"],
+  ["المكتبة", "مكتب الاستقبال بجانب النوافذ · 35"]
 ];
