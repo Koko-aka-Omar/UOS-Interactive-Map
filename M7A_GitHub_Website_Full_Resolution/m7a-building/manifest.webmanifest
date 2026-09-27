@@ -1,12 +1,12 @@
 {
-  "name": "M7A Building Virtual Tour",
-  "short_name": "M7A Tour",
-  "description": "Interactive 360° walkthrough of University of Sharjah Building M7A.",
+  "name": "University of Sharjah Virtual Tour",
+  "short_name": "UOS Tour",
+  "description": "Interactive 360° tours of University of Sharjah spaces including M7A, Al Razi Auditorium, and the Library.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "background_color": "#041719",
-  "theme_color": "#007d80",
+  "theme_color": "#00c389",
   "icons": [
     {
       "src": "./favicon.svg",
