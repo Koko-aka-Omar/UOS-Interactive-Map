@@ -5,7 +5,7 @@ import { addCampusArtworkLabels } from './campus-map-labels.js?v=20260927-3';
 import { createDirectory, searchHalls, localized } from './campus-directory.js?v=20260927-final2';
 import { findPath } from './directions.js';
 import { PANORAMA_FILES, VISUAL_CALIBRATION, LOCATIONS, LOCATION_AR, getHotspotStyle } from './tour-routes.js?v=20260927-3';
-import { I18N } from './tour-i18n.js?v=20260927-final2';
+import { I18N } from './tour-i18n.js?v=20260927-finish1';
 
 const app=document.getElementById('app');
 const loading=document.getElementById('loading');
@@ -207,6 +207,25 @@ const requestedScene=new URLSearchParams(location.search).get('scene');
 const requestedSceneIndex=LOCATIONS.findIndex(loc=>loc.id===requestedScene);
 const INITIAL_SCENE=requestedSceneIndex>=0?requestedSceneIndex:0;
 let loadingScene=INITIAL_SCENE;
+let historyTraversal=false;
+function sceneUrl(i){
+  const url=new URL(location.href);url.search='';url.hash='';
+  url.searchParams.set('scene',LOCATIONS[i].id);return url;
+}
+function campusUrl(){
+  const url=new URL(location.href);url.search='';url.hash='';return url;
+}
+function writeSceneHistory(i,replace=false){
+  const url=sceneUrl(i);
+  history[replace?'replaceState':'pushState']({scene:LOCATIONS[i].id},'',url);
+}
+function writeCampusHistory(replace=false){
+  history[replace?'replaceState':'pushState']({scene:null},'',campusUrl());
+}
+function sceneIndexFromUrl(){
+  const id=new URL(location.href).searchParams.get('scene');
+  return LOCATIONS.findIndex(loc=>loc.id===id);
+}
 
 const FLOOR_Y=0.03;
 // Guidance uses local storage only; restricted/private storage must never block a tour.
@@ -384,6 +403,16 @@ function togglePanel(panel,button){
   }
   updateRouteLabel();
 }
+function showCampusHome(writeHistory=false){
+  setMoreMenuOpen(false);
+  document.body.classList.add('campus-only');
+  closePanels();
+  mapPanel.inert=false;mapPanel.classList.add('open');mapPanel.setAttribute('aria-hidden','false');mapToggle.setAttribute('aria-pressed','true');
+  initCampusMap();
+  requestAnimationFrame(()=>{campusMap?.resize();updateCampusMap();});
+  setTimeout(()=>campusMap?.resize(),220);
+  if(writeHistory&&!historyTraversal)writeCampusHistory(false);
+}
 mapToggle.onclick=()=>{setMoreMenuOpen(false);togglePanel(mapPanel,mapToggle);};
 infoToggle.onclick=()=>{setMoreMenuOpen(false);togglePanel(infoPanel,infoToggle);};
 document.querySelectorAll('[data-close-panel]').forEach(btn=>btn.addEventListener('click',()=>{const opener=btn.closest('aside')===mapPanel?mapToggle:infoToggle;closePanels();opener.focus();updateRouteLabel();}));
@@ -432,6 +461,7 @@ async function openPanoramaFromCampus(target){
     preloadCache.delete(target);
     await loadCheckpoint(target,prepared,p=>setInitialProgress(p));
     renderer.render(scene,camera);closePanels();mapToggle.focus({preventScroll:true});
+    if(!historyTraversal)writeSceneHistory(target,false);
     scheduleLikelyPreload();
   }catch(error){
     loading.classList.add('done');loading.style.display='none';
@@ -634,9 +664,23 @@ function updateRouteLabel(){
   routeTip.style.top=(position.y-12)+'px';routeTip.classList.add('show');routeTip.setAttribute('aria-hidden','false');
 }
 
+let canvasGrade={brightness:1,contrast:1,saturate:1};
+function gradeForScene(i){
+  if(i<6)return {brightness:1.00,contrast:1.02,saturate:.99};
+  if(i<10)return {brightness:.995,contrast:1.025,saturate:.985};
+  if(i<12)return {brightness:1.00,contrast:1.02,saturate:.97};
+  if(i<23)return {brightness:1.035,contrast:.985,saturate:.91};
+  if(i<25)return {brightness:1.00,contrast:1.01,saturate:.96};
+  if(i===25||i===26)return {brightness:.975,contrast:1.035,saturate:.965};
+  return {brightness:.995,contrast:1.02,saturate:.97};
+}
+function setSceneGrade(i){
+  canvasGrade=gradeForScene(i);
+  setCanvasFx(1,0,1);
+}
 function setCanvasFx(scale=1, blur=0, opacity=1){
   el.style.transform=`scale(${scale})`;
-  el.style.filter=`blur(${blur}px)`;
+  el.style.filter=`brightness(${canvasGrade.brightness}) contrast(${canvasGrade.contrast}) saturate(${canvasGrade.saturate}) blur(${blur}px)`;
   el.style.opacity=String(opacity);
 }
 function ease(t){ return t<0.5 ? 2*t*t : 1 - Math.pow(-2*t+2,2)/2; }
@@ -673,9 +717,7 @@ function floorLabel(i=current){
   if(i>=10)return '360°';
   return LOCATIONS[i]?.area==='Top Floor'?t('topFloorBadge'):t('groundFloorBadge');
 }
-function sceneLink(i=current){
-  const url=new URL(location.href);url.search='';url.hash='';url.searchParams.set('scene',LOCATIONS[i].id);return url.href;
-}
+function sceneLink(i=current){return sceneUrl(i).href;}
 function updateSceneShare(){
   const url=sceneLink();
   shareLocation.textContent=locationLabel();sceneLinkElement.href=url;sceneLinkElement.textContent=url;
@@ -714,6 +756,9 @@ function applyLanguage(persist=true){
   }
   document.getElementById('more-view-label').textContent=t('moreView');
   document.getElementById('more-tour-label').textContent=t('moreTour');
+  document.getElementById('campus-home-kicker').textContent=t('university');
+  document.getElementById('campus-home-title').textContent=t('homeTitle');
+  document.getElementById('campus-home-copy').textContent=t('homeCopy');
   cp.textContent=locationLabel();
   updateControls();updateRouteLabel();
   if(!loading.classList.contains('done'))setInitialProgress(lastInitialProgress);
@@ -834,7 +879,7 @@ async function loadCheckpoint(i, prepared=null, onProgress=null){
     scene.remove(object);
     cacheRecentScene(oldIndex,object);
   }
-  object=replacement;current=i;renderQuality(i>=10);scene.add(object);document.body.classList.remove('campus-only');
+  object=replacement;current=i;renderQuality(i>=10);scene.add(object);document.body.classList.remove('campus-only');setSceneGrade(i);
   camera.position.set(0,CAMERA_HEIGHT,0);resetView();
   cp.textContent=locationLabel(i);
   hoverHotspot=null;placeHotspots();ready=true;loading.classList.add('done');setTimeout(()=>{if(loading.classList.contains('done'))loading.style.display='none';},460);updateControls();
@@ -857,6 +902,8 @@ async function transitionTo(i,selectedRoute=null,fromMap=false){
   const centerArrival=LOCATIONS[i]?.centerArrival === true;
   const arrivalYaw=fromMap?-(LOCATIONS[i]?.view??0):centerArrival?-(route.arrivalAngle ?? LOCATIONS[i].view):-(arrivalForward+relativeView);
   const facingTravel=Math.cos(oldYaw+bearing);
+  const transitionKind=fromMap?'map':route.kind==='stairs'?'stairs':route.back?'back':'forward';
+  const stairSign=route.stairDirection==='down'?1:-1;
   transitioning=true;el.title='';dragging=false;gesture=null;touches.clear();pinchDistance=null;hoverHotspot=null;routeTip.classList.remove('show');routeTip.setAttribute('aria-hidden','true');updateControls();
   document.body.classList.add('moving');app.setAttribute('aria-busy','true');el.style.cursor='progress';
   const status=document.getElementById('status');status.textContent='';
@@ -918,13 +965,24 @@ async function transitionTo(i,selectedRoute=null,fromMap=false){
     yaw=arrivalYaw;pitch=(fromMap || centerArrival)?(LOCATIONS[i]?.viewPitch ?? 0):(route.arrivalPitch ?? oldPitch);camera.fov=oldFov;camera.updateProjectionMatrix();camera.rotation.set(pitch,yaw,0);
     if(coarsePointer){updateHotspotVisuals(performance.now());renderer.render(scene,camera);}
     await tween(reducedMotion?100:(coarsePointer?190:240),(e,t)=>{
-      if(!reducedMotion&&!fromMap){
-        const push=1+0.095*e*Math.max(0.35,facingTravel);
-        travelFrame.style.transform='scale('+push+')';
-        travelFrame.style.filter='blur('+(1.2*e)+'px) brightness('+(1-.05*e)+')';
+      if(!reducedMotion){
+        let transform='scale(1)';
+        if(transitionKind==='forward'){
+          const push=1+0.09*e*Math.max(0.35,facingTravel);
+          transform='scale('+push+')';
+        }else if(transitionKind==='back'){
+          transform='scale('+(1-0.035*e)+')';
+        }else if(transitionKind==='stairs'){
+          transform='translateY('+(stairSign*10*e)+'px) scale('+(1+0.045*e)+')';
+        }else{
+          transform='scale('+(1+0.025*e)+')';
+        }
+        travelFrame.style.transform=transform;
+        travelFrame.style.filter='blur('+(1.0*e)+'px) brightness('+(1-.035*e)+')';
       }
       travelFrame.style.opacity=String(1-THREE.MathUtils.smoothstep(t,reducedMotion?0:0.08,1));
     });
+    if(!historyTraversal)writeSceneHistory(i,false);
     completeGuidance();return true;
   }catch(err){
     console.error(err);
@@ -1069,13 +1127,31 @@ setCanvasFx(1,0,1);
 el.style.cursor='grab';
 setInitialProgress(0);
 // The campus homepage loads no panorama until a building is chosen.
-if(requestedSceneIndex<0){document.body.classList.add('campus-only');loading.classList.add('done');loading.style.display='none';togglePanel(mapPanel,mapToggle);}
+if(requestedSceneIndex<0){
+  writeCampusHistory(true);
+  loading.classList.add('done');loading.style.display='none';showCampusHome(false);
+}
+async function followBrowserHistory(){
+  if(transitioning){setTimeout(followBrowserHistory,80);return;}
+  const target=sceneIndexFromUrl();
+  historyTraversal=true;
+  try{
+    if(target<0){showCampusHome(false);return;}
+    document.body.classList.remove('campus-only');
+    if(object&&target===current){closePanels();updateControls();return;}
+    if(object)await transitionTo(target,null,true);
+    else await openPanoramaFromCampus(target);
+  }finally{historyTraversal=false;}
+}
+addEventListener('popstate',followBrowserHistory);
+
 const tourWorker='serviceWorker' in navigator
   ? navigator.serviceWorker.register('./service-worker.js')
       .then(()=>navigator.serviceWorker.ready)
       .catch(err=>{console.warn('Offline cache unavailable',err);return null;})
   : Promise.resolve(null);
 if(requestedSceneIndex>=0)loadCheckpoint(INITIAL_SCENE,null,p=>setInitialProgress(p)).then(()=>{
+  writeSceneHistory(INITIAL_SCENE,true);
   setInitialProgress(1);scheduleLikelyPreload();
   // Backfill the first panorama from HTTP cache if it loaded before worker activation.
   tourWorker.then(registration=>registration?.active?.postMessage({
