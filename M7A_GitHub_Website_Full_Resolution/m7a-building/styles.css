@@ -444,6 +444,7 @@
     font-size:17px;
     text-align:left;
   }
+  .mobile-more-menu .tool[hidden]{display:none!important}
   .mobile-more-menu .tool:hover,
   .mobile-more-menu .tool:focus-visible{
     background:rgba(0,195,137,.13);
