@@ -2,8 +2,10 @@ const fs=require('node:fs');
 const path=require('node:path');
 const root=path.join(__dirname,'../M7A_GitHub_Website_Full_Resolution/m7a-building');
 let html=fs.readFileSync(path.join(root,'index.html'),'utf8');
-html=html.replace("const coarsePointer=matchMedia('(pointer:coarse)').matches;", "const coarsePointer=new URLSearchParams(location.search).has('mobile')||matchMedia('(pointer:coarse)').matches;");
-html=html.replace("const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;", "const reducedMotion=true;");
+let tour=fs.readFileSync(path.join(root,'tour.js'),'utf8');
+tour=tour.replace("const coarsePointer=matchMedia('(pointer:coarse)').matches;", "const coarsePointer=new URLSearchParams(location.search).has('mobile')||matchMedia('(pointer:coarse)').matches;");
+tour=tour.replace("const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;", "const reducedMotion=true;");
+tour=tour.replace("const requestedScene=new URLSearchParams(location.search).get('scene');", "const requestedScene=new URLSearchParams(location.search).get('scene')||'entrance';");
 const harness=`
 const qa=document.createElement('div');qa.style='position:fixed;top:115px;left:10px;z-index:100;background:#fff;color:#111;padding:10px;max-height:65vh;overflow:auto;font:12px monospace';document.body.append(qa);
 const run=document.createElement('button');run.textContent='Run navigation checks';qa.append(run);
@@ -56,7 +58,7 @@ run.onclick=async()=>{run.disabled=true;const lines=[];const check=(v,s)=>{if(!v
   loadCheckpoint=async(i,...args)=>{if(i===9)throw new Error('QA simulated destination failure');return savedLoader(i,...args)};
   try{await navigateFromMap(9);}finally{loadCheckpoint=savedLoader;}
   check(current===8&&object&&ready&&!transitioning,'failed map load restores usable view');
-  check(!guidanceDone,'failed travel does not complete guidance');guidanceDone=savedGuidance;updateGuidance();
+  check(!guidanceDone,'failed travel does not complete guidance');hideTravelError();guidanceDone=savedGuidance;updateGuidance();
   await navigateFromMap(0);
   yaw=-LOCATIONS[0].routes[0].angle;pitch=-.3;camera.rotation.set(pitch,yaw,0);
   updateRouteLabel();check(routeTip.classList.contains('show')&&routeTip.textContent==='Study Rooms','facing route shows one label');
@@ -78,6 +80,8 @@ run.onclick=async()=>{run.disabled=true;const lines=[];const check=(v,s)=>{if(!v
   result.textContent+='\\nALL CHECKS PASSED';
 }catch(e){result.textContent+='\\nFAIL '+e.stack}finally{run.disabled=false}};
 `;
-html=html.replace(/<\/script>\s*<\/body>/,harness+'\n</script>\n</body>');
+const moduleTag=/<script type="module" src="\.\/tour\.js[^"]*"><\/script>/;
+if(!moduleTag.test(html))throw new Error('tour module script tag not found');
+html=html.replace(moduleTag,'<script type="module">\n'+tour+'\n'+harness+'\n</script>');
 fs.writeFileSync(path.join(root,'qa.html'),html);
 
