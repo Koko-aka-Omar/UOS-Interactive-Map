@@ -389,3 +389,116 @@
 .share-button:hover{background:#00a979}
 .progress-track span{background:linear-gradient(90deg,var(--uos-accent),var(--uos-accent-soft))}
 .spinner{border-top-color:var(--uos-accent)}
+
+
+/* Mobile overflow menu — stable 3-button toolbar with labeled secondary controls. */
+.mobile-more-menu{display:none}
+
+@media(max-width:640px){
+  .topbar .tools{
+    width:auto!important;
+    max-width:none!important;
+    flex-wrap:nowrap!important;
+    gap:4px!important;
+    padding:4px!important;
+  }
+  .topbar .tools .tool,
+  .topbar .tools #map-toggle{
+    width:44px;
+    min-width:44px;
+    height:44px;
+  }
+
+  .mobile-more-menu{
+    position:fixed;
+    z-index:23;
+    top:max(68px,calc(env(safe-area-inset-top) + 62px));
+    right:12px;
+    width:min(224px,calc(100vw - 24px));
+    padding:7px;
+    border:1px solid rgba(183,242,238,.22);
+    border-radius:18px;
+    background:linear-gradient(145deg,rgba(0,66,71,.97),rgba(2,39,44,.97));
+    box-shadow:0 16px 42px rgba(0,0,0,.34);
+    pointer-events:auto;
+    transform-origin:top right;
+  }
+  .mobile-more-menu[hidden]{display:none!important}
+  .mobile-more-menu:not([hidden]){
+    display:grid;
+    gap:4px;
+    animation:mobileMoreIn .16s ease-out both;
+  }
+  .mobile-more-menu .tool{
+    width:100%!important;
+    min-width:0!important;
+    height:44px!important;
+    padding:0 12px;
+    border-radius:12px;
+    display:flex!important;
+    align-items:center;
+    justify-content:flex-start;
+    gap:11px;
+    background:rgba(255,255,255,.055);
+    border-color:transparent;
+    font-size:17px;
+    text-align:left;
+  }
+  .mobile-more-menu .tool:hover,
+  .mobile-more-menu .tool:focus-visible{
+    background:rgba(0,195,137,.13);
+    border-color:rgba(0,195,137,.32);
+    transform:none;
+  }
+  .mobile-more-menu .tool:active{transform:scale(.985)}
+  .mobile-more-menu .tool[aria-pressed="true"]{
+    background:rgba(0,195,137,.16);
+    border-color:rgba(0,195,137,.38);
+    box-shadow:none;
+  }
+  .mobile-more-menu .tool::after{
+    content:attr(aria-label);
+    min-width:0;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    color:#effffd;
+    font:650 11px/1.2 Inter,ui-sans-serif,system-ui,sans-serif;
+    letter-spacing:0;
+  }
+  .mobile-more-menu .info-tool{font-family:Georgia,serif}
+  body.mobile-tools-open #more-toggle{
+    background:rgba(0,195,137,.16);
+    border-color:rgba(126,232,200,.46);
+    box-shadow:0 0 0 3px rgba(0,195,137,.09);
+  }
+  body.mobile-looking .mobile-more-menu{display:none!important}
+
+  html[dir="rtl"] .mobile-more-menu{
+    right:auto;
+    left:12px;
+    transform-origin:top left;
+  }
+  html[dir="rtl"] .mobile-more-menu .tool{
+    direction:rtl;
+    text-align:right;
+  }
+
+  @keyframes mobileMoreIn{
+    from{opacity:0;transform:translateY(-5px) scale(.97)}
+    to{opacity:1;transform:translateY(0) scale(1)}
+  }
+}
+
+@media(orientation:landscape) and (max-height:500px){
+  .mobile-more-menu{
+    top:max(62px,calc(env(safe-area-inset-top) + 56px));
+    right:10px;
+    width:218px;
+  }
+  html[dir="rtl"] .mobile-more-menu{right:auto;left:10px}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .mobile-more-menu:not([hidden]){animation:none!important}
+}
