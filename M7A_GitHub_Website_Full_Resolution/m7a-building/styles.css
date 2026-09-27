@@ -255,3 +255,29 @@
 @media(max-width:600px){.site-footer{font-size:9px;gap:2px;padding:6px 12px max(6px,env(safe-area-inset-bottom))}.site-footer span{width:100%}.bottom{bottom:max(62px,calc(env(safe-area-inset-bottom) + 58px))}.campus-map-card{bottom:max(72px,calc(env(safe-area-inset-bottom) + 64px))}#directory-body{max-height:48vh}}
 
 .campus-only .topbar,.campus-only .bottom{visibility:hidden}
+/* Campus palette and compact, scrollable building choices. */
+.campus-map-card{background:linear-gradient(145deg,#fff,#f0f8fa);border-color:#c8e2e8;box-shadow:0 16px 44px #063e5426}
+.directory-heading strong{color:#123e56}.campus-map-card .eyebrow{color:#137d87}
+.hall-result{border-color:#d2e6eb;border-left-color:#12a6a0;background:linear-gradient(110deg,#e9f7f6,#fff);transition:background .18s ease,border-color .18s ease}
+.hall-result:hover{background:#dff3f4;border-color:#6bbfca}.hall-result:focus-visible{outline-color:#147d98}
+.campus-popup-button{background:linear-gradient(120deg,#086a83,#078f86);box-shadow:0 4px 12px #087f8326}
+.campus-pin-shape{background:linear-gradient(145deg,#16b5a9,#086185)}
+.campus-cluster{background:linear-gradient(145deg,#087d97,#07516f);border-color:#ccfff5;box-shadow:0 0 0 5px #36cfbe26,0 6px 20px #06475f40}
+.campus-map-card.showing-group #hall-results{max-height:30vh;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+#directory-body{overscroll-behavior:contain;scrollbar-width:thin}
+#hall-results:not([hidden]),#hall-detail:not([hidden]){animation:directory-reveal .2s ease-out}
+@keyframes directory-reveal{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:600px){
+ .campus-map-card{padding:12px 14px;border-radius:18px;max-height:42dvh;display:flex;flex-direction:column}
+ .directory-heading{flex-shrink:0}.directory-heading strong{font-size:17px}
+ #directory-body{min-height:0;max-height:32dvh;overflow-y:auto}
+ .campus-map-card.showing-group #hall-results{max-height:20dvh}
+ .campus-map-card .hall-result{padding:10px 12px;margin-bottom:5px}.campus-map-card .hall-result strong{font-size:14px}
+ .campus-map-card .hall-result small{font-size:11px;margin-top:3px}
+ #hall-search{min-height:40px;margin-bottom:8px}#directory-intro{font-size:11px;margin-bottom:6px}
+ #map-panel.campus-map-panel{transform:none;transition:opacity .2s ease,visibility .2s ease;backdrop-filter:none;-webkit-backdrop-filter:none}
+ .hall-thumbnail{max-height:110px;object-fit:cover}
+}
+@media(prefers-reduced-motion:reduce){#hall-results,#hall-detail{animation:none!important}.hall-result,#map-panel.campus-map-panel{transition:none!important}}
+.site-footer{z-index:111}
+@media(max-width:600px){.campus-map-card.showing-group #hall-search{display:none}.campus-map-card.showing-group{max-height:34dvh}}

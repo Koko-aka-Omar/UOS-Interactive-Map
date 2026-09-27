@@ -1,10 +1,10 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { HALLS } from './halls.js?v=20260927-1';
-import { addCampusArtworkLabels } from './campus-map-labels.js?v=20260927-1';
-import { createDirectory, searchHalls, localized } from './campus-directory.js?v=20260927-1';
+import { HALLS } from './halls.js?v=20260927-3';
+import { addCampusArtworkLabels } from './campus-map-labels.js?v=20260927-3';
+import { createDirectory, searchHalls, localized } from './campus-directory.js?v=20260927-3';
 import { findPath } from './directions.js';
-import { PANORAMA_FILES, VISUAL_CALIBRATION, LOCATIONS, LOCATION_AR, getHotspotStyle } from './tour-routes.js?v=20260927-1';
+import { PANORAMA_FILES, VISUAL_CALIBRATION, LOCATIONS, LOCATION_AR, getHotspotStyle } from './tour-routes.js?v=20260927-3';
 import { I18N } from './tour-i18n.js';
 
 const app=document.getElementById('app');
@@ -21,8 +21,8 @@ const languageKey='m7a-language-v1';
 let currentLanguage='en';
 try{if(localStorage.getItem(languageKey)==='ar')currentLanguage='ar';}catch{}
 function t(key,...args){const value=I18N[currentLanguage][key]??I18N.en[key]??key;return typeof value==='function'?value(...args):value;}
-// Phones/tablets use dedicated 3072×1536 panoramas. Desktop keeps the full 8K originals.
-const DATA=PANORAMA_FILES.map(file=>(coarsePointer?'./assets-mobile/':'./assets/')+file);
+// Phones/tablets use dedicated 3K/4K panoramas. Desktop keeps the full 8K originals.
+const DATA=PANORAMA_FILES.map(file=>(coarsePointer?'./assets-mobile/':'./assets/')+file+(file==='library-study-021.glb'?'?v=20260927-3':''));
 
 const scene=new THREE.Scene();
 const camera=new THREE.PerspectiveCamera(72,innerWidth/innerHeight,0.01,50);
@@ -31,12 +31,12 @@ camera.position.set(0,CAMERA_HEIGHT,0);
 camera.rotation.order='YXZ';
 
 const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
-function renderQuality(){
+function renderQuality(enhanced=false){
   // Keep phone rendering within a smaller GPU budget; preserve desktop supersampling.
-  const pixelBudget=coarsePointer?1000000:6000000;
+  const pixelBudget=coarsePointer?(enhanced?2400000:1000000):6000000;
   const budget=Math.sqrt(pixelBudget/(innerWidth*innerHeight));
   renderer.setPixelRatio(coarsePointer
-    ? Math.min(devicePixelRatio||1,1.5,budget)
+    ? Math.min(devicePixelRatio||1,enhanced?2:1.5,budget)
     : Math.max(1,Math.min(Math.max(devicePixelRatio,1.35),2,budget)));
 }
 renderQuality();
@@ -493,7 +493,7 @@ function placeOne(root,route){
   const angle=route.angle,[defaultDist]=getHotspotStyle(current,route);
   const dist=route.hotspotDistance??defaultDist;
   const hotspotAngle=route.hotspotAngle??angle;
-  root.position.set(Math.sin(hotspotAngle)*dist,FLOOR_Y,-Math.cos(hotspotAngle)*dist);
+  root.position.set(Math.sin(hotspotAngle)*dist,route.hotspotHeight??FLOOR_Y,-Math.cos(hotspotAngle)*dist);
   // Explicit scene calibration separates arrow heading from placement and travel.
   // Preserve the legacy orientation for routes without an override.
   const arrowFlip=current>=10?Math.PI:0;
@@ -518,13 +518,14 @@ function updateHotspotVisuals(now=0){
     const hotspotScale=u.route?getHotspotStyle(current,u.route)[1]:.64;
     hs.scale.setScalar(hotspotScale*(1+0.05*e+pulse));
     const stairBoost=u.route?.kind==='stairs'?0.06:0;
+    const polished=current>=12&&current<=16;
     const guided=directionsNext!==null&&u.route?.to===directionsNext;
-    u.inner.material.color.setHex(guided?0xffcf5c:0x22b8b0);
+    u.inner.material.color.setHex(guided?0xffcf5c:polished?0x087f83:0x22b8b0);
     u.ring.material.color.setHex(guided?0xffe49a:0x8edbd6);
-    u.arrow.material.color.setHex(guided?0xfff5c4:0x063f43);
-    u.inner.material.opacity=(0.16+0.15*e+stairBoost)*quiet;
+    u.arrow.material.color.setHex(guided?0xfff5c4:polished?0xf0fffa:0x063f43);
+    u.inner.material.opacity=((polished?0.48:0.16)+0.15*e+stairBoost)*quiet;
     u.ring.material.opacity=(0.40+0.30*e+pulse)*quiet;
-    u.arrow.material.opacity=(0.70+0.20*e)*quiet;
+    u.arrow.material.opacity=((polished?0.88:0.70)+(polished?0.12:0.20)*e)*quiet;
     if(guided){hs.scale.multiplyScalar(1.2);u.inner.material.opacity=.5;u.ring.material.opacity=1;u.arrow.material.opacity=1;}
   }
 }
@@ -677,7 +678,7 @@ shareScene.onclick=async()=>{
 };
 function resetView(){
   const bearing=LOCATIONS[current]?.view ?? LOCATIONS[current]?.routes?.[0]?.angle ?? 0;
-  yaw=-bearing;pitch=LOCATIONS[current]?.viewPitch ?? 0;camera.fov=72;camera.updateProjectionMatrix();camera.rotation.set(pitch,yaw,0);
+  yaw=-bearing;pitch=LOCATIONS[current]?.viewPitch ?? 0;camera.fov=current>=10?95:72;camera.updateProjectionMatrix();camera.rotation.set(pitch,yaw,0);
   if(motionEnabled)motionNeedsCalibrate=true;
 }
 function dispose(root){
@@ -774,7 +775,7 @@ async function loadCheckpoint(i, prepared=null, onProgress=null){
     scene.remove(object);
     cacheRecentScene(oldIndex,object);
   }
-  object=replacement;current=i;scene.add(object);document.body.classList.remove('campus-only');
+  object=replacement;current=i;renderQuality(i>=10);scene.add(object);document.body.classList.remove('campus-only');
   camera.position.set(0,CAMERA_HEIGHT,0);resetView();
   cp.textContent=locationLabel(i);
   hoverHotspot=null;placeHotspots();ready=true;loading.classList.add('done');setTimeout(()=>{if(loading.classList.contains('done'))loading.style.display='none';},460);updateControls();
@@ -977,7 +978,7 @@ addEventListener('keydown',e=>{if(e.key==='Escape'&&(mapPanel.classList.contains
 });
 applyLanguage(false);measureLabelBounds();
 addEventListener('resize', ()=>{
-  renderQuality();
+  renderQuality(current>=10);
   camera.aspect=innerWidth/innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth,innerHeight);measureLabelBounds();

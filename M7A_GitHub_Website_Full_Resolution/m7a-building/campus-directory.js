@@ -69,7 +69,7 @@ export function createDirectory({ halls, root, language, isReady, openTour, star
     render();
     const card = root.querySelector('.campus-map-card');
     const offset = card && map?.getContainer().clientWidth <= 600 ? [0, -Math.min(card.offsetHeight / 2, 170)] : [0, 0];
-    map?.easeTo({ center: mapCoordinate(hall), zoom: Math.max(map.getZoom(), 17), offset, duration: 400 });
+    map?.easeTo({ center: mapCoordinate(hall), zoom: Math.max(map.getZoom(), 17), offset, duration: matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 400 });
   }
   function renderList() {
     results.replaceChildren();
@@ -154,6 +154,7 @@ export function createDirectory({ halls, root, language, isReady, openTour, star
     }
   }
   function render() {
+    root.querySelector('.campus-map-card').classList.toggle('showing-group', Boolean(group));
     title.textContent = selected ? label(selected) : group ? text('group') : text('choose');
     intro.hidden = Boolean(selected || group || collapsed);
     intro.textContent = language() === 'ar' ? 'اختر مبنى لبدء جولة بزاوية 360°.' : 'Choose a building to start a 360° tour.';
@@ -163,10 +164,15 @@ export function createDirectory({ halls, root, language, isReady, openTour, star
     browse.hidden = !selected && !group; browse.textContent = '‹ ' + text('back');
     renderList(); renderDetail();
   }
+  let markerSignature = '';
   function refreshMarkers() {
     if (!map) return;
+    const groups = groupNearby(halls, coordinate => map.project(coordinate));
+    const signature = language() + ':' + groups.map(members => members.map(hall => hall.id).join(',')).join('|');
+    if (signature === markerSignature) return;
+    markerSignature = signature;
     markers.forEach(marker => marker.remove()); markers = [];
-    for (const members of groupNearby(halls, coordinate => map.project(coordinate))) {
+    for (const members of groups) {
       const button = node('button', members.length > 1 ? 'campus-cluster' : 'campus-marker'); button.type = 'button';
       if (members.length > 1) {
         button.textContent = String(members.length); button.setAttribute('aria-label', text('count')(members.length));
@@ -183,7 +189,7 @@ export function createDirectory({ halls, root, language, isReady, openTour, star
         selected = null; room = null; group = members; collapsed = false; search.value = ''; render();
         // Keep a selectable list even if halls share exactly the same coordinates.
         const bounds = new maplibregl.LngLatBounds(); members.forEach(hall => bounds.extend(mapCoordinate(hall)));
-        map.fitBounds(bounds, { padding: 100, maxZoom: Math.min(map.getZoom() + 2, 20), duration: 450 });
+        map.fitBounds(bounds, { padding: {top:100,left:60,right:60,bottom:map.getContainer().clientWidth<=600?Math.min(root.querySelector('.campus-map-card').offsetHeight+90,map.getContainer().clientHeight*.55):100}, maxZoom: Math.min(map.getZoom() + 2, 20), duration: matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 450 });
         collapse.focus({ preventScroll: true });
       };
       const coordinate = members.reduce((sum, hall) => { const point=mapCoordinate(hall); return [sum[0] + point[0] / members.length, sum[1] + point[1] / members.length]; }, [0, 0]);
