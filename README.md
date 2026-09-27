@@ -39,11 +39,15 @@ Navigation follows explicit physical routes rather than allowing arbitrary jumps
 - Turn-by-turn route guidance to searchable rooms
 - English and Arabic interface
 - Direct links to individual scenes
+- Scene URLs update as visitors move, with browser Back/Forward navigation between viewpoints
 - Device-motion viewing on supported phones
 - Fullscreen and reset controls
 - Responsive phone and landscape layouts
 - Dedicated lower-resolution mobile panorama assets
 - Destination-aware loading states
+- Subtle forward/back/stair-specific scene transitions
+- Mild renderer grading to reduce exposure/color differences between tour areas
+- Branded UOS campus home state before entering a tour
 - Retry/back recovery when a scene fails to load
 - Scene preloading and decoded-scene memory limits
 - Progressive Web App manifest and service worker
@@ -287,6 +291,17 @@ node tests/build-navigation-qa.cjs
 The navigation data should be tested whenever route connections, arrow bearings, arrival directions, or panorama files are changed.
 
 UI-only changes should avoid editing route calibration unless there is a specific navigation issue.
+
+### Automated integrity gate
+
+Every GitHub Pages deployment runs:
+
+```bash
+node tests/validate-tour.cjs
+node tests/build-navigation-qa.cjs
+```
+
+The validator checks scene IDs, route targets and reverse links, panorama assets, mobile assets, search destinations, thumbnails, translation key parity, and required UI files. A failed validation blocks the Pages deployment. Pull requests also have a dedicated **UOS Tour QA** workflow.
 
 ---
 
