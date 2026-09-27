@@ -478,8 +478,8 @@ function makeArrowHotspot(){
     mesh.rotation.x=-Math.PI/2;mesh.position.y=height;mesh.renderOrder=order;root.add(mesh);return mesh;
   }
   const hit=surface(new THREE.CircleGeometry(0.36,48),floorMaterial(0xffffff,0),0,9);
-  const inner=surface(new THREE.CircleGeometry(0.245,64),floorMaterial(0x22b8b0,0.18),0.001,10);
-  const ring=surface(new THREE.RingGeometry(0.245,0.253,64),floorMaterial(0x8edbd6,0.52),0.002,11);
+  const inner=surface(new THREE.CircleGeometry(0.245,64),floorMaterial(0x00c389,0.18),0.001,10);
+  const ring=surface(new THREE.RingGeometry(0.245,0.253,64),floorMaterial(0x7ee8c8,0.52),0.002,11);
   const shape=new THREE.Shape();
   shape.moveTo(0,0.135);shape.lineTo(0.145,0.015);shape.lineTo(0.145,-0.075);
   shape.lineTo(0,0.038);shape.lineTo(-0.145,-0.075);shape.lineTo(-0.145,0.015);shape.closePath();
@@ -527,8 +527,8 @@ function updateHotspotVisuals(now=0){
     const stairBoost=u.route?.kind==='stairs'?0.06:0;
     const polished=current>=12&&current<=16;
     const guided=directionsNext!==null&&u.route?.to===directionsNext;
-    u.inner.material.color.setHex(guided?0xffcf5c:polished?0x087f83:0x22b8b0);
-    u.ring.material.color.setHex(guided?0xffe49a:0x8edbd6);
+    u.inner.material.color.setHex(guided?0xffcf5c:polished?0x00a979:0x00c389);
+    u.ring.material.color.setHex(guided?0xffe49a:0x7ee8c8);
     u.arrow.material.color.setHex(guided?0xfff5c4:polished?0xf0fffa:0x063f43);
     u.inner.material.opacity=((polished?0.48:0.16)+0.15*e+stairBoost)*quiet;
     u.ring.material.opacity=(0.40+0.30*e+pulse)*quiet;
