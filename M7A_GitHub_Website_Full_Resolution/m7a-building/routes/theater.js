@@ -165,7 +165,7 @@ export const LOCATIONS=[
         angle: 4.62,
         arrowAngle: 4.62,
         back: true,
-        hotspotAngle: 5.05
+        hotspotAngle: 5.13
       },
       {
         to: 14,
@@ -195,7 +195,8 @@ export const LOCATIONS=[
         arrowAngle: 3.14,
         hotspotAngle: 3.14,
         kind: "stairs",
-        stairDirection: "down"
+        stairDirection: "down",
+        hotspotHeight: -0.08
       }
     ]
   },
@@ -222,7 +223,8 @@ export const LOCATIONS=[
         arrowAngle: 3.05,
         hotspotAngle: 3.05,
         kind: "stairs",
-        stairDirection: "down"
+        stairDirection: "down",
+        hotspotHeight: -0.08
       },
       {
         to: 20,
@@ -244,7 +246,8 @@ export const LOCATIONS=[
         arrowAngle: 6,
         back: true,
         kind: "stairs",
-        stairDirection: "up"
+        stairDirection: "up",
+        hotspotHeight: 0.12
       },
       {
         to: 17,
@@ -454,13 +457,15 @@ export const LOCATION_AR=[
 
 // Exceptional visual distance/scale overrides. Keys use stable scene IDs.
 export const HOTSPOT_STYLE={
-  "theater-auditorium-rear->theater-auditorium-center":[0.65,.38],
-  "theater-auditorium-center->theater-stage-011":[0.65,.38],
+  "theater-foyer->theater-hall":[1.05,.58],
+  "theater-foyer->theater-auditorium-rear":[1.08,.58],
+  "theater-auditorium-rear->theater-auditorium-center":[0.62,.34],
+  "theater-auditorium-center->theater-stage-011":[0.62,.34],
   "theater-stage-014->theater-stage-013":[0.9,.42],
   "theater-stage-016->theater-stage-014":[0.9,.42],
-  "theater-hall->theater-entrance-b":[2.05,.78],
-  "theater-hall->theater-foyer":[1.85,.76],
-  "theater-hall->theater-hall-017":[1.85,.76],
+  "theater-hall->theater-entrance-b":[1.25,.58],
+  "theater-hall->theater-foyer":[1.10,.58],
+  "theater-hall->theater-hall-017":[1.10,.58],
   "theater-stage-011->theater-stage-012":[1.00,.64],
   "theater-stage-011->theater-auditorium-center":[0.9,.42],
   "theater-stage-013->theater-stage-012":[1.80,.80]

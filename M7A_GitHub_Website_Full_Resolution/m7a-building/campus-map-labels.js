@@ -16,21 +16,20 @@ const groups = [
 export function addCampusArtworkLabels(map, corners, halls) {
   const point = (x, y) => [corners[0][0] + (corners[3][0] - corners[0][0]) * y / 4118,
     corners[0][1] + (corners[1][1] - corners[0][1]) * x / 900];
-  const labels = groups.flatMap(([color, entries]) => entries.map(([code, x, y, size = 18, maskWidth = size + 3, maskHeight = code.length * size * 0.58 + 4]) => {
+  groups.flatMap(([color, entries]) => entries.map(([code, x, y, size = 18, maskWidth = size + 3, maskHeight = code.length * size * 0.58 + 4]) => {
     const mask = document.createElement('div'); mask.className = 'campus-artwork-label';
     mask.style.background = color; if (color === '#e0ddd6') mask.style.color = '#333'; mask.setAttribute('aria-hidden', 'true');
     const text = document.createElement('span'); text.textContent = code; mask.append(text);
     new maplibregl.Marker({element: mask, anchor: 'center'}).setLngLat(point(x, y)).addTo(map);
-    return {mask, size, maskWidth, maskHeight};
+    mask.style.width = `calc(${maskWidth}px * var(--campus-art-scale, 1))`;
+    mask.style.height = `calc(${maskHeight}px * var(--campus-art-scale, 1))`;
+    mask.style.fontSize = `calc(${size}px * var(--campus-art-scale, 1))`;
+    return mask;
   }));
   const resize = () => {
     const left = map.project(corners[3]), right = map.project(corners[0]);
     const scale = Math.abs(right.x - left.x) / 4118;
-    for (const {mask, size, maskWidth, maskHeight} of labels) {
-      mask.style.width = `${maskWidth * scale}px`;
-      mask.style.height = `${maskHeight * scale}px`;
-      mask.style.fontSize = `${size * scale}px`;
-    }
+    map.getContainer().style.setProperty('--campus-art-scale', scale);
   };
   map.on('zoom', resize); map.on('resize', resize); resize();
   // Only buildings with an actual tour receive a highlight.
