@@ -2,6 +2,15 @@
 // A tour can open an existing scene or a separately hosted hall tour.
 export const HALLS = [
   {
+    id: 'a4', code: 'A4',
+    name: { en: "Men's Hall", ar: 'قاعة الطلاب' },
+    // A4 centre on the unchanged 2026 campus artwork.
+    mapCoordinates: [55.484435266313, 25.279942153384],
+    thumbnail: './panoramas-mobile/mens-hall-078.jpg',
+    tour: { scene: 'mens-hall-078' },
+    rooms: []
+  },
+  {
     id: 'e2', code: 'E2',
     name: { en: 'Al Razi Auditorium', ar: 'مسرح الرازي' },
     coordinates: [55.477603577553126, 25.27433935800182],

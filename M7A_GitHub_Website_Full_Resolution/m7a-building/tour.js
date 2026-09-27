@@ -4,7 +4,7 @@ import { HALLS } from './halls.js?v=20260927-final2';
 import { addCampusArtworkLabels } from './campus-map-labels.js?v=20260927-3';
 import { createDirectory, searchHalls, localized } from './campus-directory.js?v=20260927-final2';
 import { findPath } from './directions.js';
-import { PANORAMA_FILES, VISUAL_CALIBRATION, LOCATIONS, LOCATION_AR, getHotspotStyle } from './tour-routes.js?v=20260928-library-shortcuts8';
+import { PANORAMA_FILES, VISUAL_CALIBRATION, LOCATIONS, LOCATION_AR, getHotspotStyle } from './tour-routes.js?v=20260928-mens-hall5';
 import { I18N } from './tour-i18n.js?v=20260927-vivid1';
 
 const app=document.getElementById('app');
@@ -340,7 +340,8 @@ function openDirectoryTour(target){
   if(target.scene){const index=LOCATIONS.findIndex(item=>item.id===target.scene);if(index>=0)openPanoramaFromCampus(index);}
   else if(target.url){const url=new URL(target.url,location.href);if(['https:','http:'].includes(url.protocol))location.assign(url.href);}
 }
-const directory=createDirectory({halls:CAMPUS_BUILDINGS,root:mapPanel,language:()=>currentLanguage,isReady:()=>!transitioning,startDirections:startRoomDirections,openTour:openDirectoryTour,currentHallId:()=>object?(current<10?'m7':current<23?'e2':'e3'):null});
+function hallIdForScene(i=current){return i<10?'m7':i<23?'e2':i<47?'e3':'a4';}
+const directory=createDirectory({halls:CAMPUS_BUILDINGS,root:mapPanel,language:()=>currentLanguage,isReady:()=>!transitioning,startDirections:startRoomDirections,openTour:openDirectoryTour,currentHallId:()=>object?hallIdForScene():null});
 function initCampusMap(){
   if(campusMap||!window.maplibregl)return;
   const building=CAMPUS_BUILDINGS[0];
@@ -754,7 +755,7 @@ function localizedLocation(i=current){
 function locationLabel(i=current){const loc=localizedLocation(i);return loc.area+' · '+loc.name;}
 function tourAreaTitle(i=current){
   if(i<10)return t('building');
-  const hall=CAMPUS_BUILDINGS.find(item=>item.id===(i<23?'e2':'e3'));
+  const hall=CAMPUS_BUILDINGS.find(item=>item.id===hallIdForScene(i));
   return hall?localized(hall.name,currentLanguage):localizedLocation(i).area;
 }
 function backTarget(){return LOCATIONS[current]?.back ?? null;}

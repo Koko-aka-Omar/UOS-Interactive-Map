@@ -1,5 +1,5 @@
 const CACHE_PREFIX='uos-tour:'+self.registration.scope+':';
-const SHELL_CACHE=CACHE_PREFIX+'shell-v57';
+const SHELL_CACHE=CACHE_PREFIX+'shell-v62';
 // Keep panorama downloads across UI releases.
 const PANORAMA_CACHE=CACHE_PREFIX+'panoramas-v3';
 const LEGACY_CACHES=['m7a-tour-v7','m7a-tour:'+self.registration.scope+':panoramas-v3'];
@@ -34,7 +34,8 @@ const PANORAMA_NAMES=[
   'theater-hall-017','library-entrance-018','library-lobby-019','library-study-020',
   'library-study-021','library-study-022','library-study-023','library-study-024',
   'library-study-025','library-study-026','library-study-027','library-study-028','library-study-029',
-  'library-corridor-030', 'library-corridor-031', 'library-corridor-032', 'library-corridor-033', 'library-corridor-034', 'library-corridor-035', 'library-corridor-036', 'library-corridor-037', 'library-corridor-038', 'library-corridor-039', 'library-corridor-040', 'library-corridor-041'
+  'library-corridor-030', 'library-corridor-031', 'library-corridor-032', 'library-corridor-033', 'library-corridor-034', 'library-corridor-035', 'library-corridor-036', 'library-corridor-037', 'library-corridor-038', 'library-corridor-039', 'library-corridor-040', 'library-corridor-041',
+  'mens-hall-078','mens-hall-079','mens-hall-080','mens-hall-081','mens-hall-082','mens-hall-083','mens-hall-084','mens-hall-085','mens-hall-086','mens-hall-087','mens-hall-088'
 ];
 const PANORAMAS=new Set(
   ['assets','assets-mobile'].flatMap(dir=>
