@@ -54,6 +54,16 @@ for(let i=0;i<LOCATIONS.length;i++){
   }
 }
 
+// Men's Hall checkpoints must remain a strict two-way numeric sequence:
+// 078 <-> 079 <-> ... <-> 088.
+for(let i=47;i<=57;i++){
+  const expected=[];
+  if(i>47)expected.push(i-1);
+  if(i<57)expected.push(i+1);
+  const actual=LOCATIONS[i].routes.map(route=>route.to).sort((a,b)=>a-b);
+  check(JSON.stringify(actual)===JSON.stringify(expected),'Men\'s Hall sequence exact: '+LOCATIONS[i].id);
+}
+
 for(const part of routeParts){
   check(part.VISUAL_CALIBRATION.length<=part.PANORAMAS.length,'visual calibration does not exceed area scene count');
   for(const gain of part.VISUAL_CALIBRATION){
