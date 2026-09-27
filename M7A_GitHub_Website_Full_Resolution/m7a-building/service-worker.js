@@ -6,10 +6,10 @@ const LEGACY_CACHES=['m7a-tour-v7','m7a-tour:'+self.registration.scope+':panoram
 
 const CORE_ASSETS=[
   './','./index.html',
-  './styles.css?v=20260927-system1','./ui-polish.css?v=20260927-system1',
-  './tour-boot.js?v=20260927-3','./tour.js?v=20260927-system1',
-  './tour-i18n.js?v=20260927-polish1','./halls.js?v=20260927-3',
-  './campus-directory.js?v=20260927-polish1','./campus-map-labels.js?v=20260927-3',
+  './styles.css?v=20260927-system1','./ui-polish.css?v=20260927-final2',
+  './tour-boot.js?v=20260927-3','./tour.js?v=20260927-final2',
+  './tour-i18n.js?v=20260927-final2','./halls.js?v=20260927-final2',
+  './campus-directory.js?v=20260927-final2','./campus-map-labels.js?v=20260927-3',
   './directions.js','./tour-routes.js?v=20260927-3',
   './routes/m7a.js','./routes/theater.js?v=20260927-3','./routes/library.js?v=20260927-3',
   './favicon.svg','./manifest.webmanifest','./apple-touch-icon.png','./social-preview.png','./campus-map-2026.webp'
@@ -18,7 +18,8 @@ const EXTERNAL_ASSETS=[
   'https://unpkg.com/maplibre-gl@5/dist/maplibre-gl.css',
   'https://unpkg.com/maplibre-gl@5/dist/maplibre-gl.js',
   'https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js',
-  'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/GLTFLoader.js'
+  'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/loaders/GLTFLoader.js',
+  'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/utils/BufferGeometryUtils.js'
 ];
 const CDN_ORIGINS=new Set(['https://unpkg.com','https://cdn.jsdelivr.net']);
 const STATIC_FILE=/\.(?:js|css|json|webmanifest|svg|png|webp|jpe?g)$/i;
