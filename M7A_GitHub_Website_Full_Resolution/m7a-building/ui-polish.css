@@ -292,3 +292,96 @@ html[dir="rtl"] .more-menu .tool{direction:rtl;text-align:right}
   .more-menu:not([hidden]){animation:none!important}
   .topbar,.bottom,.campus-map-card{transition:none!important}
 }
+
+
+/* Campus home identity and finishing pass. */
+.campus-home-intro{
+  position:absolute;
+  z-index:4;
+  top:max(86px,calc(env(safe-area-inset-top) + 74px));
+  left:50%;
+  width:min(470px,calc(100vw - 40px));
+  transform:translateX(-50%);
+  padding:18px 22px;
+  border:1px solid rgba(203,236,229,.82);
+  border-radius:20px;
+  background:rgba(250,255,253,.92);
+  box-shadow:0 16px 42px rgba(0,54,64,.14);
+  color:#163f3c;
+  text-align:center;
+  pointer-events:none;
+  opacity:0;
+  visibility:hidden;
+  transition:opacity .22s ease,transform .22s ease,visibility .22s ease;
+}
+.campus-only .campus-home-intro{
+  opacity:1;
+  visibility:visible;
+  transform:translateX(-50%) translateY(0);
+}
+.campus-home-intro span{
+  display:block;
+  margin-bottom:6px;
+  color:#008f69;
+  font-size:9px;
+  line-height:1.2;
+  font-weight:850;
+  letter-spacing:.16em;
+  text-transform:uppercase;
+}
+.campus-home-intro strong{
+  display:block;
+  color:#103d37;
+  font-size:clamp(24px,3.2vw,38px);
+  line-height:1;
+  letter-spacing:-.045em;
+}
+.campus-home-intro p{
+  margin:9px 0 0;
+  color:#5a746e;
+  font-size:12px;
+  line-height:1.45;
+}
+.campus-only .campus-map-heading{display:none}
+.campus-only .campus-map-card{box-shadow:0 18px 48px rgba(0,54,64,.17)}
+html[dir="rtl"] .campus-home-intro{direction:rtl}
+
+/* Scene grading is renderer-driven; keep canvas changes smooth but subtle. */
+#app canvas{transition:filter .18s ease}
+
+/* Transition snapshot may move in any direction without exposing its edges. */
+#travel-frame{inset:-2%;width:104%;height:104%;max-width:none;max-height:none}
+
+@media(max-width:640px){
+  .campus-home-intro{
+    top:max(72px,calc(env(safe-area-inset-top) + 62px));
+    width:calc(100vw - 24px);
+    padding:14px 16px;
+    border-radius:17px;
+  }
+  .campus-home-intro strong{font-size:24px}
+  .campus-home-intro p{font-size:10px;margin-top:7px}
+  .campus-home-intro span{font-size:8px;margin-bottom:5px}
+}
+
+@media(orientation:landscape) and (max-height:500px){
+  .campus-home-intro{
+    top:max(14px,env(safe-area-inset-top));
+    left:calc(min(330px,46vw) + 22px);
+    width:min(360px,45vw);
+    transform:none;
+    text-align:left;
+    padding:12px 15px;
+  }
+  .campus-only .campus-home-intro{transform:none}
+  html[dir="rtl"] .campus-home-intro{
+    left:auto;
+    right:calc(min(330px,46vw) + 22px);
+    text-align:right;
+  }
+  .campus-home-intro strong{font-size:22px}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .campus-home-intro,#app canvas{transition:none!important}
+}
