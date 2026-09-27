@@ -663,6 +663,10 @@ function applyLanguage(persist=true){
   campusLanguageToggle.title=currentLanguage==='ar'?'English':'العربية';
   motion.setAttribute('aria-label',t(motionEnabled?'motionDisable':'motionEnable'));
   fullscreen.setAttribute('aria-label',t(document.fullscreenElement?'exitFullScreen':'fullScreen'));
+  if(moreToggle){
+    const moreLabel=currentLanguage==='ar'?'المزيد من أدوات العرض':'More view controls';
+    moreToggle.setAttribute('aria-label',moreLabel);moreToggle.title=moreLabel;
+  }
   cp.textContent=locationLabel();
   updateControls();updateRouteLabel();
   if(!loading.classList.contains('done'))setInitialProgress(lastInitialProgress);
