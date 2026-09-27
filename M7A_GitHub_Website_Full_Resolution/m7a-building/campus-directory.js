@@ -213,21 +213,21 @@ export function createDirectory({ halls, root, language, isReady, openTour, star
   browse.onclick = () => { selected = null; room = null; group = null; sheetExpanded = false; search.value = ''; render(); search.focus(); };
   collapse.onclick = () => { collapsed = !collapsed; render(); };
   if(sheetHandle){
-    let startY=null;
+    let startY=null,sheetDragged=false;
     const setSheetExpanded=value=>{sheetExpanded=value;render();};
-    sheetHandle.onclick=()=>setSheetExpanded(!sheetExpanded);
-    sheetHandle.onpointerdown=event=>{startY=event.clientY;sheetHandle.setPointerCapture?.(event.pointerId);};
+    sheetHandle.onclick=()=>{if(sheetDragged){sheetDragged=false;return;}setSheetExpanded(!sheetExpanded);};
+    sheetHandle.onpointerdown=event=>{startY=event.clientY;sheetDragged=false;sheetHandle.setPointerCapture?.(event.pointerId);};
     sheetHandle.onpointerup=event=>{
       if(startY==null)return;
       const delta=event.clientY-startY;startY=null;
-      if(Math.abs(delta)>28)setSheetExpanded(delta<0);
+      if(Math.abs(delta)>28){sheetDragged=true;setSheetExpanded(delta<0);}
     };
-    sheetHandle.onpointercancel=()=>{startY=null;};
+    sheetHandle.onpointercancel=()=>{startY=null;sheetDragged=false;};
   }
   return {
     attach(nextMap) { map = nextMap; map.on('moveend', refreshMarkers); refreshMarkers(); render(); },
     update() {
-      render();
+      render();refreshMarkers();
       for (const marker of markers) {
         const members = marker.directoryMembers;
         const name = members.length > 1 ? text('count')(members.length) : label(members[0]);
