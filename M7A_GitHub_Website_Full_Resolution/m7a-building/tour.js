@@ -1,11 +1,11 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { HALLS } from './halls.js?v=20260927-3';
+import { HALLS } from './halls.js?v=20260927-final2';
 import { addCampusArtworkLabels } from './campus-map-labels.js?v=20260927-3';
-import { createDirectory, searchHalls, localized } from './campus-directory.js?v=20260927-polish1';
+import { createDirectory, searchHalls, localized } from './campus-directory.js?v=20260927-final2';
 import { findPath } from './directions.js';
 import { PANORAMA_FILES, VISUAL_CALIBRATION, LOCATIONS, LOCATION_AR, getHotspotStyle } from './tour-routes.js?v=20260927-3';
-import { I18N } from './tour-i18n.js?v=20260927-polish1';
+import { I18N } from './tour-i18n.js?v=20260927-final2';
 
 const app=document.getElementById('app');
 const loading=document.getElementById('loading');
@@ -320,7 +320,7 @@ function openDirectoryTour(target){
   if(target.scene){const index=LOCATIONS.findIndex(item=>item.id===target.scene);if(index>=0)openPanoramaFromCampus(index);}
   else if(target.url){const url=new URL(target.url,location.href);if(['https:','http:'].includes(url.protocol))location.assign(url.href);}
 }
-const directory=createDirectory({halls:CAMPUS_BUILDINGS,root:mapPanel,language:()=>currentLanguage,isReady:()=>!transitioning,startDirections:startRoomDirections,openTour:openDirectoryTour,currentHallId:()=>current<10?'m7':current<23?'e2':'e3'});
+const directory=createDirectory({halls:CAMPUS_BUILDINGS,root:mapPanel,language:()=>currentLanguage,isReady:()=>!transitioning,startDirections:startRoomDirections,openTour:openDirectoryTour,currentHallId:()=>object?(current<10?'m7':current<23?'e2':'e3'):null});
 function initCampusMap(){
   if(campusMap||!window.maplibregl)return;
   const building=CAMPUS_BUILDINGS[0];
