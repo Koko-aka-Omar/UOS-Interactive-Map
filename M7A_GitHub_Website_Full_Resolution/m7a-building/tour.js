@@ -209,12 +209,36 @@ const infoPanel=document.getElementById('info-panel');
 const mapToggle=document.getElementById('map-toggle');
 const infoToggle=document.getElementById('info-toggle');
 const moreToggle=document.getElementById('more-toggle');
+const mobileMoreMenu=document.getElementById('mobile-more-menu');
+const toolsBar=document.querySelector('.tools');
+const mobileMoreControls=['motion','info-toggle','reset','fullscreen'].map(id=>document.getElementById(id));
 const searchPanel=document.getElementById('tour-search-panel'),searchToggle=document.getElementById('search-toggle'),tourSearch=document.getElementById('tour-search-input');
 function setMobileToolsOpen(open){
-  document.body.classList.toggle('mobile-tools-open',Boolean(open));
-  moreToggle?.setAttribute('aria-expanded',String(Boolean(open)));
+  const show=Boolean(open)&&innerWidth<=640;
+  document.body.classList.toggle('mobile-tools-open',show);
+  moreToggle?.setAttribute('aria-expanded',String(show));
+  if(mobileMoreMenu){
+    mobileMoreMenu.hidden=!show;
+    mobileMoreMenu.inert=!show;
+    mobileMoreMenu.setAttribute('aria-hidden',String(!show));
+  }
   requestAnimationFrame(()=>positionTourPanels());
 }
+function syncMobileMoreLayout(){
+  if(!mobileMoreMenu||!toolsBar)return;
+  if(innerWidth<=640){
+    for(const control of mobileMoreControls)if(control)mobileMoreMenu.append(control);
+  }else{
+    setMobileToolsOpen(false);
+    const mapButton=document.getElementById('map-toggle');
+    const motionButton=document.getElementById('motion');
+    if(motionButton&&mapButton)toolsBar.insertBefore(motionButton,mapButton);
+    for(const id of ['info-toggle','reset','fullscreen']){
+      const control=document.getElementById(id);if(control)toolsBar.append(control);
+    }
+  }
+}
+syncMobileMoreLayout();
 if(moreToggle)moreToggle.onclick=()=>setMobileToolsOpen(!document.body.classList.contains('mobile-tools-open'));
 function updateTourSearch(){
   const ar=currentLanguage==='ar',label=ar?'ابحث عن مبنى أو قاعة':'Search halls or rooms';
@@ -897,6 +921,7 @@ async function transitionTo(i,selectedRoute=null,fromMap=false){
 }
 const touches=new Map();let gesture=null, pinchDistance=null;
 el.addEventListener('pointerdown',e=>{
+  if(document.body.classList.contains('mobile-tools-open'))setMobileToolsOpen(false);
   if(!ready || transitioning || e.button!==0)return;
   touches.set(e.pointerId,{x:e.clientX,y:e.clientY});el.setPointerCapture(e.pointerId);
   if(touches.size>1){gesture=null;dragging=false;pinchDistance=null;return;}
@@ -994,7 +1019,7 @@ addEventListener('keydown',e=>{if(e.key==='Escape'&&document.body.classList.cont
 });
 applyLanguage(false);measureLabelBounds();
 addEventListener('resize', ()=>{
-  if(innerWidth>640)setMobileToolsOpen(false);
+  syncMobileMoreLayout();
   renderQuality(current>=10);
   camera.aspect=innerWidth/innerHeight;
   camera.updateProjectionMatrix();
