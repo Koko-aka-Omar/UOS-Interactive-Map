@@ -669,6 +669,26 @@ function autoGrade(texture){
   const vignette=coarsePointer?.022:.030;
   return {exposure,contrast,saturate,vibrance,shadowLift,highlightRollOff,blackPoint,gamma,balance:measured.balance,sharpness,vignette};
 }
+function resolvedSceneGrade(i,grade){
+  if(LOCATIONS[i]?.area!=='Library')return grade;
+  // Library panoramas are naturally darker and warmer. Keep them clean, bright and close to source
+  // instead of stacking black-point/contrast/vignette corrections intended for brighter scenes.
+  return {
+    ...grade,
+    exposure:THREE.MathUtils.clamp(Math.max(grade.exposure,1.045),1.045,1.105),
+    contrast:1.01,
+    saturate:1.075,
+    vibrance:.035,
+    shadowLift:.052,
+    highlightRollOff:.022,
+    blackPoint:0,
+    gamma:1.0,
+    balance:[1,1,1],
+    sharpness:coarsePointer?.065:.095,
+    vignette:.004
+  };
+}
+
 function prep(root,i){
   const aniso=Math.min(renderer.capabilities.getMaxAnisotropy(),coarsePointer?4:Infinity);
   const gain=VISUAL_CALIBRATION[i]??[1,1,1];
@@ -677,7 +697,7 @@ function prep(root,i){
     const oldMats=Array.isArray(o.material)?o.material:[o.material];
     if(!sceneGradeCache.has(i)){
       const source=oldMats.find(m=>m?.map)?.map;
-      sceneGradeCache.set(i,autoGrade(source));
+      sceneGradeCache.set(i,resolvedSceneGrade(i,autoGrade(source)));
     }
     const grade=sceneGradeCache.get(i)??DEFAULT_GRADE;
     const gainMean=Math.max(.001,(gain[0]+gain[1]+gain[2])/3);
@@ -838,7 +858,7 @@ function updateRouteLabel(){
 }
 
 function setSceneGrade(i){
-  const grade=sceneGradeCache.get(i)??DEFAULT_GRADE;
+  const grade=resolvedSceneGrade(i,sceneGradeCache.get(i)??DEFAULT_GRADE);
   postUniforms.uContrast.value=grade.contrast;
   postUniforms.uSaturation.value=grade.saturate;
   postUniforms.uVibrance.value=grade.vibrance;
