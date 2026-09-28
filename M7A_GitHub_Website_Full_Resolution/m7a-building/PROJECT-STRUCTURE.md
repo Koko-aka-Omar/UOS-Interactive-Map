@@ -8,7 +8,6 @@ The project is split so common edits can be made without opening the full viewer
 | `routes/m7a.js` | M7A-only checkpoints, room links, arrow bearings, names, panorama order, and calibration |
 | `routes/theater.js` | Theater/Auditorium-only routes, stair arrows, names, bearings, and Theater hotspot tuning |
 | `routes/library.js` | Library-only checkpoints, links, names, bearings, and panorama order |
-| `routes/mens-hall.js` | Men's Hall (A4) checkpoints, arrows, names, bearings, and panorama order |
 | `tour-i18n.js` | Changing English/Arabic interface text |
 | `styles.css` | Changing layout, colors, controls, panels, responsive behavior, or visual polish |
 | `tour.js` | Changing Three.js rendering, transitions, loading, interaction, preloading, motion controls, search behavior, or viewer logic |
@@ -19,7 +18,6 @@ The project is split so common edits can be made without opening the full viewer
 | `directions.js` | Pathfinding logic |
 | `assets/` | Full-resolution panorama GLBs |
 | `assets-mobile/` | Mobile panorama GLBs |
-| `panoramas/` | Lightweight raw equirectangular panorama images |
 
 ## Navigation editing
 
@@ -27,8 +25,7 @@ Navigation is split by physical area:
 
 - `routes/m7a.js` = scenes 0–9.
 - `routes/theater.js` = scenes 10–22.
-- `routes/library.js` = scenes 23–46.
-- `routes/mens-hall.js` = scenes 47–56.
+- `routes/library.js` = scenes 23–34.
 - `tour-routes.js` only combines those files for the viewer.
 
 Each area file owns its checkpoint names, route graph, bearings, panorama filenames, and Arabic location labels. Theater-specific hotspot distance/scale overrides also live in `routes/theater.js`.

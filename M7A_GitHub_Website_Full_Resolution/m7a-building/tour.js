@@ -1,10 +1,10 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { HALLS } from './halls.js?v=20260928-mens1';
+import { HALLS } from './halls.js?v=20260927-final2';
 import { addCampusArtworkLabels } from './campus-map-labels.js?v=20260927-3';
 import { createDirectory, searchHalls, localized } from './campus-directory.js?v=20260927-final2';
 import { findPath } from './directions.js';
-import { PANORAMA_FILES, VISUAL_CALIBRATION, LOCATIONS, LOCATION_AR, getHotspotStyle } from './tour-routes.js?v=20260928-mens1';
+import { PANORAMA_FILES, VISUAL_CALIBRATION, LOCATIONS, LOCATION_AR, getHotspotStyle } from './tour-routes.js?v=20260928-mens-hall5';
 import { I18N } from './tour-i18n.js?v=20260927-vivid1';
 
 const app=document.getElementById('app');
@@ -21,13 +21,8 @@ const languageKey='m7a-language-v1';
 let currentLanguage='en';
 try{if(localStorage.getItem(languageKey)==='ar')currentLanguage='ar';}catch{}
 function t(key,...args){const value=I18N[currentLanguage][key]??I18N.en[key]??key;return typeof value==='function'?value(...args):value;}
-// Phones/tablets use dedicated GLBs where available. Raw equirectangular images
-// (currently the standalone Men's Hall tour) are already lightweight and shared.
-const IMAGE_PANORAMA=/\.(?:png|jpe?g|webp)$/i;
-const DATA=PANORAMA_FILES.map(file=>{
-  if(IMAGE_PANORAMA.test(file))return './panoramas/'+file;
-  return (coarsePointer?'./assets-mobile/':'./assets/')+file+(file==='library-study-020.glb'?'?v=20260927-study1':file==='library-study-021.glb'?'?v=20260927-3':'');
-});
+// Phones/tablets use dedicated 3K/4K panoramas. Desktop keeps the full 8K originals.
+const DATA=PANORAMA_FILES.map(file=>(coarsePointer?'./assets-mobile/':'./assets/')+file+(file==='library-study-020.glb'?'?v=20260927-study1':file==='library-study-021.glb'?'?v=20260927-3':''));
 
 const scene=new THREE.Scene();
 const camera=new THREE.PerspectiveCamera(72,innerWidth/innerHeight,0.01,50);
@@ -52,7 +47,6 @@ app.appendChild(renderer.domElement);
 const el=renderer.domElement;
 
 const loader=new GLTFLoader();
-const textureLoader=new THREE.TextureLoader();
 
 // Two levels of caching:
 // 1) on desktop, connected GLBs are fetched into the browser HTTP cache;
@@ -101,7 +95,7 @@ function preloadCheckpoint(i,warmTexture=false){
     return task;
   }
   const networkWarm=coarsePointer?(networkPrefetches.get(i)??prefetchNetwork(i)):null;
-  const task=(networkWarm??Promise.resolve()).then(()=>loadPanoramaAsset(i)).then(gltf=>{
+  const task=(networkWarm??Promise.resolve()).then(()=>loader.loadAsync(DATA[i])).then(gltf=>{
     prepareCheckpointScene(gltf,i,warmTexture);
     return gltf;
   }).catch(err=>{
@@ -346,7 +340,8 @@ function openDirectoryTour(target){
   if(target.scene){const index=LOCATIONS.findIndex(item=>item.id===target.scene);if(index>=0)openPanoramaFromCampus(index);}
   else if(target.url){const url=new URL(target.url,location.href);if(['https:','http:'].includes(url.protocol))location.assign(url.href);}
 }
-const directory=createDirectory({halls:CAMPUS_BUILDINGS,root:mapPanel,language:()=>currentLanguage,isReady:()=>!transitioning,startDirections:startRoomDirections,openTour:openDirectoryTour,currentHallId:()=>object?(current<10?'m7':current<23?'e2':'e3'):null});
+function hallIdForScene(i=current){return i<10?'m7':i<23?'e2':i<47?'e3':'a4';}
+const directory=createDirectory({halls:CAMPUS_BUILDINGS,root:mapPanel,language:()=>currentLanguage,isReady:()=>!transitioning,startDirections:startRoomDirections,openTour:openDirectoryTour,currentHallId:()=>object?hallIdForScene():null});
 function initCampusMap(){
   if(campusMap||!window.maplibregl)return;
   const building=CAMPUS_BUILDINGS[0];
@@ -760,7 +755,7 @@ function localizedLocation(i=current){
 function locationLabel(i=current){const loc=localizedLocation(i);return loc.area+' · '+loc.name;}
 function tourAreaTitle(i=current){
   if(i<10)return t('building');
-  const hall=CAMPUS_BUILDINGS.find(item=>item.id===(i<23?'e2':'e3'));
+  const hall=CAMPUS_BUILDINGS.find(item=>item.id===hallIdForScene(i));
   return hall?localized(hall.name,currentLanguage):localizedLocation(i).area;
 }
 function backTarget(){return LOCATIONS[current]?.back ?? null;}
@@ -895,40 +890,15 @@ function takeRecentScene(i){
   if(root)recentScenes.delete(i);
   return root;
 }
-function loadPanoramaAsset(i,onProgress=null){
-  const url=DATA[i];
-  if(IMAGE_PANORAMA.test(url.split('?')[0])){
-    return new Promise((resolve,reject)=>{
-      textureLoader.load(url,texture=>{
-        texture.colorSpace=THREE.SRGBColorSpace;
-        // GLTFLoader uses flipY=false for the existing panorama textures. The shared
-        // sphere UVs are calibrated for that convention, so raw equirectangular
-        // Men's Hall images must match it or they render vertically inverted.
-        texture.flipY=false;
-        texture.needsUpdate=true;
-        const root=new THREE.Group();
-        root.add(new THREE.Mesh(
-          new THREE.BufferGeometry(),
-          new THREE.MeshBasicMaterial({map:texture,side:THREE.DoubleSide,toneMapped:false})
-        ));
-        if(onProgress)onProgress(1);
-        resolve({scene:root});
-      },xhr=>{
-        if(!onProgress)return;
-        if(xhr.total>0)onProgress(THREE.MathUtils.clamp(xhr.loaded/xhr.total,0,1));
-        else onProgress(null);
-      },reject);
-    });
-  }
+function loadGLTF(i,onProgress=null){
   return new Promise((resolve,reject)=>{
-    loader.load(url,resolve,xhr=>{
+    loader.load(DATA[i],resolve,xhr=>{
       if(!onProgress)return;
       if(xhr.total>0)onProgress(THREE.MathUtils.clamp(xhr.loaded/xhr.total,0,1));
       else onProgress(null);
     },reject);
   });
 }
-function loadGLTF(i,onProgress=null){return loadPanoramaAsset(i,onProgress);}
 let lastInitialProgress=0;
 function setInitialProgress(value){
   lastInitialProgress=value;

@@ -32,7 +32,7 @@ const i18n=loadExports(path.join(root,'tour-i18n.js'),['I18N']).I18N;
 
 check(PANORAMAS.length===LOCATIONS.length,'panorama/location counts match ('+PANORAMAS.length+')');
 check(LOCATIONS.length===LOCATION_AR.length,'English/Arabic location counts match ('+LOCATIONS.length+')');
-check(LOCATIONS.length===57,'expected 57 tour checkpoints');
+check(LOCATIONS.length===58,'expected 58 tour checkpoints');
 
 const ids=new Set();
 for(let i=0;i<LOCATIONS.length;i++){
@@ -54,6 +54,16 @@ for(let i=0;i<LOCATIONS.length;i++){
   }
 }
 
+// Men's Hall checkpoints must remain a strict two-way numeric sequence:
+// 078 <-> 079 <-> ... <-> 088.
+for(let i=47;i<=57;i++){
+  const expected=[];
+  if(i>47)expected.push(i-1);
+  if(i<57)expected.push(i+1);
+  const actual=LOCATIONS[i].routes.map(route=>route.to).sort((a,b)=>a-b);
+  check(JSON.stringify(actual)===JSON.stringify(expected),'Men\'s Hall sequence exact: '+LOCATIONS[i].id);
+}
+
 for(const part of routeParts){
   check(part.VISUAL_CALIBRATION.length<=part.PANORAMAS.length,'visual calibration does not exceed area scene count');
   for(const gain of part.VISUAL_CALIBRATION){
@@ -62,12 +72,8 @@ for(const part of routeParts){
 }
 
 for(const panorama of PANORAMAS){
-  if(/\.(?:png|jpe?g|webp)$/i.test(panorama)){
-    check(fs.existsSync(path.join(root,'panoramas',panorama)),'image panorama exists: '+panorama);
-  }else{
-    check(fs.existsSync(path.join(root,'assets',panorama)),'desktop panorama exists: '+panorama);
-    check(fs.existsSync(path.join(root,'assets-mobile',panorama)),'mobile panorama exists: '+panorama);
-  }
+  check(fs.existsSync(path.join(root,'assets',panorama)),'desktop panorama exists: '+panorama);
+  check(fs.existsSync(path.join(root,'assets-mobile',panorama)),'mobile panorama exists: '+panorama);
 }
 
 const hallIds=new Set();

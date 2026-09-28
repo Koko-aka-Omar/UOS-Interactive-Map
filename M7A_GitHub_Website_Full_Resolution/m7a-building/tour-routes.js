@@ -2,7 +2,7 @@
 import * as M7A from './routes/m7a.js';
 import * as THEATER from './routes/theater.js?v=20260927-3';
 import * as LIBRARY from './routes/library.js?v=20260928-library-shortcuts8';
-import * as MENS_HALL from './routes/mens-hall.js?v=20260928-mens1';
+import * as MENS_HALL from './routes/mens-hall.js?v=20260928-mens-hall5';
 
 export const PANORAMA_FILES=[
   ...M7A.PANORAMAS,

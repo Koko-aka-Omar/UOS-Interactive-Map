@@ -3,12 +3,11 @@
 export const HALLS = [
   {
     id: 'a4', code: 'A4',
-    name: { en: "Men's Hall", ar: 'قاعة الرجال' },
-    coordinates: [55.48440400057116, 25.279962454723684],
-    // A4 Men's Hall position on the rotated 2026 campus artwork.
-    mapCoordinates: [55.48440400057116, 25.279962454723684],
-    thumbnail: './panoramas/mens-hall-078.webp',
-    tour: { scene: 'mens-hall-entrance' },
+    name: { en: "Men's Hall", ar: 'قاعة الطلاب' },
+    // A4 centre on the unchanged 2026 campus artwork.
+    mapCoordinates: [55.484435266313, 25.279942153384],
+    thumbnail: './panoramas-mobile/mens-hall-078.jpg',
+    tour: { scene: 'mens-hall-078' },
     rooms: []
   },
   {

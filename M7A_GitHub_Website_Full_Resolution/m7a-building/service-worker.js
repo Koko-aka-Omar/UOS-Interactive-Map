@@ -1,5 +1,5 @@
 const CACHE_PREFIX='uos-tour:'+self.registration.scope+':';
-const SHELL_CACHE=CACHE_PREFIX+'shell-v59';
+const SHELL_CACHE=CACHE_PREFIX+'shell-v62';
 // Keep panorama downloads across UI releases.
 const PANORAMA_CACHE=CACHE_PREFIX+'panoramas-v3';
 const LEGACY_CACHES=['m7a-tour-v7','m7a-tour:'+self.registration.scope+':panoramas-v3'];
@@ -7,11 +7,11 @@ const LEGACY_CACHES=['m7a-tour-v7','m7a-tour:'+self.registration.scope+':panoram
 const CORE_ASSETS=[
   './','./index.html',
   './styles.css?v=20260927-system1','./ui-polish.css?v=20260927-vivid1',
-  './tour-boot.js?v=20260927-3','./tour.js?v=20260928-mens2',
-  './tour-i18n.js?v=20260927-vivid1','./halls.js?v=20260928-mens1',
+  './tour-boot.js?v=20260927-3','./tour.js?v=20260927-uniform2',
+  './tour-i18n.js?v=20260927-vivid1','./halls.js?v=20260927-final2',
   './campus-directory.js?v=20260927-final2','./campus-map-labels.js?v=20260927-3',
-  './directions.js','./tour-routes.js?v=20260928-mens1',
-  './routes/m7a.js','./routes/theater.js?v=20260927-3','./routes/library.js?v=20260928-library-shortcuts8','./routes/mens-hall.js?v=20260928-mens1',
+  './directions.js','./tour-routes.js?v=20260927-3',
+  './routes/m7a.js','./routes/theater.js?v=20260927-3','./routes/library.js?v=20260927-3',
   './favicon.svg','./manifest.webmanifest','./apple-touch-icon.png','./social-preview.png','./campus-map-2026.webp'
 ];
 const EXTERNAL_ASSETS=[
@@ -34,18 +34,14 @@ const PANORAMA_NAMES=[
   'theater-hall-017','library-entrance-018','library-lobby-019','library-study-020',
   'library-study-021','library-study-022','library-study-023','library-study-024',
   'library-study-025','library-study-026','library-study-027','library-study-028','library-study-029',
-  'library-corridor-030', 'library-corridor-031', 'library-corridor-032', 'library-corridor-033', 'library-corridor-034', 'library-corridor-035', 'library-corridor-036', 'library-corridor-037', 'library-corridor-038', 'library-corridor-039', 'library-corridor-040', 'library-corridor-041'
+  'library-corridor-030', 'library-corridor-031', 'library-corridor-032', 'library-corridor-033', 'library-corridor-034', 'library-corridor-035', 'library-corridor-036', 'library-corridor-037', 'library-corridor-038', 'library-corridor-039', 'library-corridor-040', 'library-corridor-041',
+  'mens-hall-078','mens-hall-079','mens-hall-080','mens-hall-081','mens-hall-082','mens-hall-083','mens-hall-084','mens-hall-085','mens-hall-086','mens-hall-087','mens-hall-088'
 ];
-const IMAGE_PANORAMAS=[
-  'mens-hall-078.webp','mens-hall-079.webp','mens-hall-080.webp','mens-hall-081.webp','mens-hall-082.webp',
-  'mens-hall-083.webp','mens-hall-084.webp','mens-hall-085.webp','mens-hall-086.webp','mens-hall-087.webp'
-];
-const PANORAMAS=new Set([
-  ...['assets','assets-mobile'].flatMap(dir=>
+const PANORAMAS=new Set(
+  ['assets','assets-mobile'].flatMap(dir=>
     PANORAMA_NAMES.map(name=>new URL('./'+dir+'/'+name+'.glb'+(name==='library-study-020'?'?v=20260927-study1':name==='library-study-021'?'?v=20260927-3':''),self.registration.scope).href)
-  ),
-  ...IMAGE_PANORAMAS.map(name=>new URL('./panoramas/'+name,self.registration.scope).href)
-]);
+  )
+);
 const INDEX_URL=new URL('./index.html',self.registration.scope).href;
 const CORE_URLS=new Set(CORE_ASSETS.map(path=>new URL(path,self.registration.scope).href));
 const EXTERNAL_URLS=new Set(EXTERNAL_ASSETS);
