@@ -34,17 +34,119 @@ const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-per
 function renderQuality(enhanced=false){
   // Slightly higher sampling than the original viewer for crisper signage, furniture and edges.
   // Mobile remains capped to avoid trading sharpness for unstable Safari GPU memory use.
-  const pixelBudget=coarsePointer?(enhanced?3000000:1550000):9000000;
+  const pixelBudget=coarsePointer?(enhanced?3000000:1550000):12000000;
   const budget=Math.sqrt(pixelBudget/(innerWidth*innerHeight));
   renderer.setPixelRatio(coarsePointer
     ? Math.min(devicePixelRatio||1,enhanced?2:1.75,budget)
-    : Math.max(1,Math.min(Math.max(devicePixelRatio,1.5),2.25,budget)));
+    : Math.max(1,Math.min(Math.max(devicePixelRatio,1.5),2.5,budget)));
 }
 renderQuality();
 renderer.setSize(innerWidth,innerHeight);
 renderer.outputColorSpace=THREE.SRGBColorSpace;
 app.appendChild(renderer.domElement);
 const el=renderer.domElement;
+
+// Professional panorama post-processing. The source GLBs stay untouched; grading is reversible.
+const postScene=new THREE.Scene();
+const postCamera=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
+const postSize=new THREE.Vector2();
+const postTarget=new THREE.WebGLRenderTarget(1,1,{
+  minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,
+  depthBuffer:false,stencilBuffer:false
+});
+postTarget.texture.colorSpace=THREE.NoColorSpace;
+postTarget.texture.generateMipmaps=false;
+const postUniforms={
+  tDiffuse:{value:postTarget.texture},
+  texelSize:{value:new THREE.Vector2(1,1)},
+  uContrast:{value:1.10},
+  uSaturation:{value:1.18},
+  uVibrance:{value:.11},
+  uShadowLift:{value:.028},
+  uHighlightRollOff:{value:.065},
+  uBlackPoint:{value:.014},
+  uGamma:{value:1},
+  uBalance:{value:new THREE.Vector3(1,1,1)},
+  uSharpness:{value:coarsePointer?.10:.16},
+  uVignette:{value:.028}
+};
+const postMaterial=new THREE.ShaderMaterial({
+  uniforms:postUniforms,toneMapped:false,depthTest:false,depthWrite:false,
+  vertexShader:`
+    varying vec2 vUv;
+    void main(){vUv=uv;gl_Position=vec4(position.xy,0.0,1.0);}
+  `,
+  fragmentShader:`
+    varying vec2 vUv;
+    uniform sampler2D tDiffuse;
+    uniform vec2 texelSize;
+    uniform float uContrast,uSaturation,uVibrance,uShadowLift,uHighlightRollOff,uBlackPoint,uGamma,uSharpness,uVignette;
+    uniform vec3 uBalance;
+
+    float luma(vec3 c){return dot(c,vec3(.2126,.7152,.0722));}
+
+    void main(){
+      vec3 center=texture2D(tDiffuse,vUv).rgb;
+      vec3 north=texture2D(tDiffuse,vUv+vec2(0.0,texelSize.y)).rgb;
+      vec3 south=texture2D(tDiffuse,vUv-vec2(0.0,texelSize.y)).rgb;
+      vec3 east=texture2D(tDiffuse,vUv+vec2(texelSize.x,0.0)).rgb;
+      vec3 west=texture2D(tDiffuse,vUv-vec2(texelSize.x,0.0)).rgb;
+      vec3 localMean=(north+south+east+west)*.25;
+      vec3 detail=clamp(center-localMean,vec3(-.07),vec3(.07));
+      vec3 color=clamp(center+detail*uSharpness,0.0,1.0);
+
+      // Tiny gray-world correction removes scene-to-scene fluorescent/blue casts without neutralizing real colors.
+      color=clamp(color*uBalance,0.0,1.0);
+
+      // Deeper blacks, recovered shadows and protected highlights.
+      color=max((color-vec3(uBlackPoint))/max(.001,1.0-uBlackPoint),vec3(0.0));
+      float y=luma(color);
+      float shadow=1.0-smoothstep(.10,.52,y);
+      color+=((1.0-color)*uShadowLift*shadow);
+      y=luma(color);
+      float highlight=smoothstep(.68,.98,y);
+      color*=1.0-uHighlightRollOff*highlight;
+
+      // Midtone shape, contrast, saturation and vibrance.
+      color=pow(max(color,vec3(0.0)),vec3(1.0/max(.85,uGamma)));
+      color=(color-.5)*uContrast+.5;
+      y=luma(color);
+      color=mix(vec3(y),color,uSaturation);
+      float mx=max(color.r,max(color.g,color.b));
+      float mn=min(color.r,min(color.g,color.b));
+      float chroma=max(0.0,mx-mn);
+      float vibranceGain=1.0+uVibrance*(1.0-smoothstep(.10,.62,chroma));
+      y=luma(color);
+      color=mix(vec3(y),color,vibranceGain);
+
+      // Barely-visible screen-space vignette adds depth without looking stylized.
+      float edge=vUv.x*(1.0-vUv.x)*vUv.y*(1.0-vUv.y)*16.0;
+      float vignetteMask=pow(clamp(edge,0.0,1.0),.18);
+      color*=mix(1.0-uVignette,1.0,vignetteMask);
+
+      gl_FragColor=vec4(clamp(color,0.0,1.0),1.0);
+      #include <colorspace_fragment>
+    }
+  `
+});
+const postQuad=new THREE.Mesh(new THREE.PlaneGeometry(2,2),postMaterial);
+postQuad.frustumCulled=false;
+postScene.add(postQuad);
+
+function syncPostTargetSize(){
+  renderer.getDrawingBufferSize(postSize);
+  const w=Math.max(1,Math.round(postSize.x)),h=Math.max(1,Math.round(postSize.y));
+  if(postTarget.width!==w||postTarget.height!==h)postTarget.setSize(w,h);
+  postUniforms.texelSize.value.set(1/w,1/h);
+}
+function renderPanoramaFrame(){
+  syncPostTargetSize();
+  renderer.setRenderTarget(postTarget);
+  renderer.render(scene,camera);
+  renderer.setRenderTarget(null);
+  renderer.render(postScene,postCamera);
+}
+syncPostTargetSize();
 
 const loader=new GLTFLoader();
 
@@ -462,7 +564,7 @@ async function openPanoramaFromCampus(target){
     const prepared=takeRecentScene(target) ?? await (preloadCache.get(target) ?? Promise.resolve(null));
     preloadCache.delete(target);
     await loadCheckpoint(target,prepared,p=>setInitialProgress(p));
-    renderer.render(scene,camera);closePanels();mapToggle.focus({preventScroll:true});
+    renderPanoramaFrame();closePanels();mapToggle.focus({preventScroll:true});
     if(!historyTraversal)writeSceneHistory(target,false);
     scheduleLikelyPreload();
   }catch(error){
@@ -506,6 +608,10 @@ const hotspotRoots=[];
 let hoverHotspot=null;
 
 const sceneGradeCache=new Map();
+const DEFAULT_GRADE=Object.freeze({
+  exposure:1,contrast:1.10,saturate:1.18,vibrance:.11,shadowLift:.028,highlightRollOff:.065,
+  blackPoint:.014,gamma:1,balance:[1,1,1],sharpness:coarsePointer?.10:.16,vignette:.028
+});
 function measurePanorama(texture){
   const image=texture?.image;
   const width=image?.width||image?.videoWidth||0;
@@ -519,16 +625,15 @@ function measurePanorama(texture){
   let pixels;
   try{pixels=ctx.getImageData(0,0,canvas.width,canvas.height).data;}catch{return null;}
   const luma=[];
-  let chromaSum=0,chromaCount=0;
+  let chromaSum=0,chromaCount=0,neutralR=0,neutralG=0,neutralB=0,neutralCount=0;
   for(let p=0;p<pixels.length;p+=4){
     if(pixels[p+3]<64)continue;
     const r=pixels[p]/255,g=pixels[p+1]/255,b=pixels[p+2]/255;
     const y=.2126*r+.7152*g+.0722*b;
+    const chroma=Math.max(r,g,b)-Math.min(r,g,b);
     luma.push(y);
-    if(y>.08&&y<.92){
-      chromaSum+=Math.max(r,g,b)-Math.min(r,g,b);
-      chromaCount++;
-    }
+    if(y>.08&&y<.92){chromaSum+=chroma;chromaCount++;}
+    if(y>.12&&y<.88&&chroma<.30){neutralR+=r;neutralG+=g;neutralB+=b;neutralCount++;}
   }
   if(luma.length<64)return null;
   luma.sort((a,b)=>a-b);
@@ -537,17 +642,32 @@ function measurePanorama(texture){
   for(let n=from;n<to;n++)sum+=luma[n];
   const midtone=sum/Math.max(1,to-from);
   const p20=luma[Math.floor(luma.length*.20)],p80=luma[Math.floor(luma.length*.80)];
-  return {midtone,spread:p80-p20,chroma:chromaSum/Math.max(1,chromaCount)};
+  let balance=[1,1,1];
+  if(neutralCount>24){
+    const r=neutralR/neutralCount,g=neutralG/neutralCount,b=neutralB/neutralCount;
+    const gray=(r+g+b)/3;
+    const raw=[gray/Math.max(.06,r),gray/Math.max(.06,g),gray/Math.max(.06,b)];
+    const mean=(raw[0]+raw[1]+raw[2])/3;
+    balance=raw.map(v=>THREE.MathUtils.clamp(1+(v/mean-1)*.22,.97,1.03));
+  }
+  return {midtone,spread:p80-p20,chroma:chromaSum/Math.max(1,chromaCount),balance};
 }
 function autoGrade(texture){
   const measured=measurePanorama(texture);
-  if(!measured)return {exposure:1,contrast:1.10,saturate:1.19};
-  // Stronger—but still bounded—midtone matching after reviewing every checkpoint.
-  // Saturation is adaptive: neutral interiors get more punch, naturally red/blue scenes get less.
-  const exposure=THREE.MathUtils.clamp(Math.pow(.505/Math.max(.18,measured.midtone),.66),.90,1.13);
-  const contrast=THREE.MathUtils.clamp(1.095+(.44-measured.spread)*.07,1.08,1.115);
-  const saturate=THREE.MathUtils.clamp(1.19+(.13-measured.chroma)*.22,1.15,1.225);
-  return {exposure,contrast,saturate};
+  if(!measured)return {...DEFAULT_GRADE,balance:[1,1,1]};
+  const exposure=THREE.MathUtils.clamp(Math.pow(.505/Math.max(.18,measured.midtone),.64),.91,1.12);
+  const contrast=THREE.MathUtils.clamp(1.092+(.43-measured.spread)*.075,1.075,1.115);
+  const saturate=THREE.MathUtils.clamp(1.175+(.13-measured.chroma)*.19,1.15,1.215);
+  const vibrance=THREE.MathUtils.clamp(.105+(.12-measured.chroma)*.38,.075,.145);
+  const shadowLift=THREE.MathUtils.clamp(.026+(.49-measured.midtone)*.055,.016,.043);
+  const highlightRollOff=THREE.MathUtils.clamp(.062+(measured.spread-.40)*.15,.042,.095);
+  const blackPoint=THREE.MathUtils.clamp(.014+(.43-measured.spread)*.024,.008,.024);
+  const gamma=THREE.MathUtils.clamp(1+(.50-measured.midtone)*.07,.985,1.025);
+  const sharpness=coarsePointer
+    ? THREE.MathUtils.clamp(.105+(.42-measured.spread)*.10,.08,.135)
+    : THREE.MathUtils.clamp(.165+(.42-measured.spread)*.12,.13,.205);
+  const vignette=coarsePointer?.022:.030;
+  return {exposure,contrast,saturate,vibrance,shadowLift,highlightRollOff,blackPoint,gamma,balance:measured.balance,sharpness,vignette};
 }
 function prep(root,i){
   const aniso=Math.min(renderer.capabilities.getMaxAnisotropy(),coarsePointer?4:Infinity);
@@ -559,7 +679,7 @@ function prep(root,i){
       const source=oldMats.find(m=>m?.map)?.map;
       sceneGradeCache.set(i,autoGrade(source));
     }
-    const grade=sceneGradeCache.get(i)??{exposure:1,contrast:1.10,saturate:1.19};
+    const grade=sceneGradeCache.get(i)??DEFAULT_GRADE;
     const gainMean=Math.max(.001,(gain[0]+gain[1]+gain[2])/3);
     const newMats=oldMats.map(m=>{
       const bm=new THREE.MeshBasicMaterial({
@@ -717,16 +837,23 @@ function updateRouteLabel(){
   routeTip.style.top=(position.y-12)+'px';routeTip.classList.add('show');routeTip.setAttribute('aria-hidden','false');
 }
 
-let canvasGrade={brightness:1,contrast:1.10,saturate:1.19};
 function setSceneGrade(i){
-  const grade=sceneGradeCache.get(i)??{contrast:1.10,saturate:1.19};
-  // Exposure is applied to the panorama material; canvas filtering adds one consistent vivid finish.
-  canvasGrade={brightness:1,contrast:grade.contrast,saturate:grade.saturate};
+  const grade=sceneGradeCache.get(i)??DEFAULT_GRADE;
+  postUniforms.uContrast.value=grade.contrast;
+  postUniforms.uSaturation.value=grade.saturate;
+  postUniforms.uVibrance.value=grade.vibrance;
+  postUniforms.uShadowLift.value=grade.shadowLift;
+  postUniforms.uHighlightRollOff.value=grade.highlightRollOff;
+  postUniforms.uBlackPoint.value=grade.blackPoint;
+  postUniforms.uGamma.value=grade.gamma;
+  postUniforms.uBalance.value.set(grade.balance[0],grade.balance[1],grade.balance[2]);
+  postUniforms.uSharpness.value=grade.sharpness;
+  postUniforms.uVignette.value=grade.vignette;
   setCanvasFx(1,0,1);
 }
-function setCanvasFx(scale=1, blur=0, opacity=1){
+function setCanvasFx(scale=1,blur=0,opacity=1){
   el.style.transform=`scale(${scale})`;
-  el.style.filter=`brightness(${canvasGrade.brightness}) contrast(${canvasGrade.contrast}) saturate(${canvasGrade.saturate}) blur(${blur}px)`;
+  el.style.filter=blur>0?`blur(${blur}px)`:'none';
   el.style.opacity=String(opacity);
 }
 function ease(t){ return t<0.5 ? 2*t*t : 1 - Math.pow(-2*t+2,2)/2; }
@@ -928,7 +1055,7 @@ async function loadCheckpoint(i, prepared=null, onProgress=null){
     scene.remove(object);
     cacheRecentScene(oldIndex,object);
   }
-  object=replacement;current=i;renderQuality(i>=10);scene.add(object);document.body.classList.remove('campus-only');setSceneGrade(i);
+  object=replacement;current=i;renderQuality(i>=10);syncPostTargetSize();scene.add(object);document.body.classList.remove('campus-only');setSceneGrade(i);
   camera.position.set(0,CAMERA_HEIGHT,0);resetView();
   cp.textContent=locationLabel(i);
   hoverHotspot=null;placeHotspots();ready=true;loading.classList.add('done');setTimeout(()=>{if(loading.classList.contains('done'))loading.style.display='none';},460);updateControls();
@@ -958,7 +1085,7 @@ async function transitionTo(i,selectedRoute=null,fromMap=false){
   const status=document.getElementById('status');status.textContent='';
 
   // Capture the current view immediately so a tap always gets visual feedback while the next panorama decodes.
-  hotspotGroup.visible=false;renderer.render(scene,camera);
+  hotspotGroup.visible=false;renderPanoramaFrame();
   const snapScale=coarsePointer?0.50:0.84;
   travelFrame.width=Math.max(1,Math.round(el.width*snapScale));
   travelFrame.height=Math.max(1,Math.round(el.height*snapScale));
@@ -1012,7 +1139,7 @@ async function transitionTo(i,selectedRoute=null,fromMap=false){
     clearTimeout(slowLoad);status.textContent='';
     await loadCheckpoint(i,prepared);
     yaw=arrivalYaw;pitch=(fromMap || centerArrival)?(LOCATIONS[i]?.viewPitch ?? 0):(route.arrivalPitch ?? oldPitch);camera.fov=oldFov;camera.updateProjectionMatrix();camera.rotation.set(pitch,yaw,0);
-    if(coarsePointer){updateHotspotVisuals(performance.now());renderer.render(scene,camera);}
+    if(coarsePointer){updateHotspotVisuals(performance.now());renderPanoramaFrame();}
     await tween(reducedMotion?100:(coarsePointer?190:240),(e,t)=>{
       if(!reducedMotion){
         let transform='scale(1)';
@@ -1154,7 +1281,7 @@ addEventListener('resize', ()=>{
   renderQuality(current>=10);
   camera.aspect=innerWidth/innerHeight;
   camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth,innerHeight);measureLabelBounds();
+  renderer.setSize(innerWidth,innerHeight);syncPostTargetSize();measureLabelBounds();
 });
 let lastMobileFrame='';
 function animate(now=0){
@@ -1168,7 +1295,7 @@ function animate(now=0){
     if(frame===lastMobileFrame)return;
     lastMobileFrame=frame;
   }
-  updateHotspotVisuals(now);renderer.render(scene,camera);updateRouteLabel();
+  updateHotspotVisuals(now);renderPanoramaFrame();updateRouteLabel();
 }
 document.addEventListener('visibilitychange',()=>{lastMobileFrame='';});
 animate();
