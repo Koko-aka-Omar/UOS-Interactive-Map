@@ -1,11 +1,12 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { HALLS } from './halls.js?v=20260927-final2';
-import { addCampusArtworkLabels } from './campus-map-labels.js?v=20260927-3';
-import { createDirectory, searchHalls, localized } from './campus-directory.js?v=20260927-final2';
+import { createPanoramaRenderer } from './tour-renderer.js';
+import { HALLS } from './halls.js';
+import { addCampusArtworkLabels } from './campus-map-labels.js';
+import { createDirectory, searchHalls, localized } from './campus-directory.js';
 import { findPath } from './directions.js';
-import { PANORAMA_FILES, VISUAL_CALIBRATION, LOCATIONS, LOCATION_AR, getHotspotStyle } from './tour-routes.js?v=20260928-mens-hall5';
-import { I18N } from './tour-i18n.js?v=20260927-vivid1';
+import { PANORAMA_FILES, VISUAL_CALIBRATION, LOCATIONS, LOCATION_AR, TOUR_AREAS, areaForScene, getHotspotStyle } from './tour-routes.js';
+import { I18N } from './tour-i18n.js';
 
 const app=document.getElementById('app');
 const loading=document.getElementById('loading');
@@ -21,126 +22,18 @@ const languageKey='m7a-language-v1';
 let currentLanguage='en';
 try{if(localStorage.getItem(languageKey)==='ar')currentLanguage='ar';}catch{}
 function t(key,...args){const value=I18N[currentLanguage][key]??I18N.en[key]??key;return typeof value==='function'?value(...args):value;}
-// Phones/tablets use dedicated 3K/4K panoramas. Desktop keeps the full 8K originals.
-const DATA=PANORAMA_FILES.map(file=>(coarsePointer?'./assets-mobile/':'./assets/')+file+(file==='library-study-020.glb'?'?v=20260927-study1':file==='library-study-021.glb'?'?v=20260927-3':''));
+// Phones/tablets use dedicated mobile panoramas. Asset revisions are generated from Git blobs.
+const ASSET_MANIFEST=globalThis.UOS_TOUR_ASSETS;
+const panoramaMode=coarsePointer?'mobile':'desktop';
+const panoramaDir=coarsePointer?'./assets-mobile/':'./assets/';
+const DATA=PANORAMA_FILES.map(file=>{
+  const revision=ASSET_MANIFEST?.panoramaRevisions?.[panoramaMode]?.[file];
+  return panoramaDir+file+(revision?'?rev='+revision:'');
+});
 
-const scene=new THREE.Scene();
-const camera=new THREE.PerspectiveCamera(72,innerWidth/innerHeight,0.01,50);
 const CAMERA_HEIGHT=0.45;
-camera.position.set(0,CAMERA_HEIGHT,0);
-camera.rotation.order='YXZ';
-
-const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
-function renderQuality(enhanced=false){
-  // Slightly higher sampling than the original viewer for crisper signage, furniture and edges.
-  // Mobile remains capped to avoid trading sharpness for unstable Safari GPU memory use.
-  const pixelBudget=coarsePointer?(enhanced?3000000:1550000):12000000;
-  const budget=Math.sqrt(pixelBudget/(innerWidth*innerHeight));
-  renderer.setPixelRatio(coarsePointer
-    ? Math.min(devicePixelRatio||1,enhanced?2:1.75,budget)
-    : Math.max(1,Math.min(Math.max(devicePixelRatio,1.5),2.5,budget)));
-}
-renderQuality();
-renderer.setSize(innerWidth,innerHeight);
-renderer.outputColorSpace=THREE.SRGBColorSpace;
-app.appendChild(renderer.domElement);
-const el=renderer.domElement;
-
-// Professional panorama post-processing. The source GLBs stay untouched; grading is reversible.
-const postScene=new THREE.Scene();
-const postCamera=new THREE.OrthographicCamera(-1,1,1,-1,0,1);
-const postSize=new THREE.Vector2();
-const postTarget=new THREE.WebGLRenderTarget(1,1,{
-  minFilter:THREE.LinearFilter,magFilter:THREE.LinearFilter,
-  depthBuffer:false,stencilBuffer:false
-});
-postTarget.texture.colorSpace=THREE.NoColorSpace;
-postTarget.texture.generateMipmaps=false;
-const postUniforms={
-  tDiffuse:{value:postTarget.texture},
-  texelSize:{value:new THREE.Vector2(1,1)},
-  uContrast:{value:1.10},
-  uSaturation:{value:1.18},
-  uVibrance:{value:.11},
-  uShadowLift:{value:.028},
-  uHighlightRollOff:{value:.065},
-  uBlackPoint:{value:.014},
-  uGamma:{value:1},
-  uBalance:{value:new THREE.Vector3(1,1,1)},
-  uSharpness:{value:coarsePointer?.10:.16},
-  uVignette:{value:.028}
-};
-const postMaterial=new THREE.ShaderMaterial({
-  uniforms:postUniforms,toneMapped:false,depthTest:false,depthWrite:false,
-  vertexShader:`
-    varying vec2 vUv;
-    void main(){vUv=uv;gl_Position=vec4(position.xy,0.0,1.0);}
-  `,
-  fragmentShader:`
-    varying vec2 vUv;
-    uniform sampler2D tDiffuse;
-    uniform vec2 texelSize;
-    uniform float uContrast,uSaturation,uVibrance,uShadowLift,uHighlightRollOff,uBlackPoint,uGamma,uSharpness,uVignette;
-    uniform vec3 uBalance;
-
-    float luma(vec3 c){return dot(c,vec3(.2126,.7152,.0722));}
-
-    void main(){
-      vec3 center=texture2D(tDiffuse,vUv).rgb;
-      vec3 north=texture2D(tDiffuse,vUv+vec2(0.0,texelSize.y)).rgb;
-      vec3 south=texture2D(tDiffuse,vUv-vec2(0.0,texelSize.y)).rgb;
-      vec3 east=texture2D(tDiffuse,vUv+vec2(texelSize.x,0.0)).rgb;
-      vec3 west=texture2D(tDiffuse,vUv-vec2(texelSize.x,0.0)).rgb;
-      vec3 localMean=(north+south+east+west)*.25;
-      vec3 detail=clamp(center-localMean,vec3(-.07),vec3(.07));
-      vec3 color=clamp(center+detail*uSharpness,0.0,1.0);
-
-      // Tiny gray-world correction removes scene-to-scene fluorescent/blue casts without neutralizing real colors.
-      color=clamp(color*uBalance,0.0,1.0);
-
-      // Deeper blacks, recovered shadows and protected highlights.
-      color=max((color-vec3(uBlackPoint))/max(.001,1.0-uBlackPoint),vec3(0.0));
-      float y=luma(color);
-      float shadow=1.0-smoothstep(.10,.52,y);
-      color+=((1.0-color)*uShadowLift*shadow);
-      y=luma(color);
-      float highlight=smoothstep(.68,.98,y);
-      color*=1.0-uHighlightRollOff*highlight;
-
-      // Midtone shape, contrast, saturation and vibrance.
-      color=pow(max(color,vec3(0.0)),vec3(1.0/max(.85,uGamma)));
-      color=(color-.5)*uContrast+.5;
-      y=luma(color);
-      color=mix(vec3(y),color,uSaturation);
-      float mx=max(color.r,max(color.g,color.b));
-      float mn=min(color.r,min(color.g,color.b));
-      float chroma=max(0.0,mx-mn);
-      float vibranceGain=1.0+uVibrance*(1.0-smoothstep(.10,.62,chroma));
-      y=luma(color);
-      color=mix(vec3(y),color,vibranceGain);
-
-      // Barely-visible screen-space vignette adds depth without looking stylized.
-      float edge=vUv.x*(1.0-vUv.x)*vUv.y*(1.0-vUv.y)*16.0;
-      float vignetteMask=pow(clamp(edge,0.0,1.0),.18);
-      color*=mix(1.0-uVignette,1.0,vignetteMask);
-
-      gl_FragColor=vec4(clamp(color,0.0,1.0),1.0);
-      #include <colorspace_fragment>
-    }
-  `
-});
-const postQuad=new THREE.Mesh(new THREE.PlaneGeometry(2,2),postMaterial);
-postQuad.frustumCulled=false;
-postScene.add(postQuad);
-
-function syncPostTargetSize(){
-  renderer.getDrawingBufferSize(postSize);
-  const w=Math.max(1,Math.round(postSize.x)),h=Math.max(1,Math.round(postSize.y));
-  if(postTarget.width!==w||postTarget.height!==h)postTarget.setSize(w,h);
-  postUniforms.texelSize.value.set(1/w,1/h);
-}
-function renderPanoramaFrame(){
-  syncPostTargetSize();
+const {scene,camera,renderer,el,postUniforms,renderQuality,syncPostTargetSize,renderPanoramaFrame}=
+  createPanoramaRenderer({app,coarsePointer,cameraHeight:CAMERA_HEIGHT});
   renderer.setRenderTarget(postTarget);
   renderer.render(scene,camera);
   renderer.setRenderTarget(null);
@@ -442,7 +335,8 @@ function openDirectoryTour(target){
   if(target.scene){const index=LOCATIONS.findIndex(item=>item.id===target.scene);if(index>=0)openPanoramaFromCampus(index);}
   else if(target.url){const url=new URL(target.url,location.href);if(['https:','http:'].includes(url.protocol))location.assign(url.href);}
 }
-function hallIdForScene(i=current){return i<10?'m7':i<23?'e2':i<47?'e3':'a4';}
+function hallIdForScene(i=current){return areaForScene(i)?.hallId??null;}
+function isM7Scene(i=current){return hallIdForScene(i)==='m7';}
 const directory=createDirectory({halls:CAMPUS_BUILDINGS,root:mapPanel,language:()=>currentLanguage,isReady:()=>!transitioning,startDirections:startRoomDirections,openTour:openDirectoryTour,currentHallId:()=>object?hallIdForScene():null});
 function initCampusMap(){
   if(campusMap||!window.maplibregl)return;
@@ -765,7 +659,7 @@ function placeOne(root,route){
   root.position.set(Math.sin(hotspotAngle)*dist,route.hotspotHeight??FLOOR_Y,-Math.cos(hotspotAngle)*dist);
   // Explicit scene calibration separates arrow heading from placement and travel.
   // Preserve the legacy orientation for routes without an override.
-  const arrowFlip=current>=10?Math.PI:0;
+  const arrowFlip=!isM7Scene(current)?Math.PI:0;
   root.rotation.y=route.arrowAngle===undefined?-angle+arrowFlip:-route.arrowAngle;
 }
 
@@ -896,18 +790,18 @@ const sceneLinkElement=document.getElementById('scene-link');
 const shareLocation=document.getElementById('share-location');
 function localizedLocation(i=current){
   const loc=LOCATIONS[i];
-  if(currentLanguage==='ar'&&LOCATION_AR[i])return {area:LOCATION_AR[i][0],name:LOCATION_AR[i][1]};
+  if(currentLanguage==='ar'&&LOCATION_AR[i]){const ar=LOCATION_AR[i];return Array.isArray(ar)?{area:ar[0],name:ar[1]}:{area:ar.area,name:ar.name};}
   return {area:loc.area,name:loc.name};
 }
 function locationLabel(i=current){const loc=localizedLocation(i);return loc.area+' · '+loc.name;}
 function tourAreaTitle(i=current){
-  if(i<10)return t('building');
+  if(isM7Scene(i))return t('building');
   const hall=CAMPUS_BUILDINGS.find(item=>item.id===hallIdForScene(i));
   return hall?localized(hall.name,currentLanguage):localizedLocation(i).area;
 }
 function backTarget(){return LOCATIONS[current]?.back ?? null;}
 function floorLabel(i=current){
-  if(i>=10)return '360°';
+  if(!isM7Scene(i))return '360°';
   return LOCATIONS[i]?.area==='Top Floor'?t('topFloorBadge'):t('groundFloorBadge');
 }
 function sceneLink(i=current){return sceneUrl(i).href;}
@@ -949,6 +843,8 @@ function applyLanguage(persist=true){
   }
   document.getElementById('more-view-label').textContent=t('moreView');
   document.getElementById('more-tour-label').textContent=t('moreTour');
+  document.getElementById('campus-home-area-count').textContent=String(TOUR_AREAS.length);
+  document.getElementById('campus-home-view-count').textContent=String(LOCATIONS.length);
   document.getElementById('campus-home-kicker').textContent=t('university');
   document.getElementById('campus-home-title').textContent=t('homeTitle');
   document.getElementById('campus-home-copy').textContent=t('homeCopy');
@@ -977,7 +873,7 @@ shareScene.onclick=async()=>{
 };
 function resetView(){
   const bearing=LOCATIONS[current]?.view ?? LOCATIONS[current]?.routes?.[0]?.angle ?? 0;
-  yaw=-bearing;pitch=LOCATIONS[current]?.viewPitch ?? 0;camera.fov=current>=10?95:72;camera.updateProjectionMatrix();camera.rotation.set(pitch,yaw,0);
+  yaw=-bearing;pitch=LOCATIONS[current]?.viewPitch ?? 0;camera.fov=isM7Scene(current)?72:95;camera.updateProjectionMatrix();camera.rotation.set(pitch,yaw,0);
   if(motionEnabled)motionNeedsCalibrate=true;
 }
 function dispose(root){
@@ -1075,7 +971,7 @@ async function loadCheckpoint(i, prepared=null, onProgress=null){
     scene.remove(object);
     cacheRecentScene(oldIndex,object);
   }
-  object=replacement;current=i;renderQuality(i>=10);syncPostTargetSize();scene.add(object);document.body.classList.remove('campus-only');setSceneGrade(i);
+  object=replacement;current=i;renderQuality(!isM7Scene(i));syncPostTargetSize();scene.add(object);document.body.classList.remove('campus-only');setSceneGrade(i);
   camera.position.set(0,CAMERA_HEIGHT,0);resetView();
   cp.textContent=locationLabel(i);
   hoverHotspot=null;placeHotspots();ready=true;loading.classList.add('done');setTimeout(()=>{if(loading.classList.contains('done'))loading.style.display='none';},460);updateControls();
@@ -1298,7 +1194,7 @@ addEventListener('keydown',e=>{if(e.key==='Escape'&&document.body.classList.cont
 });
 applyLanguage(false);measureLabelBounds();
 addEventListener('resize', ()=>{
-  renderQuality(current>=10);
+  renderQuality(!isM7Scene(current));
   camera.aspect=innerWidth/innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth,innerHeight);syncPostTargetSize();measureLabelBounds();

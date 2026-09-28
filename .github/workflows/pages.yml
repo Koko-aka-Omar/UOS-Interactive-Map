@@ -23,8 +23,14 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Check generated asset manifest
+        run: node scripts/build-tour-manifest.cjs --check
       - name: Validate tour integrity
         run: node tests/validate-tour.cjs
+      - name: Validate directions
+        run: node tests/directions.cjs
+      - name: Validate campus directory
+        run: node tests/campus-directory.cjs
       - name: Build browser QA page
         run: node tests/build-navigation-qa.cjs
       - name: Configure Pages

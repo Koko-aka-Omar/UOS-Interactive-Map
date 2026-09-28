@@ -17,7 +17,9 @@ inspections.forEach(({from,route},n)=>{const o=document.createElement('option');
 inspect.onchange=async()=>{const {from,route}=inspections[+inspect.value];await loadCheckpoint(from);yaw=-route.angle;pitch=-.30;camera.rotation.set(pitch,yaw,0);updateHotspotVisuals();renderer.render(scene,camera);};
 run.onclick=async()=>{run.disabled=true;const lines=[];const check=(v,s)=>{if(!v)throw Error(s);lines.push('PASS '+s);result.textContent=lines.join('\\n')};try{
   currentLanguage='en';applyLanguage();
-    check(LOCATIONS.length===35,'35 checkpoints');
+    check(LOCATIONS.length===58,'58 checkpoints');
+  check(PANORAMA_FILES.length===LOCATIONS.length,'panorama count matches checkpoints');
+  LOCATIONS.forEach((loc,index)=>{check(Boolean(loc.id),'scene '+index+' has an ID');check(Array.isArray(loc.routes),'scene '+index+' has routes')});
   const tip=new THREE.Vector3(0,1,0);
   for(const {from,route} of inspections){
     const root=hotspotRoots[0];placeOne(root,route);root.updateMatrixWorld(true);

@@ -152,6 +152,8 @@ hallV3/
 │       ├── styles.css
 │       ├── ui-polish.css
 │       ├── tour.js
+│       ├── tour-renderer.js
+│       ├── tour-assets.generated.js
 │       ├── tour-boot.js
 │       ├── tour-i18n.js
 │       ├── tour-routes.js
@@ -169,6 +171,8 @@ hallV3/
 │       ├── assets/
 │       ├── assets-mobile/
 │       └── panoramas-mobile/
+├── scripts/
+│   └── build-tour-manifest.cjs
 ├── tests/
 ├── NAVIGATION.md
 └── README.md
@@ -177,7 +181,9 @@ hallV3/
 ### Responsibilities
 
 - **`routes/*.js`** — scene names, connections, arrow bearings, camera/navigation calibration
-- **`tour.js`** — viewer behavior, rendering, transitions, search integration, motion controls, loading and recovery
+- **`tour.js`** — viewer orchestration, transitions, search integration, motion controls, loading and recovery
+- **`tour-renderer.js`** — Three.js renderer and panorama post-processing pipeline
+- **`tour-assets.generated.js`** — generated cache manifest and content revisions
 - **`campus-directory.js`** — campus directory, building/room search, map markers, mobile map sheet
 - **`tour-i18n.js`** — English/Arabic interface copy
 - **`styles.css`** — core viewer styling
