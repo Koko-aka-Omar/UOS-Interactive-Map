@@ -5,7 +5,7 @@ import { HALLS } from './halls.js';
 import { addCampusArtworkLabels } from './campus-map-labels.js';
 import { createDirectory, searchHalls, localized } from './campus-directory.js';
 import { findPath } from './directions.js';
-import { PANORAMA_FILES, LOCATIONS, LOCATION_AR, TOUR_AREAS, areaForScene, getHotspotStyle } from './tour-routes.js';
+import { PANORAMA_FILES, VISUAL_CALIBRATION, LOCATIONS, LOCATION_AR, TOUR_AREAS, areaForScene, getHotspotStyle } from './tour-routes.js';
 import { I18N } from './tour-i18n.js';
 
 const app=document.getElementById('app');
@@ -495,23 +495,108 @@ scene.add(hotspotGroup);
 const hotspotRoots=[];
 let hoverHotspot=null;
 
+const sceneGradeCache=new Map();
+const DEFAULT_GRADE=Object.freeze({
+  exposure:1,contrast:1.10,saturate:1.18,vibrance:.11,shadowLift:.028,highlightRollOff:.065,
+  blackPoint:.014,gamma:1,balance:[1,1,1],sharpness:coarsePointer?.10:.16,vignette:.028
+});
+function measurePanorama(texture){
+  const image=texture?.image;
+  const width=image?.width||image?.videoWidth||0;
+  const height=image?.height||image?.videoHeight||0;
+  if(!image||!width||!height)return null;
+  const canvas=document.createElement('canvas');
+  canvas.width=64;canvas.height=32;
+  const ctx=canvas.getContext('2d',{willReadFrequently:true});
+  if(!ctx)return null;
+  try{ctx.drawImage(image,0,0,canvas.width,canvas.height);}catch{return null;}
+  let pixels;
+  try{pixels=ctx.getImageData(0,0,canvas.width,canvas.height).data;}catch{return null;}
+  const luma=[];
+  let chromaSum=0,chromaCount=0,neutralR=0,neutralG=0,neutralB=0,neutralCount=0;
+  for(let p=0;p<pixels.length;p+=4){
+    if(pixels[p+3]<64)continue;
+    const r=pixels[p]/255,g=pixels[p+1]/255,b=pixels[p+2]/255;
+    const y=.2126*r+.7152*g+.0722*b;
+    const chroma=Math.max(r,g,b)-Math.min(r,g,b);
+    luma.push(y);
+    if(y>.08&&y<.92){chromaSum+=chroma;chromaCount++;}
+    if(y>.12&&y<.88&&chroma<.30){neutralR+=r;neutralG+=g;neutralB+=b;neutralCount++;}
+  }
+  if(luma.length<64)return null;
+  luma.sort((a,b)=>a-b);
+  const from=Math.floor(luma.length*.14),to=Math.ceil(luma.length*.86);
+  let sum=0;
+  for(let n=from;n<to;n++)sum+=luma[n];
+  const midtone=sum/Math.max(1,to-from);
+  const p20=luma[Math.floor(luma.length*.20)],p80=luma[Math.floor(luma.length*.80)];
+  let balance=[1,1,1];
+  if(neutralCount>24){
+    const r=neutralR/neutralCount,g=neutralG/neutralCount,b=neutralB/neutralCount;
+    const gray=(r+g+b)/3;
+    const raw=[gray/Math.max(.06,r),gray/Math.max(.06,g),gray/Math.max(.06,b)];
+    const mean=(raw[0]+raw[1]+raw[2])/3;
+    balance=raw.map(v=>THREE.MathUtils.clamp(1+(v/mean-1)*.22,.97,1.03));
+  }
+  return {midtone,spread:p80-p20,chroma:chromaSum/Math.max(1,chromaCount),balance};
+}
+function autoGrade(texture){
+  const measured=measurePanorama(texture);
+  if(!measured)return {...DEFAULT_GRADE,balance:[1,1,1]};
+  // Preserve the source white balance and avoid clipping dark interiors.
+  const exposure=THREE.MathUtils.clamp(Math.pow(.50/Math.max(.18,measured.midtone),.42),.96,1.06);
+  const contrast=THREE.MathUtils.clamp(1.01+(.44-measured.spread)*.025,.99,1.035);
+  const saturate=THREE.MathUtils.clamp(1.01+(.13-measured.chroma)*.06,.98,1.035);
+  const vibrance=THREE.MathUtils.clamp(.02+(.12-measured.chroma)*.08,.0,.035);
+  return {...DEFAULT_GRADE,exposure,contrast,saturate,vibrance,shadowLift:.012,highlightRollOff:.035,blackPoint:.006,gamma:1,balance:measured.balance,sharpness:coarsePointer?.08:.12,vignette:coarsePointer?.008:.012};
+}
+
+function resolvedSceneGrade(i,grade){
+  if(LOCATIONS[i]?.area!=='Library')return grade;
+  // Library panoramas are naturally darker and warmer. Keep them clean, bright and close to source
+  // instead of stacking black-point/contrast/vignette corrections intended for brighter scenes.
+  return {
+    ...grade,
+    exposure:THREE.MathUtils.clamp(Math.max(grade.exposure,1.045),1.045,1.105),
+    contrast:1.01,
+    saturate:1.075,
+    vibrance:.035,
+    shadowLift:.052,
+    highlightRollOff:.022,
+    blackPoint:0,
+    gamma:1.0,
+    balance:[1,1,1],
+    sharpness:coarsePointer?.065:.095,
+    vignette:.004
+  };
+}
+
 function prep(root,i){
   const aniso=Math.min(renderer.capabilities.getMaxAnisotropy(),coarsePointer?4:Infinity);
+  const gain=VISUAL_CALIBRATION[i]??[1,1,1];
   root.traverse(o=>{
-    if(!o.isMesh)return;
+    if(!o.isMesh) return;
     const oldMats=Array.isArray(o.material)?o.material:[o.material];
+    if(!sceneGradeCache.has(i)){
+      const source=oldMats.find(m=>m?.map)?.map;
+      sceneGradeCache.set(i,resolvedSceneGrade(i,autoGrade(source)));
+    }
+    const grade=sceneGradeCache.get(i)??DEFAULT_GRADE;
+    const gainMean=Math.max(.001,(gain[0]+gain[1]+gain[2])/3);
     const newMats=oldMats.map(m=>{
       const bm=new THREE.MeshBasicMaterial({
-        map:m?.map??null,
-        color:0xffffff,
+        map:m && m.map ? m.map : null,
+        // Preserve any existing RGB tint calibration, but let auto-exposure own overall brightness.
+        color:new THREE.Color((gain[0]/gainMean)*grade.exposure,(gain[1]/gainMean)*grade.exposure,(gain[2]/gainMean)*grade.exposure),
         side:THREE.DoubleSide,
         toneMapped:false
       });
       if(bm.map){
-        // Original panorama RGB only; sRGB is the source image's normal display space.
         bm.map.colorSpace=THREE.SRGBColorSpace;
         bm.map.anisotropy=aniso;
         if(coarsePointer){
+          // 8K mipmaps add roughly one-third more GPU texture memory and are expensive
+          // for iPhone Safari to generate during a scene switch.
           bm.map.generateMipmaps=false;
           bm.map.minFilter=THREE.LinearFilter;
         }else{
@@ -520,6 +605,7 @@ function prep(root,i){
         }
         bm.map.magFilter=THREE.LinearFilter;
         bm.map.needsUpdate=true;
+
       }
       return bm;
     });
@@ -653,7 +739,18 @@ function updateRouteLabel(){
   routeTip.style.top=(position.y-12)+'px';routeTip.classList.add('show');routeTip.setAttribute('aria-hidden','false');
 }
 
-function setSceneGrade(){
+function setSceneGrade(i){
+  const grade=resolvedSceneGrade(i,sceneGradeCache.get(i)??DEFAULT_GRADE);
+  postUniforms.uContrast.value=grade.contrast;
+  postUniforms.uSaturation.value=grade.saturate;
+  postUniforms.uVibrance.value=grade.vibrance;
+  postUniforms.uShadowLift.value=grade.shadowLift;
+  postUniforms.uHighlightRollOff.value=grade.highlightRollOff;
+  postUniforms.uBlackPoint.value=grade.blackPoint;
+  postUniforms.uGamma.value=grade.gamma;
+  postUniforms.uBalance.value.set(grade.balance[0],grade.balance[1],grade.balance[2]);
+  postUniforms.uSharpness.value=grade.sharpness;
+  postUniforms.uVignette.value=grade.vignette;
   setCanvasFx(1,0,1);
 }
 function setCanvasFx(scale=1,blur=0,opacity=1){
