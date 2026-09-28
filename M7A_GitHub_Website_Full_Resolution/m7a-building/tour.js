@@ -543,20 +543,14 @@ function measurePanorama(texture){
 function autoGrade(texture){
   const measured=measurePanorama(texture);
   if(!measured)return {...DEFAULT_GRADE,balance:[1,1,1]};
-  const exposure=THREE.MathUtils.clamp(Math.pow(.505/Math.max(.18,measured.midtone),.64),.91,1.12);
-  const contrast=THREE.MathUtils.clamp(1.092+(.43-measured.spread)*.075,1.075,1.115);
-  const saturate=THREE.MathUtils.clamp(1.175+(.13-measured.chroma)*.19,1.15,1.215);
-  const vibrance=THREE.MathUtils.clamp(.105+(.12-measured.chroma)*.38,.075,.145);
-  const shadowLift=THREE.MathUtils.clamp(.026+(.49-measured.midtone)*.055,.016,.043);
-  const highlightRollOff=THREE.MathUtils.clamp(.062+(measured.spread-.40)*.15,.042,.095);
-  const blackPoint=THREE.MathUtils.clamp(.014+(.43-measured.spread)*.024,.008,.024);
-  const gamma=THREE.MathUtils.clamp(1+(.50-measured.midtone)*.07,.985,1.025);
-  const sharpness=coarsePointer
-    ? THREE.MathUtils.clamp(.105+(.42-measured.spread)*.10,.08,.135)
-    : THREE.MathUtils.clamp(.165+(.42-measured.spread)*.12,.13,.205);
-  const vignette=coarsePointer?.022:.030;
-  return {exposure,contrast,saturate,vibrance,shadowLift,highlightRollOff,blackPoint,gamma,balance:measured.balance,sharpness,vignette};
+  // Preserve the source white balance and avoid clipping dark interiors.
+  const exposure=THREE.MathUtils.clamp(Math.pow(.50/Math.max(.18,measured.midtone),.42),.96,1.06);
+  const contrast=THREE.MathUtils.clamp(1.01+(.44-measured.spread)*.025,.99,1.035);
+  const saturate=THREE.MathUtils.clamp(1.01+(.13-measured.chroma)*.06,.98,1.035);
+  const vibrance=THREE.MathUtils.clamp(.02+(.12-measured.chroma)*.08,.0,.035);
+  return {...DEFAULT_GRADE,exposure,contrast,saturate,vibrance,shadowLift:.012,highlightRollOff:.035,blackPoint:.006,gamma:1,balance:measured.balance,sharpness:coarsePointer?.08:.12,vignette:coarsePointer?.008:.012};
 }
+
 function resolvedSceneGrade(i,grade){
   if(LOCATIONS[i]?.area!=='Library')return grade;
   // Library panoramas are naturally darker and warmer. Keep them clean, bright and close to source
