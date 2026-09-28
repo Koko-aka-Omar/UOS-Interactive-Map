@@ -4,7 +4,7 @@ import { HALLS } from './halls.js?v=20260927-final2';
 import { addCampusArtworkLabels } from './campus-map-labels.js?v=20260927-3';
 import { createDirectory, searchHalls, localized } from './campus-directory.js?v=20260927-final2';
 import { findPath } from './directions.js';
-import { PANORAMA_FILES, VISUAL_CALIBRATION, LOCATIONS, LOCATION_AR, getHotspotStyle } from './tour-routes.js?v=20260928-mens-hall5';
+import { PANORAMA_FILES, VISUAL_CALIBRATION, LOCATIONS, LOCATION_AR, getHotspotStyle } from './tour-routes.js?v=20260928-mens-order7';
 import { I18N } from './tour-i18n.js?v=20260927-vivid1';
 
 const app=document.getElementById('app');
@@ -22,7 +22,7 @@ let currentLanguage='en';
 try{if(localStorage.getItem(languageKey)==='ar')currentLanguage='ar';}catch{}
 function t(key,...args){const value=I18N[currentLanguage][key]??I18N.en[key]??key;return typeof value==='function'?value(...args):value;}
 // Phones/tablets use dedicated 3K/4K panoramas. Desktop keeps the full 8K originals.
-const DATA=PANORAMA_FILES.map(file=>(coarsePointer?'./assets-mobile/':'./assets/')+file+(file==='library-study-020.glb'?'?v=20260927-study1':file==='library-study-021.glb'?'?v=20260927-3':''));
+const DATA=PANORAMA_FILES.map(file=>(coarsePointer?'./assets-mobile/':'./assets/')+file+(file.startsWith('mens-hall-')?'?v=20260928-original-order':file==='library-study-020.glb'?'?v=20260927-study1':file==='library-study-021.glb'?'?v=20260927-3':''));
 
 const scene=new THREE.Scene();
 const camera=new THREE.PerspectiveCamera(72,innerWidth/innerHeight,0.01,50);
@@ -541,12 +541,12 @@ function measurePanorama(texture){
 }
 function autoGrade(texture){
   const measured=measurePanorama(texture);
-  if(!measured)return {exposure:1,contrast:1.08,saturate:1.13};
-  // Stronger—but still bounded—midtone matching after reviewing every checkpoint.
-  // Saturation is adaptive: neutral interiors get more punch, naturally red/blue scenes get less.
-  const exposure=THREE.MathUtils.clamp(Math.pow(.505/Math.max(.18,measured.midtone),.66),.90,1.13);
-  const contrast=THREE.MathUtils.clamp(1.078+(.44-measured.spread)*.065,1.065,1.095);
-  const saturate=THREE.MathUtils.clamp(1.125+(.13-measured.chroma)*.18,1.095,1.145);
+  if(!measured)return {exposure:1,contrast:1,saturate:1};
+  // Keep the camera's original color. The panoramas are already white-balanced;
+  // aggressive adaptive grading was clipping shadows and adding a blue cast.
+  const exposure=THREE.MathUtils.clamp(Math.pow(.50/Math.max(.18,measured.midtone),.42),.96,1.06);
+  const contrast=THREE.MathUtils.clamp(1.01+(.44-measured.spread)*.025,.99,1.035);
+  const saturate=THREE.MathUtils.clamp(1.01+(.13-measured.chroma)*.06,.98,1.035);
   return {exposure,contrast,saturate};
 }
 function prep(root,i){
@@ -647,7 +647,7 @@ function updateHotspotVisuals(now=0){
     const hotspotScale=u.route?getHotspotStyle(current,u.route)[1]:.64;
     hs.scale.setScalar(hotspotScale*(1+0.05*e+pulse));
     const stairBoost=u.route?.kind==='stairs'?0.06:0;
-    const polished=current>=12&&current<=16;
+    const polished=(current>=12&&current<=16)||LOCATIONS[current]?.checkpoint!=null;
     const guided=directionsNext!==null&&u.route?.to===directionsNext;
     u.inner.material.color.setHex(guided?0xffcf5c:polished?0x00a979:0x00c389);
     u.ring.material.color.setHex(guided?0xffe49a:0x7ee8c8);
@@ -744,6 +744,13 @@ function tween(ms, update){
 
 
 const previous=document.getElementById('previous');
+const nextCheckpoint=document.createElement('button');
+nextCheckpoint.id='next-checkpoint';nextCheckpoint.className='step';nextCheckpoint.type='button';
+nextCheckpoint.hidden=true;previous.parentElement.append(nextCheckpoint);
+nextCheckpoint.onclick=()=>{
+  const route=LOCATIONS[current]?.routes.find(route=>!route.back);
+  if(route)transitionTo(route.to,route);
+};
 const shareScene=document.getElementById('share-scene');
 const sceneLinkElement=document.getElementById('scene-link');
 const shareLocation=document.getElementById('share-location');
@@ -772,6 +779,18 @@ function updateControls(){
   updateTourSearch();
   updateDirections();
   previous.disabled=!ready || transitioning || backTarget()==null;
+  const numbered=LOCATIONS[current]?.checkpoint!=null;
+  previous.parentElement.classList.toggle('checkpoint-nav',numbered);
+  const nextRoute=numbered?LOCATIONS[current].routes.find(route=>!route.back):null;
+  nextCheckpoint.hidden=!numbered;
+  nextCheckpoint.disabled=!ready||transitioning||!nextRoute;
+  nextCheckpoint.textContent=nextRoute
+    ?(currentLanguage==='ar'?'التالي ':'Next ')+LOCATIONS[nextRoute.to].checkpoint+' →'
+    :(currentLanguage==='ar'?'نهاية الجولة':'End of tour');
+  if(numbered)previous.querySelector('.step-label').textContent=backTarget()!=null
+    ?(currentLanguage==='ar'?'السابق ':'Back ')+LOCATIONS[backTarget()].checkpoint
+    :(currentLanguage==='ar'?'السابق':'Back');
+  else previous.querySelector('.step-label').textContent=t('back');
   document.getElementById('route-label').textContent=locationLabel();
   document.title=object?tourAreaTitle()+' — 360° Tour | University of Sharjah':'Campus 360° Tours | University of Sharjah';
   floorBadge.textContent=floorLabel();
