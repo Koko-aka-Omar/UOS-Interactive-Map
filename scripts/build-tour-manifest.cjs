@@ -64,11 +64,23 @@ function buildManifest(){
   }
   return {schema:1,buildId,coreAssets:core.map(rel=>'./'+rel),routeModules:routes.map(rel=>'./'+rel),panoramaFiles:panoramas,panoramaRevisions:revisions};
 }
-const output='globalThis.UOS_TOUR_ASSETS=Object.freeze('+JSON.stringify(buildManifest(),null,2)+');\n';
+const expected=buildManifest();
+const output='globalThis.UOS_TOUR_ASSETS=Object.freeze('+JSON.stringify(expected,null,2)+');\n';
 if(process.argv.includes('--check')){
   const current=fs.existsSync(target)?fs.readFileSync(target,'utf8'):'';
   if(current!==output){
+    let actual=null;
+    try{
+      const sandbox={globalThis:{}};
+      vm.runInNewContext(current,sandbox);
+      actual=sandbox.globalThis.UOS_TOUR_ASSETS;
+    }catch{}
     console.error('tour-assets.generated.js is stale. Run: node scripts/build-tour-manifest.cjs');
+    console.error('expected buildId:',expected.buildId,'actual:',actual?.buildId);
+    console.error('expected core:',expected.coreAssets);
+    console.error('actual core:',actual?.coreAssets);
+    console.error('expected routes:',expected.routeModules);
+    console.error('actual routes:',actual?.routeModules);
     process.exit(1);
   }
   console.log('PASS generated tour asset manifest is current');
