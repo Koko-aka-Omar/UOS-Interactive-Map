@@ -541,12 +541,12 @@ function measurePanorama(texture){
 }
 function autoGrade(texture){
   const measured=measurePanorama(texture);
-  if(!measured)return {exposure:1,contrast:1.08,saturate:1.13};
+  if(!measured)return {exposure:1,contrast:1.10,saturate:1.19};
   // Stronger—but still bounded—midtone matching after reviewing every checkpoint.
   // Saturation is adaptive: neutral interiors get more punch, naturally red/blue scenes get less.
   const exposure=THREE.MathUtils.clamp(Math.pow(.505/Math.max(.18,measured.midtone),.66),.90,1.13);
-  const contrast=THREE.MathUtils.clamp(1.078+(.44-measured.spread)*.065,1.065,1.095);
-  const saturate=THREE.MathUtils.clamp(1.125+(.13-measured.chroma)*.18,1.095,1.145);
+  const contrast=THREE.MathUtils.clamp(1.095+(.44-measured.spread)*.07,1.08,1.115);
+  const saturate=THREE.MathUtils.clamp(1.19+(.13-measured.chroma)*.22,1.15,1.225);
   return {exposure,contrast,saturate};
 }
 function prep(root,i){
@@ -559,7 +559,7 @@ function prep(root,i){
       const source=oldMats.find(m=>m?.map)?.map;
       sceneGradeCache.set(i,autoGrade(source));
     }
-    const grade=sceneGradeCache.get(i)??{exposure:1,contrast:1.08,saturate:1.13};
+    const grade=sceneGradeCache.get(i)??{exposure:1,contrast:1.10,saturate:1.19};
     const gainMean=Math.max(.001,(gain[0]+gain[1]+gain[2])/3);
     const newMats=oldMats.map(m=>{
       const bm=new THREE.MeshBasicMaterial({
@@ -717,9 +717,9 @@ function updateRouteLabel(){
   routeTip.style.top=(position.y-12)+'px';routeTip.classList.add('show');routeTip.setAttribute('aria-hidden','false');
 }
 
-let canvasGrade={brightness:1,contrast:1.08,saturate:1.13};
+let canvasGrade={brightness:1,contrast:1.10,saturate:1.19};
 function setSceneGrade(i){
-  const grade=sceneGradeCache.get(i)??{contrast:1.08,saturate:1.13};
+  const grade=sceneGradeCache.get(i)??{contrast:1.10,saturate:1.19};
   // Exposure is applied to the panorama material; canvas filtering adds one consistent vivid finish.
   canvasGrade={brightness:1,contrast:grade.contrast,saturate:grade.saturate};
   setCanvasFx(1,0,1);
