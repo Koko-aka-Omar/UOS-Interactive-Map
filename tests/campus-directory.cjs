@@ -19,8 +19,8 @@ const load = file => import('data:text/javascript;base64,' + fs.readFileSync(pat
   const routeFiles = ['m7a.js', 'theater.js', 'library.js', 'mens-hall.js'];
   const routeIds = new Set();
   for (const routeFile of routeFiles) {
-    const source = fs.readFileSync(path.join(root, 'routes', routeFile), 'utf8');
-    for (const match of source.matchAll(/\bid\s*:\s*['"]([^'"]+)['"]/g)) routeIds.add(match[1]);
+    const routeModule = await load(path.join('routes', routeFile));
+    for (const location of routeModule.LOCATIONS || []) routeIds.add(location.id);
   }
   for (const hall of HALLS) {
     assert(!ids.has(hall.id)); ids.add(hall.id);
