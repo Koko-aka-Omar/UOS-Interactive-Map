@@ -4,7 +4,7 @@ import { HALLS } from './halls.js?v=20260927-final2';
 import { addCampusArtworkLabels } from './campus-map-labels.js?v=20260927-3';
 import { createDirectory, searchHalls, localized } from './campus-directory.js?v=20260927-final2';
 import { findPath } from './directions.js';
-import { PANORAMA_FILES, VISUAL_CALIBRATION, LOCATIONS, LOCATION_AR, getHotspotStyle } from './tour-routes.js?v=20260928-mens-order7';
+import { PANORAMA_FILES, LOCATIONS, LOCATION_AR, getHotspotStyle } from './tour-routes.js?v=20260928-mens-order7';
 import { I18N } from './tour-i18n.js?v=20260927-vivid1';
 
 const app=document.getElementById('app');
@@ -505,76 +505,23 @@ scene.add(hotspotGroup);
 const hotspotRoots=[];
 let hoverHotspot=null;
 
-const sceneGradeCache=new Map();
-function measurePanorama(texture){
-  const image=texture?.image;
-  const width=image?.width||image?.videoWidth||0;
-  const height=image?.height||image?.videoHeight||0;
-  if(!image||!width||!height)return null;
-  const canvas=document.createElement('canvas');
-  canvas.width=64;canvas.height=32;
-  const ctx=canvas.getContext('2d',{willReadFrequently:true});
-  if(!ctx)return null;
-  try{ctx.drawImage(image,0,0,canvas.width,canvas.height);}catch{return null;}
-  let pixels;
-  try{pixels=ctx.getImageData(0,0,canvas.width,canvas.height).data;}catch{return null;}
-  const luma=[];
-  let chromaSum=0,chromaCount=0;
-  for(let p=0;p<pixels.length;p+=4){
-    if(pixels[p+3]<64)continue;
-    const r=pixels[p]/255,g=pixels[p+1]/255,b=pixels[p+2]/255;
-    const y=.2126*r+.7152*g+.0722*b;
-    luma.push(y);
-    if(y>.08&&y<.92){
-      chromaSum+=Math.max(r,g,b)-Math.min(r,g,b);
-      chromaCount++;
-    }
-  }
-  if(luma.length<64)return null;
-  luma.sort((a,b)=>a-b);
-  const from=Math.floor(luma.length*.14),to=Math.ceil(luma.length*.86);
-  let sum=0;
-  for(let n=from;n<to;n++)sum+=luma[n];
-  const midtone=sum/Math.max(1,to-from);
-  const p20=luma[Math.floor(luma.length*.20)],p80=luma[Math.floor(luma.length*.80)];
-  return {midtone,spread:p80-p20,chroma:chromaSum/Math.max(1,chromaCount)};
-}
-function autoGrade(texture){
-  const measured=measurePanorama(texture);
-  if(!measured)return {exposure:1,contrast:1,saturate:1};
-  // Keep the camera's original color. The panoramas are already white-balanced;
-  // aggressive adaptive grading was clipping shadows and adding a blue cast.
-  const exposure=THREE.MathUtils.clamp(Math.pow(.50/Math.max(.18,measured.midtone),.42),.96,1.06);
-  const contrast=THREE.MathUtils.clamp(1.01+(.44-measured.spread)*.025,.99,1.035);
-  const saturate=THREE.MathUtils.clamp(1.01+(.13-measured.chroma)*.06,.98,1.035);
-  return {exposure,contrast,saturate};
-}
 function prep(root,i){
   const aniso=Math.min(renderer.capabilities.getMaxAnisotropy(),coarsePointer?4:Infinity);
-  const gain=VISUAL_CALIBRATION[i]??[1,1,1];
   root.traverse(o=>{
-    if(!o.isMesh) return;
+    if(!o.isMesh)return;
     const oldMats=Array.isArray(o.material)?o.material:[o.material];
-    if(!sceneGradeCache.has(i)){
-      const source=oldMats.find(m=>m?.map)?.map;
-      sceneGradeCache.set(i,autoGrade(source));
-    }
-    const grade=sceneGradeCache.get(i)??{exposure:1,contrast:1.08,saturate:1.13};
-    const gainMean=Math.max(.001,(gain[0]+gain[1]+gain[2])/3);
     const newMats=oldMats.map(m=>{
       const bm=new THREE.MeshBasicMaterial({
-        map:m && m.map ? m.map : null,
-        // Preserve any existing RGB tint calibration, but let auto-exposure own overall brightness.
-        color:new THREE.Color((gain[0]/gainMean)*grade.exposure,(gain[1]/gainMean)*grade.exposure,(gain[2]/gainMean)*grade.exposure),
+        map:m?.map??null,
+        color:0xffffff,
         side:THREE.DoubleSide,
         toneMapped:false
       });
       if(bm.map){
+        // Source panorama colors only. sRGB is the image's normal display color space.
         bm.map.colorSpace=THREE.SRGBColorSpace;
         bm.map.anisotropy=aniso;
         if(coarsePointer){
-          // 8K mipmaps add roughly one-third more GPU texture memory and are expensive
-          // for iPhone Safari to generate during a scene switch.
           bm.map.generateMipmaps=false;
           bm.map.minFilter=THREE.LinearFilter;
         }else{
@@ -583,7 +530,6 @@ function prep(root,i){
         }
         bm.map.magFilter=THREE.LinearFilter;
         bm.map.needsUpdate=true;
-
       }
       return bm;
     });
@@ -717,16 +663,12 @@ function updateRouteLabel(){
   routeTip.style.top=(position.y-12)+'px';routeTip.classList.add('show');routeTip.setAttribute('aria-hidden','false');
 }
 
-let canvasGrade={brightness:1,contrast:1.08,saturate:1.13};
-function setSceneGrade(i){
-  const grade=sceneGradeCache.get(i)??{contrast:1.08,saturate:1.13};
-  // Exposure is applied to the panorama material; canvas filtering adds one consistent vivid finish.
-  canvasGrade={brightness:1,contrast:grade.contrast,saturate:grade.saturate};
+function setSceneGrade(){
   setCanvasFx(1,0,1);
 }
-function setCanvasFx(scale=1, blur=0, opacity=1){
+function setCanvasFx(scale=1,blur=0,opacity=1){
   el.style.transform=`scale(${scale})`;
-  el.style.filter=`brightness(${canvasGrade.brightness}) contrast(${canvasGrade.contrast}) saturate(${canvasGrade.saturate}) blur(${blur}px)`;
+  el.style.filter=blur>0?`blur(${blur}px)`:'none';
   el.style.opacity=String(opacity);
 }
 function ease(t){ return t<0.5 ? 2*t*t : 1 - Math.pow(-2*t+2,2)/2; }
