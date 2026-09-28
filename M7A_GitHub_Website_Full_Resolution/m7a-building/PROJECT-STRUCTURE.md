@@ -1,33 +1,37 @@
-# M7A Virtual Tour — File Guide
+# UOS Virtual Tour — File Guide
 
-The project is split so common edits can be made without opening the full viewer runtime.
+Use this only when the task needs a repo map. Do not read every file for routine edits.
 
-| File | Change this when… |
+| Task | Primary file |
 | --- | --- |
-| `tour-routes.js` | Thin compatibility layer that combines the three area route files; normally do not edit it directly |
-| `routes/m7a.js` | M7A-only checkpoints, room links, arrow bearings, names, panorama order, and calibration |
-| `routes/theater.js` | Theater/Auditorium-only routes, stair arrows, names, bearings, and Theater hotspot tuning |
-| `routes/library.js` | Library-only checkpoints, links, names, bearings, and panorama order |
-| `tour-i18n.js` | Changing English/Arabic interface text |
-| `styles.css` | Changing layout, colors, controls, panels, responsive behavior, or visual polish |
-| `tour.js` | Changing Three.js rendering, transitions, loading, interaction, preloading, motion controls, search behavior, or viewer logic |
-| `index.html` | Changing page markup/structure only |
-| `tour-boot.js` | Loading-screen fallback only |
-| `halls.js` | Campus hall/room directory data |
-| `campus-directory.js` | Campus directory/search UI logic |
-| `directions.js` | Pathfinding logic |
-| `assets/` | Full-resolution panorama GLBs |
-| `assets-mobile/` | Mobile panorama GLBs |
+| M7A routes/arrows/names | `routes/m7a.js` |
+| Auditorium routes/arrows/names | `routes/theater.js` |
+| Library routes/arrows/names | `routes/library.js` |
+| Men's Hall routes/arrows/names | `routes/mens-hall.js` |
+| Shared route exports | `tour-routes.js` |
+| Rendering, transitions, loading, controls | `tour.js` |
+| English/Arabic UI copy | `tour-i18n.js` |
+| Campus directory/search data | `halls.js` |
+| Campus directory/search UI | `campus-directory.js` |
+| Pathfinding | `directions.js` |
+| Core layout/style | `styles.css` |
+| Responsive/UOS visual polish | `ui-polish.css` |
+| Page markup | `index.html` |
+| Offline/PWA caching | `service-worker.js` |
 
-## Navigation editing
+## Route ranges
 
-Navigation is split by physical area:
+- M7A: scenes 0–9
+- Auditorium: scenes 10–22
+- Library: scenes 23–46
+- Men's Hall: scenes 47–57
 
-- `routes/m7a.js` = scenes 0–9.
-- `routes/theater.js` = scenes 10–22.
-- `routes/library.js` = scenes 23–34.
-- `tour-routes.js` only combines those files for the viewer.
+The validator currently expects 58 checkpoints. Keep route-specific calibration in the relevant `routes/*.js` file instead of adding one-off positioning logic to `tour.js`.
 
-Each area file owns its checkpoint names, route graph, bearings, panorama filenames, and Arabic location labels. Theater-specific hotspot distance/scale overrides also live in `routes/theater.js`.
+## Large generated assets
 
-Do not add one-off hotspot positioning logic to `tour.js`; keep route-specific calibration in the relevant area route file.
+- `assets/`: full-resolution GLB panoramas
+- `assets-mobile/`: generated phone GLBs
+- `panoramas-mobile/`: generated standalone phone JPEGs
+
+Avoid opening or rewriting binary panorama files unless the task explicitly concerns those assets.

@@ -1,2 +1,6 @@
-# Local browser regression harness; never publish with the tour.
+# Generated/local files; never publish with the tour.
 M7A_GitHub_Website_Full_Resolution/m7a-building/qa.html
+node_modules/
+extract-mobile-images.mjs
+.DS_Store
+Thumbs.db
