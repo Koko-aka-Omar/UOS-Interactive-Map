@@ -34,12 +34,6 @@ const DATA=PANORAMA_FILES.map(file=>{
 const CAMERA_HEIGHT=0.45;
 const {scene,camera,renderer,el,postUniforms,renderQuality,syncPostTargetSize,renderPanoramaFrame}=
   createPanoramaRenderer({app,coarsePointer,cameraHeight:CAMERA_HEIGHT});
-  renderer.setRenderTarget(postTarget);
-  renderer.render(scene,camera);
-  renderer.setRenderTarget(null);
-  renderer.render(postScene,postCamera);
-}
-syncPostTargetSize();
 
 const loader=new GLTFLoader();
 

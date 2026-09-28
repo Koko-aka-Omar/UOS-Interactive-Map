@@ -117,5 +117,11 @@ export function createPanoramaRenderer({app,coarsePointer,cameraHeight=0.45}){
   }
   function renderPanoramaFrame(){
     syncPostTargetSize();
+    renderer.setRenderTarget(postTarget);
+    renderer.render(scene,camera);
+    renderer.setRenderTarget(null);
+    renderer.render(postScene,postCamera);
+  }
+  syncPostTargetSize();
   return {scene,camera,renderer,el,postUniforms,renderQuality,syncPostTargetSize,renderPanoramaFrame};
 }
