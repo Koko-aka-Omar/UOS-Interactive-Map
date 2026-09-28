@@ -25,6 +25,14 @@ jobs:
         uses: actions/checkout@v4
       - name: Check generated asset manifest
         run: node scripts/build-tour-manifest.cjs --check
+      - name: Check browser module syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="M7A_GitHub_Website_Full_Resolution/m7a-building"
+          for file in tour.js tour-renderer.js tour-routes.js routes/m7a.js routes/theater.js routes/library.js routes/mens-hall.js; do
+            node --input-type=module --check < "$ROOT/$file"
+          done
       - name: Validate tour integrity
         run: node tests/validate-tour.cjs
       - name: Validate directions

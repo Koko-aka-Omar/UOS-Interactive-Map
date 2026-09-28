@@ -25,7 +25,7 @@ function gitBlob(rel){
 }
 function discoverCore(){
   const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
-  const found=new Set();
+  const found=new Set(['index.html']);
   for(const match of html.matchAll(/(?:src|href)="(\.\/[^"?#]+)(?:[?#][^"]*)?"/g))found.add(match[1].slice(2));
   for(const extra of ['campus-map-2026.webp','social-preview.png'])found.add(extra);
   const queue=[...found].filter(file=>file.endsWith('.js')&&file!=='tour-assets.generated.js');
