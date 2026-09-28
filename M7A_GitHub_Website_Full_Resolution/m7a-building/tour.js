@@ -975,9 +975,10 @@ async function transitionTo(i,selectedRoute=null,fromMap=false){
   if(!ready || transitioning || i<0 || i>=DATA.length || i===current || !route)return;
   const from=current,oldYaw=yaw,oldPitch=pitch,oldFov=camera.fov;
   const bearing=route.angle;
-  // Preserve the visitor's exact view direction while moving between connected checkpoints.
-  // Campus-map jumps still use the destination's calibrated starting view.
-  const arrivalYaw=fromMap?-(LOCATIONS[i]?.view??0):oldYaw;
+  // Preserve the visitor's view for normal checkpoint travel.
+  // The A4 entrance handoff uses the destination's calibrated wall-facing view.
+  const preserveRouteView=route.preserveView !== false;
+  const arrivalYaw=fromMap?-(LOCATIONS[i]?.view??0):preserveRouteView?oldYaw:-(route.arrivalAngle ?? (LOCATIONS[i]?.view??0));
   const facingTravel=Math.cos(oldYaw+bearing);
   const transitionKind=fromMap?'map':route.kind==='stairs'?'stairs':route.back?'back':'forward';
   const stairSign=route.stairDirection==='down'?1:-1;
