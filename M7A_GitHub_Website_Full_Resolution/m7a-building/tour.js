@@ -975,10 +975,14 @@ async function transitionTo(i,selectedRoute=null,fromMap=false){
   if(!ready || transitioning || i<0 || i>=DATA.length || i===current || !route)return;
   const from=current,oldYaw=yaw,oldPitch=pitch,oldFov=camera.fov;
   const bearing=route.angle;
-  // Preserve the visitor's view for normal checkpoint travel.
-  // The A4 entrance handoff uses the destination's calibrated wall-facing view.
+  // Panorama source bearings differ, so preserve the visitor's direction relative to the route.
+  // The A4 entrance handoff still uses its calibrated wall-facing arrival view.
   const preserveRouteView=route.preserveView !== false;
-  const arrivalYaw=fromMap?-(LOCATIONS[i]?.view??0):preserveRouteView?oldYaw:-(route.arrivalAngle ?? (LOCATIONS[i]?.view??0));
+  const departureBearing=route.departureAngle ?? bearing;
+  const relativeView=wrapAngle(-oldYaw-departureBearing);
+  const returnRoute=routeFromTo(i,from);
+  const arrivalBearing=route.arrivalAngle ?? (returnRoute ? returnRoute.angle+Math.PI : (LOCATIONS[i]?.view ?? 0));
+  const arrivalYaw=fromMap?-(LOCATIONS[i]?.view??0):preserveRouteView?-(arrivalBearing+relativeView):-arrivalBearing;
   const facingTravel=Math.cos(oldYaw+bearing);
   const transitionKind=fromMap?'map':route.kind==='stairs'?'stairs':route.back?'back':'forward';
   const stairSign=route.stairDirection==='down'?1:-1;
