@@ -1,11 +1,12 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { HALLS } from './halls.js?v=20260927-final2';
-import { addCampusArtworkLabels } from './campus-map-labels.js?v=20260927-3';
-import { createDirectory, searchHalls, localized } from './campus-directory.js?v=20260927-final2';
+import { createPanoramaRenderer } from './tour-renderer.js';
+import { HALLS } from './halls.js';
+import { addCampusArtworkLabels } from './campus-map-labels.js';
+import { createDirectory, searchHalls, localized } from './campus-directory.js';
 import { findPath } from './directions.js';
-import { PANORAMA_FILES, LOCATIONS, LOCATION_AR, getHotspotStyle } from './tour-routes.js?v=20260928-mens-order7';
-import { I18N } from './tour-i18n.js?v=20260927-vivid1';
+import { PANORAMA_FILES, LOCATIONS, LOCATION_AR, TOUR_AREAS, areaForScene, getHotspotStyle } from './tour-routes.js';
+import { I18N } from './tour-i18n.js';
 
 const app=document.getElementById('app');
 const loading=document.getElementById('loading');
@@ -21,30 +22,18 @@ const languageKey='m7a-language-v1';
 let currentLanguage='en';
 try{if(localStorage.getItem(languageKey)==='ar')currentLanguage='ar';}catch{}
 function t(key,...args){const value=I18N[currentLanguage][key]??I18N.en[key]??key;return typeof value==='function'?value(...args):value;}
-// Phones/tablets use dedicated 3K/4K panoramas. Desktop keeps the full 8K originals.
-const DATA=PANORAMA_FILES.map(file=>(coarsePointer?'./assets-mobile/':'./assets/')+file+(file.startsWith('mens-hall-')?'?v=20260928-original-order':file==='library-study-020.glb'?'?v=20260927-study1':file==='library-study-021.glb'?'?v=20260927-3':''));
+// Phones/tablets use dedicated mobile panoramas. Asset revisions are generated from Git blobs.
+const ASSET_MANIFEST=globalThis.UOS_TOUR_ASSETS;
+const panoramaMode=coarsePointer?'mobile':'desktop';
+const panoramaDir=coarsePointer?'./assets-mobile/':'./assets/';
+const DATA=PANORAMA_FILES.map(file=>{
+  const revision=ASSET_MANIFEST?.panoramaRevisions?.[panoramaMode]?.[file];
+  return panoramaDir+file+(revision?'?rev='+revision:'');
+});
 
-const scene=new THREE.Scene();
-const camera=new THREE.PerspectiveCamera(72,innerWidth/innerHeight,0.01,50);
 const CAMERA_HEIGHT=0.45;
-camera.position.set(0,CAMERA_HEIGHT,0);
-camera.rotation.order='YXZ';
-
-const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
-function renderQuality(enhanced=false){
-  // Slightly higher sampling than the original viewer for crisper signage, furniture and edges.
-  // Mobile remains capped to avoid trading sharpness for unstable Safari GPU memory use.
-  const pixelBudget=coarsePointer?(enhanced?3000000:1550000):9000000;
-  const budget=Math.sqrt(pixelBudget/(innerWidth*innerHeight));
-  renderer.setPixelRatio(coarsePointer
-    ? Math.min(devicePixelRatio||1,enhanced?2:1.75,budget)
-    : Math.max(1,Math.min(Math.max(devicePixelRatio,1.5),2.25,budget)));
-}
-renderQuality();
-renderer.setSize(innerWidth,innerHeight);
-renderer.outputColorSpace=THREE.SRGBColorSpace;
-app.appendChild(renderer.domElement);
-const el=renderer.domElement;
+const {scene,camera,renderer,el,postUniforms,renderQuality,syncPostTargetSize,renderPanoramaFrame}=
+  createPanoramaRenderer({app,coarsePointer,cameraHeight:CAMERA_HEIGHT});
 
 const loader=new GLTFLoader();
 
@@ -340,7 +329,8 @@ function openDirectoryTour(target){
   if(target.scene){const index=LOCATIONS.findIndex(item=>item.id===target.scene);if(index>=0)openPanoramaFromCampus(index);}
   else if(target.url){const url=new URL(target.url,location.href);if(['https:','http:'].includes(url.protocol))location.assign(url.href);}
 }
-function hallIdForScene(i=current){return i<10?'m7':i<23?'e2':i<47?'e3':'a4';}
+function hallIdForScene(i=current){return areaForScene(i)?.hallId??null;}
+function isM7Scene(i=current){return hallIdForScene(i)==='m7';}
 const directory=createDirectory({halls:CAMPUS_BUILDINGS,root:mapPanel,language:()=>currentLanguage,isReady:()=>!transitioning,startDirections:startRoomDirections,openTour:openDirectoryTour,currentHallId:()=>object?hallIdForScene():null});
 function initCampusMap(){
   if(campusMap||!window.maplibregl)return;
@@ -462,7 +452,7 @@ async function openPanoramaFromCampus(target){
     const prepared=takeRecentScene(target) ?? await (preloadCache.get(target) ?? Promise.resolve(null));
     preloadCache.delete(target);
     await loadCheckpoint(target,prepared,p=>setInitialProgress(p));
-    renderer.render(scene,camera);closePanels();mapToggle.focus({preventScroll:true});
+    renderPanoramaFrame();closePanels();mapToggle.focus({preventScroll:true});
     if(!historyTraversal)writeSceneHistory(target,false);
     scheduleLikelyPreload();
   }catch(error){
@@ -518,7 +508,7 @@ function prep(root,i){
         toneMapped:false
       });
       if(bm.map){
-        // Source panorama colors only. sRGB is the image's normal display color space.
+        // Original panorama RGB only; sRGB is the source image's normal display space.
         bm.map.colorSpace=THREE.SRGBColorSpace;
         bm.map.anisotropy=aniso;
         if(coarsePointer){
@@ -571,7 +561,7 @@ function placeOne(root,route){
   root.position.set(Math.sin(hotspotAngle)*dist,route.hotspotHeight??FLOOR_Y,-Math.cos(hotspotAngle)*dist);
   // Explicit scene calibration separates arrow heading from placement and travel.
   // Preserve the legacy orientation for routes without an override.
-  const arrowFlip=current>=10?Math.PI:0;
+  const arrowFlip=!isM7Scene(current)?Math.PI:0;
   root.rotation.y=route.arrowAngle===undefined?-angle+arrowFlip:-route.arrowAngle;
 }
 
@@ -593,7 +583,7 @@ function updateHotspotVisuals(now=0){
     const hotspotScale=u.route?getHotspotStyle(current,u.route)[1]:.64;
     hs.scale.setScalar(hotspotScale*(1+0.05*e+pulse));
     const stairBoost=u.route?.kind==='stairs'?0.06:0;
-    const polished=(current>=12&&current<=16)||LOCATIONS[current]?.checkpoint!=null;
+    const polished=current>=12&&current<=16;
     const guided=directionsNext!==null&&u.route?.to===directionsNext;
     u.inner.material.color.setHex(guided?0xffcf5c:polished?0x00a979:0x00c389);
     u.ring.material.color.setHex(guided?0xffe49a:0x7ee8c8);
@@ -686,30 +676,23 @@ function tween(ms, update){
 
 
 const previous=document.getElementById('previous');
-const nextCheckpoint=document.createElement('button');
-nextCheckpoint.id='next-checkpoint';nextCheckpoint.className='step';nextCheckpoint.type='button';
-nextCheckpoint.hidden=true;previous.parentElement.append(nextCheckpoint);
-nextCheckpoint.onclick=()=>{
-  const route=LOCATIONS[current]?.routes.find(route=>!route.back);
-  if(route)transitionTo(route.to,route);
-};
 const shareScene=document.getElementById('share-scene');
 const sceneLinkElement=document.getElementById('scene-link');
 const shareLocation=document.getElementById('share-location');
 function localizedLocation(i=current){
   const loc=LOCATIONS[i];
-  if(currentLanguage==='ar'&&LOCATION_AR[i])return {area:LOCATION_AR[i][0],name:LOCATION_AR[i][1]};
+  if(currentLanguage==='ar'&&LOCATION_AR[i]){const ar=LOCATION_AR[i];return Array.isArray(ar)?{area:ar[0],name:ar[1]}:{area:ar.area,name:ar.name};}
   return {area:loc.area,name:loc.name};
 }
 function locationLabel(i=current){const loc=localizedLocation(i);return loc.area+' · '+loc.name;}
 function tourAreaTitle(i=current){
-  if(i<10)return t('building');
+  if(isM7Scene(i))return t('building');
   const hall=CAMPUS_BUILDINGS.find(item=>item.id===hallIdForScene(i));
   return hall?localized(hall.name,currentLanguage):localizedLocation(i).area;
 }
 function backTarget(){return LOCATIONS[current]?.back ?? null;}
 function floorLabel(i=current){
-  if(i>=10)return '360°';
+  if(!isM7Scene(i))return '360°';
   return LOCATIONS[i]?.area==='Top Floor'?t('topFloorBadge'):t('groundFloorBadge');
 }
 function sceneLink(i=current){return sceneUrl(i).href;}
@@ -721,18 +704,6 @@ function updateControls(){
   updateTourSearch();
   updateDirections();
   previous.disabled=!ready || transitioning || backTarget()==null;
-  const numbered=LOCATIONS[current]?.checkpoint!=null;
-  previous.parentElement.classList.toggle('checkpoint-nav',numbered);
-  const nextRoute=numbered?LOCATIONS[current].routes.find(route=>!route.back):null;
-  nextCheckpoint.hidden=!numbered;
-  nextCheckpoint.disabled=!ready||transitioning||!nextRoute;
-  nextCheckpoint.textContent=nextRoute
-    ?(currentLanguage==='ar'?'التالي ':'Next ')+LOCATIONS[nextRoute.to].checkpoint+' →'
-    :(currentLanguage==='ar'?'نهاية الجولة':'End of tour');
-  if(numbered)previous.querySelector('.step-label').textContent=backTarget()!=null
-    ?(currentLanguage==='ar'?'السابق ':'Back ')+LOCATIONS[backTarget()].checkpoint
-    :(currentLanguage==='ar'?'السابق':'Back');
-  else previous.querySelector('.step-label').textContent=t('back');
   document.getElementById('route-label').textContent=locationLabel();
   document.title=object?tourAreaTitle()+' — 360° Tour | University of Sharjah':'Campus 360° Tours | University of Sharjah';
   floorBadge.textContent=floorLabel();
@@ -763,6 +734,8 @@ function applyLanguage(persist=true){
   }
   document.getElementById('more-view-label').textContent=t('moreView');
   document.getElementById('more-tour-label').textContent=t('moreTour');
+  document.getElementById('campus-home-area-count').textContent=String(TOUR_AREAS.length);
+  document.getElementById('campus-home-view-count').textContent=String(LOCATIONS.length);
   document.getElementById('campus-home-kicker').textContent=t('university');
   document.getElementById('campus-home-title').textContent=t('homeTitle');
   document.getElementById('campus-home-copy').textContent=t('homeCopy');
@@ -791,7 +764,7 @@ shareScene.onclick=async()=>{
 };
 function resetView(){
   const bearing=LOCATIONS[current]?.view ?? LOCATIONS[current]?.routes?.[0]?.angle ?? 0;
-  yaw=-bearing;pitch=LOCATIONS[current]?.viewPitch ?? 0;camera.fov=current>=10?95:72;camera.updateProjectionMatrix();camera.rotation.set(pitch,yaw,0);
+  yaw=-bearing;pitch=LOCATIONS[current]?.viewPitch ?? 0;camera.fov=isM7Scene(current)?72:95;camera.updateProjectionMatrix();camera.rotation.set(pitch,yaw,0);
   if(motionEnabled)motionNeedsCalibrate=true;
 }
 function dispose(root){
@@ -889,7 +862,7 @@ async function loadCheckpoint(i, prepared=null, onProgress=null){
     scene.remove(object);
     cacheRecentScene(oldIndex,object);
   }
-  object=replacement;current=i;renderQuality(i>=10);scene.add(object);document.body.classList.remove('campus-only');setSceneGrade(i);
+  object=replacement;current=i;renderQuality(!isM7Scene(i));syncPostTargetSize();scene.add(object);document.body.classList.remove('campus-only');setSceneGrade(i);
   camera.position.set(0,CAMERA_HEIGHT,0);resetView();
   cp.textContent=locationLabel(i);
   hoverHotspot=null;placeHotspots();ready=true;loading.classList.add('done');setTimeout(()=>{if(loading.classList.contains('done'))loading.style.display='none';},460);updateControls();
@@ -919,7 +892,7 @@ async function transitionTo(i,selectedRoute=null,fromMap=false){
   const status=document.getElementById('status');status.textContent='';
 
   // Capture the current view immediately so a tap always gets visual feedback while the next panorama decodes.
-  hotspotGroup.visible=false;renderer.render(scene,camera);
+  hotspotGroup.visible=false;renderPanoramaFrame();
   const snapScale=coarsePointer?0.50:0.84;
   travelFrame.width=Math.max(1,Math.round(el.width*snapScale));
   travelFrame.height=Math.max(1,Math.round(el.height*snapScale));
@@ -973,7 +946,7 @@ async function transitionTo(i,selectedRoute=null,fromMap=false){
     clearTimeout(slowLoad);status.textContent='';
     await loadCheckpoint(i,prepared);
     yaw=arrivalYaw;pitch=(fromMap || centerArrival)?(LOCATIONS[i]?.viewPitch ?? 0):(route.arrivalPitch ?? oldPitch);camera.fov=oldFov;camera.updateProjectionMatrix();camera.rotation.set(pitch,yaw,0);
-    if(coarsePointer){updateHotspotVisuals(performance.now());renderer.render(scene,camera);}
+    if(coarsePointer){updateHotspotVisuals(performance.now());renderPanoramaFrame();}
     await tween(reducedMotion?100:(coarsePointer?190:240),(e,t)=>{
       if(!reducedMotion){
         let transform='scale(1)';
@@ -1112,10 +1085,10 @@ addEventListener('keydown',e=>{if(e.key==='Escape'&&document.body.classList.cont
 });
 applyLanguage(false);measureLabelBounds();
 addEventListener('resize', ()=>{
-  renderQuality(current>=10);
+  renderQuality(!isM7Scene(current));
   camera.aspect=innerWidth/innerHeight;
   camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth,innerHeight);measureLabelBounds();
+  renderer.setSize(innerWidth,innerHeight);syncPostTargetSize();measureLabelBounds();
 });
 let lastMobileFrame='';
 function animate(now=0){
@@ -1129,7 +1102,7 @@ function animate(now=0){
     if(frame===lastMobileFrame)return;
     lastMobileFrame=frame;
   }
-  updateHotspotVisuals(now);renderer.render(scene,camera);updateRouteLabel();
+  updateHotspotVisuals(now);renderPanoramaFrame();updateRouteLabel();
 }
 document.addEventListener('visibilitychange',()=>{lastMobileFrame='';});
 animate();
