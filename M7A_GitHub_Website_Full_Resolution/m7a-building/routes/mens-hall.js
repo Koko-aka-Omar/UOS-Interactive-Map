@@ -15,5 +15,5 @@ const points=[
  ['Entrance Lobby','بهو المدخل',null,3.08]
 ];
 const edge=(to,angle,arrivalAngle,back=false,hotspotAngle=angle)=>({to,angle,arrowAngle:angle,hotspotAngle,hotspotDistance:1.05,arrivalAngle,departureAngle:angle,...(back?{back:true}:{})});
-export const LOCATIONS=points.map((p,i)=>({id:'mens-hall-'+String(78+i).padStart(3,'0'),area:"Men's Hall",name:p[0],checkpoint:78+i,view:p[2]??p[3],...(i?{back:47+i-1}:{}),routes:[...(i?[edge(47+i-1,p[3],points[i-1][3]??points[i-1][2],true,i===1?p[3]-Math.PI/2:p[3])]:[]),...(i<10?[edge(47+i+1,p[2],points[i+1][2]??points[i+1][3])]:[])]}));
+export const LOCATIONS=points.map((p,i)=>({id:'mens-hall-'+String(78+i).padStart(3,'0'),area:"Men's Hall",name:p[0],checkpoint:78+i,view:p[2]??p[3],...(i?{back:47+i-1}:{}),routes:[...(i?[edge(47+i-1,p[3],points[i-1][3]??points[i-1][2],true,i===1?p[3] - (Math.PI / 2) /* A4 entrance: 90 degrees anticlockwise placement */:p[3])]:[]),...(i<10?[edge(47+i+1,p[2],points[i+1][2]??points[i+1][3])]:[])]}));
 export const LOCATION_AR=points.map(p=>({area:'قاعة الطلاب',name:p[1]}));
