@@ -9,7 +9,8 @@ Use this only when the task needs a repo map. Do not read every file for routine
 | Library routes/arrows/names | `routes/library.js` |
 | Men's Hall routes/arrows/names | `routes/mens-hall.js` |
 | Shared route exports | `tour-routes.js` |
-| Rendering, transitions, loading, controls | `tour.js` |
+| Rendering pipeline/post-processing setup | `tour-renderer.js` |
+| Transitions, loading, camera behavior, controls | `tour.js` |
 | English/Arabic UI copy | `tour-i18n.js` |
 | Campus directory/search data | `halls.js` |
 | Campus directory/search UI | `campus-directory.js` |
@@ -18,6 +19,8 @@ Use this only when the task needs a repo map. Do not read every file for routine
 | Responsive/UOS visual polish | `ui-polish.css` |
 | Page markup | `index.html` |
 | Offline/PWA caching | `service-worker.js` |
+| Generated cache/asset manifest | `tour-assets.generated.js` (generated; do not hand-edit) |
+| Manifest generator | `../../../scripts/build-tour-manifest.cjs` |
 
 ## Route ranges
 
@@ -35,3 +38,11 @@ The validator currently expects 58 checkpoints. Keep route-specific calibration 
 - `panoramas-mobile/`: generated standalone phone JPEGs
 
 Avoid opening or rewriting binary panorama files unless the task explicitly concerns those assets.
+
+## Generated asset metadata
+
+`tour-assets.generated.js` is generated from the ordered route registry and tracked files. It owns the shell build ID and per-panorama Git revisions, so cache versions are not duplicated across runtime files.
+
+```bash
+node scripts/build-tour-manifest.cjs
+```

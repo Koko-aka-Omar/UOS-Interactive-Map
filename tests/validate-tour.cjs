@@ -10,29 +10,33 @@ const check=(condition,message)=>{(condition?pass:fail).push(message);};
 
 function loadExports(file,names){
   let source=fs.readFileSync(file,'utf8');
-  source=source
-    .replace(/^import .*$/gm,'')
-    .replace(/\bexport\s+(?=(const|let|var|function|class)\b)/g,'');
+  source=source.replace(/^import .*$/gm,'').replace(/\bexport\s+(?=(const|let|var|function|class)\b)/g,'');
   source+='\nmodule.exports={'+names.join(',')+'};';
   const sandbox={module:{exports:{}},exports:{},console};
   vm.runInNewContext(source,sandbox,{filename:file});
   return sandbox.module.exports;
 }
-
-const routeFiles=['m7a.js','theater.js','library.js','mens-hall.js'];
-const routeParts=routeFiles.map(file=>loadExports(
-  path.join(root,'routes',file),
-  ['PANORAMAS','VISUAL_CALIBRATION','LOCATIONS','LOCATION_AR']
-));
+function routeFiles(){
+  const source=fs.readFileSync(path.join(root,'tour-routes.js'),'utf8');
+  return [...source.matchAll(/from\s+['"]\.\/routes\/([^'"]+\.js)['"]/g)].map(match=>match[1]);
+}
+function loadManifest(){
+  const sandbox={globalThis:{}};
+  vm.runInNewContext(fs.readFileSync(path.join(root,'tour-assets.generated.js'),'utf8'),sandbox);
+  return sandbox.globalThis.UOS_TOUR_ASSETS;
+}
+const routeNames=routeFiles();
+const routeParts=routeNames.map(file=>loadExports(path.join(root,'routes',file),['PANORAMAS','VISUAL_CALIBRATION','LOCATIONS','LOCATION_AR']));
 const PANORAMAS=routeParts.flatMap(part=>part.PANORAMAS);
 const LOCATIONS=routeParts.flatMap(part=>part.LOCATIONS);
 const LOCATION_AR=routeParts.flatMap(part=>part.LOCATION_AR);
 const halls=loadExports(path.join(root,'halls.js'),['HALLS']).HALLS;
 const i18n=loadExports(path.join(root,'tour-i18n.js'),['I18N']).I18N;
+const manifest=loadManifest();
 
 check(PANORAMAS.length===LOCATIONS.length,'panorama/location counts match ('+PANORAMAS.length+')');
 check(LOCATIONS.length===LOCATION_AR.length,'English/Arabic location counts match ('+LOCATIONS.length+')');
-check(LOCATIONS.length===58,'expected 58 tour checkpoints');
+check(LOCATIONS.length===58,'expected 58 current tour checkpoints');
 
 const ids=new Set();
 for(let i=0;i<LOCATIONS.length;i++){
@@ -49,19 +53,22 @@ for(let i=0;i<LOCATIONS.length;i++){
     for(const key of ['arrowAngle','arrivalAngle','departureAngle','hotspotAngle','hotspotDistance','hotspotHeight','arrivalPitch']){
       if(route[key]!=null)check(Number.isFinite(route[key]),key+' valid: '+loc.id+' -> '+route.to);
     }
-    const reverse=LOCATIONS[route.to]&&LOCATIONS[route.to].routes&&LOCATIONS[route.to].routes.some(candidate=>candidate.to===i);
+    const reverse=LOCATIONS[route.to]?.routes?.some(candidate=>candidate.to===i);
     check(Boolean(reverse),'reverse route exists: '+route.to+' -> '+i);
   }
 }
 
-// Men's Hall checkpoints must remain a strict two-way numeric sequence:
-// 078 <-> 079 <-> ... <-> 088.
-for(let i=47;i<=57;i++){
-  const expected=[];
-  if(i>47)expected.push(i-1);
-  if(i<57)expected.push(i+1);
-  const actual=LOCATIONS[i].routes.map(route=>route.to).sort((a,b)=>a-b);
-  check(JSON.stringify(actual)===JSON.stringify(expected),'Men\'s Hall sequence exact: '+LOCATIONS[i].id);
+const mensPartIndex=routeNames.indexOf('mens-hall.js');
+if(mensPartIndex>=0){
+  const start=routeParts.slice(0,mensPartIndex).reduce((sum,part)=>sum+part.LOCATIONS.length,0);
+  const count=routeParts[mensPartIndex].LOCATIONS.length;
+  for(let i=start;i<start+count;i++){
+    const expected=[];
+    if(i>start)expected.push(i-1);
+    if(i<start+count-1)expected.push(i+1);
+    const actual=LOCATIONS[i].routes.map(route=>route.to).sort((a,b)=>a-b);
+    check(JSON.stringify(actual)===JSON.stringify(expected),"Men's Hall sequence exact: "+LOCATIONS[i].id);
+  }
 }
 
 for(const part of routeParts){
@@ -71,24 +78,23 @@ for(const part of routeParts){
   }
 }
 
-for(const panorama of PANORAMAS){
-  check(fs.existsSync(path.join(root,'assets',panorama)),'desktop panorama exists: '+panorama);
-  check(fs.existsSync(path.join(root,'assets-mobile',panorama)),'mobile panorama exists: '+panorama);
-}
+const desktopFiles=fs.readdirSync(path.join(root,'assets')).filter(file=>file.endsWith('.glb')).sort();
+const mobileFiles=fs.readdirSync(path.join(root,'assets-mobile')).filter(file=>file.endsWith('.glb')).sort();
+const expectedFiles=[...PANORAMAS].sort();
+check(JSON.stringify(desktopFiles)===JSON.stringify(expectedFiles),'no missing/orphan desktop GLB assets');
+check(JSON.stringify(mobileFiles)===JSON.stringify(expectedFiles),'no missing/orphan mobile GLB assets');
 
 const hallIds=new Set();
 const roomIds=new Set();
 for(const hall of halls){
   check(!hallIds.has(hall.id),'hall ID is unique: '+hall.id);
   hallIds.add(hall.id);
-  if(hall.thumbnail){
-    check(fs.existsSync(path.join(root,hall.thumbnail.replace(/^\.\//,''))),'thumbnail exists: '+hall.code);
-  }
-  if(hall.tour&&hall.tour.scene)check(ids.has(hall.tour.scene),'hall tour scene exists: '+hall.code+' -> '+hall.tour.scene);
+  if(hall.thumbnail)check(fs.existsSync(path.join(root,hall.thumbnail.replace(/^\.\//,''))),'thumbnail exists: '+hall.code);
+  if(hall.tour?.scene)check(ids.has(hall.tour.scene),'hall tour scene exists: '+hall.code+' -> '+hall.tour.scene);
   for(const room of hall.rooms||[]){
     check(!roomIds.has(room.id),'room ID is unique: '+room.id);
     roomIds.add(room.id);
-    if(room.tour&&room.tour.scene)check(ids.has(room.tour.scene),'room tour scene exists: '+room.id+' -> '+room.tour.scene);
+    if(room.tour?.scene)check(ids.has(room.tour.scene),'room tour scene exists: '+room.id+' -> '+room.tour.scene);
   }
 }
 
@@ -97,13 +103,35 @@ const arKeys=Object.keys(i18n.ar).sort();
 check(JSON.stringify(enKeys)===JSON.stringify(arKeys),'English/Arabic UI key sets match ('+enKeys.length+')');
 
 const index=fs.readFileSync(path.join(root,'index.html'),'utf8');
-for(const id of ['app','campus-map','campus-home-intro','tour-search-panel','info-panel','more-menu','loading']){
+for(const id of ['app','campus-map','campus-home-intro','campus-home-area-count','campus-home-view-count','tour-search-panel','info-panel','more-menu','loading']){
   check(index.includes('id="'+id+'"'),'required UI element exists: #'+id);
 }
 for(const match of index.matchAll(/(?:src|href)="(\.\/[^"?]+)(?:\?[^"]*)?"/g)){
   const rel=match[1].replace(/^\.\//,'');
   check(fs.existsSync(path.join(root,rel)),'referenced local file exists: '+rel);
 }
+
+check(manifest.schema===1,'asset manifest schema is supported');
+check(JSON.stringify(manifest.panoramaFiles)===JSON.stringify(PANORAMAS),'generated panorama list matches route data');
+check(JSON.stringify(manifest.routeModules)===JSON.stringify(routeNames.map(file=>'./routes/'+file)),'generated route-module list matches route registry');
+for(const file of manifest.coreAssets){
+  const rel=file.replace(/^\.\//,'');
+  check(fs.existsSync(path.join(root,rel)),'manifest core asset exists: '+rel);
+}
+for(const file of PANORAMAS){
+  check(Boolean(manifest.panoramaRevisions.desktop[file]),'desktop revision exists: '+file);
+  check(Boolean(manifest.panoramaRevisions.mobile[file]),'mobile revision exists: '+file);
+}
+for(const file of ['index.html','tour.js','tour-routes.js','service-worker.js']){
+  const source=fs.readFileSync(path.join(root,file),'utf8');
+  check(!source.includes('?v='),'no manual cache-busting version strings in '+file);
+}
+const worker=fs.readFileSync(path.join(root,'service-worker.js'),'utf8');
+check(worker.includes("importScripts('./tour-assets.generated.js')"),'service worker loads generated asset manifest');
+check(!worker.includes('PANORAMA_NAMES'),'service worker has no duplicated manual panorama list');
+const tour=fs.readFileSync(path.join(root,'tour.js'),'utf8');
+check(tour.includes("from './tour-renderer.js'"),'renderer is split into its own module');
+check(tour.includes('TOUR_AREAS')&&tour.includes('areaForScene'),'viewer uses data-driven area registry');
 
 if(fail.length){
   console.error('\nTOUR QA FAILED\n');
