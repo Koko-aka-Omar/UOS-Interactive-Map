@@ -140,16 +140,16 @@ globalThis.UOS_TOUR_ASSETS=Object.freeze({
       "library-corridor-041.glb": "1d9001b7ce5e",
       "library-corridor-035.glb": "06f0ea366d5b",
       "mens-hall-078.glb": "2611298ad7e4",
-      "mens-hall-079.glb": "aef4ae406d3c",
-      "mens-hall-080.glb": "ea2d4f271223",
-      "mens-hall-081.glb": "ed5ba074804c",
-      "mens-hall-082.glb": "1301fe9d897f",
-      "mens-hall-083.glb": "0a8675ea5ef0",
-      "mens-hall-084.glb": "5bad8f175755",
-      "mens-hall-085.glb": "fcfad5a59e64",
-      "mens-hall-086.glb": "0b67259fcc77",
+      "mens-hall-079.glb": "ea2d4f271223",
+      "mens-hall-080.glb": "5bad8f175755",
+      "mens-hall-081.glb": "1301fe9d897f",
+      "mens-hall-082.glb": "9c7413d879c4",
+      "mens-hall-083.glb": "ed5ba074804c",
+      "mens-hall-084.glb": "0b67259fcc77",
+      "mens-hall-085.glb": "0a8675ea5ef0",
+      "mens-hall-086.glb": "fcfad5a59e64",
       "mens-hall-087.glb": "1c75aed36e24",
-      "mens-hall-088.glb": "9c7413d879c4"
+      "mens-hall-088.glb": "aef4ae406d3c"
     },
     "mobile": {
       "ground-entrance.glb": "6766d4be8599",
@@ -200,16 +200,16 @@ globalThis.UOS_TOUR_ASSETS=Object.freeze({
       "library-corridor-041.glb": "ce7eb78825a4",
       "library-corridor-035.glb": "ec17323cd672",
       "mens-hall-078.glb": "5b3a5f70d4e2",
-      "mens-hall-079.glb": "da9cff5193ef",
-      "mens-hall-080.glb": "218132015660",
-      "mens-hall-081.glb": "dc394a08b743",
-      "mens-hall-082.glb": "c201ab6cf01a",
-      "mens-hall-083.glb": "004db9e91373",
-      "mens-hall-084.glb": "b527dcff78c8",
-      "mens-hall-085.glb": "1a3f9d1d32a6",
-      "mens-hall-086.glb": "30fe27b61494",
+      "mens-hall-079.glb": "218132015660",
+      "mens-hall-080.glb": "b527dcff78c8",
+      "mens-hall-081.glb": "c201ab6cf01a",
+      "mens-hall-082.glb": "4bd6b0ba5004",
+      "mens-hall-083.glb": "dc394a08b743",
+      "mens-hall-084.glb": "30fe27b61494",
+      "mens-hall-085.glb": "004db9e91373",
+      "mens-hall-086.glb": "1a3f9d1d32a6",
       "mens-hall-087.glb": "1529d563189e",
-      "mens-hall-088.glb": "4bd6b0ba5004"
+      "mens-hall-088.glb": "da9cff5193ef"
     }
   }
 });
