@@ -467,3 +467,91 @@ html[dir="rtl"] .campus-home-intro:after{background:linear-gradient(270deg,#00c3
 @media(prefers-reduced-motion:reduce){
   .campus-home-intro,#app canvas{transition:none!important}
 }
+
+
+/* Focused viewer-controls pass: keep the panorama foregrounded and controls cohesive. */
+:root{
+  --viewer-radius:14px;
+  --viewer-control-size:38px;
+  --viewer-gap:8px;
+  --viewer-shadow:0 12px 32px rgba(0,20,23,.26);
+  --viewer-blur:16px;
+}
+.topbar{gap:var(--viewer-gap)}
+.brand{
+  min-width:min(292px,52vw);
+  max-width:min(390px,60vw);
+  padding:11px 14px 10px;
+  border-radius:var(--viewer-radius);
+  background:linear-gradient(135deg,rgba(0,70,75,.84),rgba(1,43,48,.72));
+  box-shadow:var(--viewer-shadow);
+  backdrop-filter:blur(var(--viewer-blur)) saturate(118%);
+  -webkit-backdrop-filter:blur(var(--viewer-blur)) saturate(118%);
+}
+.brand:before{left:auto;inset-inline-start:0;width:3px}
+.eyebrow{margin-bottom:5px;font-size:8px;letter-spacing:.16em}
+.brand-row{gap:8px}
+.brand strong{font-size:18px;line-height:1.08;font-weight:700}
+.brand small{margin-top:5px;font-size:10px;line-height:1.3;color:#cae8e4}
+.floor-badge{
+  min-height:18px;
+  padding:0 7px;
+  border-color:rgba(222,251,248,.14);
+  background:rgba(220,250,248,.06);
+  color:#b8dcd8;
+  font-size:8px;
+  letter-spacing:.1em;
+}
+.lang-toggle{min-width:28px;height:22px;margin-top:7px;font-size:9px}
+.tools{
+  gap:4px;
+  padding:3px;
+  border-radius:999px;
+  background:rgba(1,34,38,.42);
+  box-shadow:0 8px 22px rgba(0,0,0,.2);
+  backdrop-filter:blur(var(--viewer-blur));
+  -webkit-backdrop-filter:blur(var(--viewer-blur));
+}
+.tool{width:var(--viewer-control-size);height:var(--viewer-control-size);border-radius:50%}
+.tool svg{width:18px;height:18px}
+.bottom{gap:6px}
+#hint{padding:5px 10px;font-size:10px;background:rgba(2,42,46,.62);box-shadow:0 5px 16px rgba(0,0,0,.16)}
+.nav{
+  gap:6px;
+  padding:5px;
+  border-radius:var(--viewer-radius);
+  background:rgba(2,55,60,.82);
+  box-shadow:var(--viewer-shadow);
+  backdrop-filter:blur(var(--viewer-blur)) saturate(118%);
+  -webkit-backdrop-filter:blur(var(--viewer-blur)) saturate(118%);
+}
+.step{height:36px;padding:0 11px;border-radius:10px;font-size:11px}
+.step span{font-size:16px}.step .step-label{font-size:11px}
+.location-chip{min-height:36px;gap:8px;padding:0 11px;border-radius:10px;font-size:10px;box-shadow:0 0 0 1px rgba(0,195,137,.09) inset,0 7px 20px rgba(0,0,0,.2)}
+.location-dot{width:7px;height:7px}
+
+/* The UI recedes only while a real look-around gesture is in progress. */
+.topbar,.bottom{will-change:opacity,transform}
+body.viewer-looking:not(.more-open) .topbar{opacity:.28;transform:translateY(-4px)}
+body.viewer-looking .bottom{opacity:.35;transform:translateY(5px)}
+body.viewer-looking .topbar,body.viewer-looking .bottom{pointer-events:none}
+
+@media(max-width:640px){
+  .topbar .brand{padding:8px 42px 8px 12px}
+  .brand strong{font-size:15px}
+  .brand small{font-size:9px}
+  .tools .tool,.tools #map-toggle{width:42px;min-width:42px;height:42px}
+  .tool svg{width:19px;height:19px}
+  .nav{padding:4px}
+  .step{width:40px;height:40px}
+  .location-chip{min-height:40px;max-width:calc(100vw - 78px);font-size:9px}
+}
+@media(orientation:landscape) and (max-height:500px){
+  .bottom{gap:4px}
+  .nav{padding:4px}
+  .step{height:36px}
+  .location-chip{min-height:36px}
+}
+@media(prefers-reduced-motion:reduce){
+  .topbar,.bottom{transition:none!important}
+}
