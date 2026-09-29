@@ -621,7 +621,8 @@ function makeArrowHotspot(){
     const mesh=new THREE.Mesh(geometry,material);
     mesh.rotation.x=-Math.PI/2;mesh.position.y=height;mesh.renderOrder=order;root.add(mesh);return mesh;
   }
-  const hit=surface(new THREE.CircleGeometry(0.36,48),floorMaterial(0xffffff,0),0,9);
+  // This mesh is invisible and only widens the touch/raycast target; it does not affect placement or bearing.
+  const hit=surface(new THREE.CircleGeometry(0.42,48),floorMaterial(0xffffff,0),0,9);
   const inner=surface(new THREE.CircleGeometry(0.245,64),floorMaterial(0x00c389,0.18),0.001,10);
   const ring=surface(new THREE.RingGeometry(0.245,0.253,64),floorMaterial(0x7ee8c8,0.52),0.002,11);
   const shape=new THREE.Shape();
@@ -1001,7 +1002,8 @@ async function transitionTo(i,selectedRoute=null,fromMap=false){
   const ox=THREE.MathUtils.clamp((anchor.x+1)*50,15,85);
   const oy=THREE.MathUtils.clamp((1-anchor.y)*50,20,80);
   travelFrame.style.transformOrigin=ox+'% '+oy+'%';
-  travelFrame.style.transform='scale(1.012)';travelFrame.style.opacity='1';travelFrame.style.filter='none';travelFrame.style.display='block';
+  const initialTravelTransform=transitionKind==='back'?'scale(.992)':transitionKind==='stairs'?\`translateY(\${stairSign*4}px) scale(1.008)\`:'scale(1.008)';
+  travelFrame.style.transform=initialTravelTransform;travelFrame.style.opacity='1';travelFrame.style.filter='none';travelFrame.style.display='block';
 
   const destination=locationLabel(i);loadingScene=i;
   const slowLoad=setTimeout(()=>{if(!status.textContent)status.textContent=t('loadingLocation',destination,null);},650);
@@ -1046,24 +1048,35 @@ async function transitionTo(i,selectedRoute=null,fromMap=false){
     await loadCheckpoint(i,prepared);
     yaw=arrivalYaw;pitch=fromMap?(LOCATIONS[i]?.viewPitch ?? 0):oldPitch;camera.fov=oldFov;camera.updateProjectionMatrix();camera.rotation.set(pitch,yaw,0);
     if(coarsePointer){updateHotspotVisuals(performance.now());renderPanoramaFrame();}
-    await tween(reducedMotion?100:(coarsePointer?190:240),(e,t)=>{
+    // Settle the decoded destination beneath the departing frame instead of exposing a hard replacement.
+    const settleScale=transitionKind==='map'?1.003:1.009;
+    const settleBlur=transitionKind==='map'?.45:.28;
+    if(!reducedMotion)setCanvasFx(settleScale,settleBlur,.96);
+    await tween(reducedMotion?100:(coarsePointer?300:360),(e,t)=>{
       if(!reducedMotion){
         let transform='scale(1)';
+        let blur=.72;
         if(transitionKind==='forward'){
-          const push=1+0.09*e*Math.max(0.35,facingTravel);
+          const push=1+.065*e*Math.max(.35,facingTravel);
           transform='scale('+push+')';
         }else if(transitionKind==='back'){
-          transform='scale('+(1-0.035*e)+')';
+          transform='translateY('+(3*e)+'px) scale('+(1-.026*e)+')';
+          blur=.6;
         }else if(transitionKind==='stairs'){
-          transform='translateY('+(stairSign*17*e)+'px) scale('+(1+0.058*e)+')';
+          transform='translateY('+(stairSign*22*e)+'px) scale('+(1+.045*e)+')';
+          blur=.86;
         }else{
-          transform='scale('+(1+0.025*e)+')';
+          // Map selection is intentionally a soft replacement, not a directional travel cue.
+          transform='scale('+(1+.008*e)+')';
+          blur=1.05;
         }
         travelFrame.style.transform=transform;
-        travelFrame.style.filter='blur('+(1.0*e)+'px) brightness('+(1-.035*e)+')';
+        travelFrame.style.filter='blur('+(blur*e)+'px) brightness('+(1-.025*e)+')';
+        setCanvasFx(1+(settleScale-1)*(1-e),settleBlur*(1-e),.96+.04*e);
       }
-      travelFrame.style.opacity=String(1-THREE.MathUtils.smoothstep(t,reducedMotion?0:0.08,1));
+      travelFrame.style.opacity=String(1-THREE.MathUtils.smoothstep(t,reducedMotion?0:.06,1));
     });
+    setCanvasFx(1,0,1);
     if(!historyTraversal)writeSceneHistory(i,false);
     completeGuidance();return true;
   }catch(err){
@@ -1109,7 +1122,7 @@ el.addEventListener('pointermove',e=>{
 function release(e,cancelled=false){
   const g=gesture;touches.delete(e.pointerId);pinchDistance=null;dragging=false;
   document.body.classList.remove('viewer-looking');
-  if(g?.id===e.pointerId){checkHotspotHover(e.clientX,e.clientY);gesture=null;if(g.moved&&motionEnabled)motionNeedsCalibrate=true;if(!cancelled && !g.moved && Math.hypot(e.clientX-g.x,e.clientY-g.y)<8 && g.hit && hoverHotspot===g.hit && g.hit.userData.route)transitionTo(g.hit.userData.route.to,g.hit.userData.route);}
+  if(g?.id===e.pointerId){checkHotspotHover(e.clientX,e.clientY);gesture=null;if(g.moved&&motionEnabled)motionNeedsCalibrate=true;if(!cancelled && !g.moved && Math.hypot(e.clientX-g.x,e.clientY-g.y)<8 && g.hit && hoverHotspot===g.hit && g.hit.userData.route){if(coarsePointer&&typeof navigator.vibrate==='function')navigator.vibrate(10);transitionTo(g.hit.userData.route.to,g.hit.userData.route);}}
   if(el.hasPointerCapture(e.pointerId))el.releasePointerCapture(e.pointerId);
 }
 el.addEventListener('pointerup',e=>release(e));
