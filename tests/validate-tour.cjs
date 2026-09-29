@@ -116,7 +116,7 @@ const arKeys=Object.keys(i18n.ar).sort();
 check(JSON.stringify(enKeys)===JSON.stringify(arKeys),'English/Arabic UI key sets match ('+enKeys.length+')');
 
 const index=fs.readFileSync(path.join(root,'index.html'),'utf8');
-for(const id of ['app','campus-map','campus-home-intro','campus-home-area-count','campus-home-view-count','tour-search-panel','info-panel','more-menu','loading']){
+for(const id of ['app','campus-map','campus-controls','campus-identity','directory-sheet-handle','directory-actions','campus-area-count','campus-view-count','tour-search-panel','info-panel','more-menu','loading']){
   check(index.includes('id="'+id+'"'),'required UI element exists: #'+id);
 }
 for(const match of index.matchAll(/(?:src|href)="(\.\/[^"?]+)(?:\?[^"]*)?"/g)){

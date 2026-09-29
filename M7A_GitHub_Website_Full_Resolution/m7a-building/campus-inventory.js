@@ -249,8 +249,8 @@ export const BUILDING_RECORDS = [
       "ar": "مبنى ابن رشد"
     },
     "description": {
-      "en": "Ibn Rushd Building, listed for the College of Sharia and Islamic Studies.",
-      "ar": "مبنى ابن رشد، وتدرجه الخريطة لكلية الشريعة والدراسات الإسلامية."
+      "en": "Ibn Rushd Building houses the College of Sharia and Islamic Studies.",
+      "ar": "يضم مبنى ابن رشد كلية الشريعة والدراسات الإسلامية."
     },
     "categories": [
       "academic"
@@ -266,8 +266,8 @@ export const BUILDING_RECORDS = [
     "aliases": [],
     "tourBindingIds": [],
     "publicNotice": {
-      "en": "The research institute’s building association needs confirmation.",
-      "ar": "ارتباط معهد البحوث بهذا المبنى يحتاج إلى تأكيد."
+      "en": "Please confirm the research office location before visiting.",
+      "ar": "يرجى تأكيد موقع مكتب البحوث قبل الزيارة."
     }
   },
   {
@@ -279,8 +279,8 @@ export const BUILDING_RECORDS = [
       "ar": "مبنى ابن خلدون"
     },
     "description": {
-      "en": "The map lists the College of Arts, Humanities and Social Sciences and the College of Law in this building.",
-      "ar": "تدرج الخريطة في هذا المبنى كلية الآداب والعلوم الإنسانية والاجتماعية وكلية القانون."
+      "en": "Ibn Khaldun Building houses the College of Arts, Humanities and Social Sciences and the College of Law.",
+      "ar": "يضم مبنى ابن خلدون كلية الآداب والعلوم الإنسانية والاجتماعية وكلية القانون."
     },
     "categories": [
       "academic"
@@ -307,8 +307,8 @@ export const BUILDING_RECORDS = [
       "ar": "مبنى ابن الهيثم"
     },
     "description": {
-      "en": "Building listed for the College of Graduate Studies.",
-      "ar": "مبنى تدرجه الخريطة لكلية الدراسات العليا."
+      "en": "Ibn Al-Haytham Building houses the College of Graduate Studies.",
+      "ar": "يضم مبنى ابن الهيثم كلية الدراسات العليا."
     },
     "categories": [
       "academic"
@@ -333,8 +333,8 @@ export const BUILDING_RECORDS = [
       "ar": "مجمع المطاعم"
     },
     "description": {
-      "en": "Dining hall in Zone A. The existing HallV3 tour is named Men’s Hall.",
-      "ar": "مجمع المطاعم في المنطقة A. تحمل الجولة الحالية في HallV3 اسم قاعة الطلاب."
+      "en": "Dining facilities in Zone A.",
+      "ar": "مرافق تناول الطعام في المنطقة A."
     },
     "categories": [
       "dining"
@@ -363,8 +363,8 @@ export const BUILDING_RECORDS = [
       "ar": "مركز الطلاب"
     },
     "description": {
-      "en": "Men’s student centre. The Student Affairs contact page identifies an office in A5.",
-      "ar": "مركز الطلاب. تحدد صفحة التواصل لعمادة شؤون الطلاب مكتبًا في المبنى A5."
+      "en": "Men’s student centre, with a Student Affairs office in A5.",
+      "ar": "مركز الطلاب، ويضم مكتبًا لشؤون الطلبة في المبنى A5."
     },
     "categories": [
       "student-services"
@@ -389,8 +389,8 @@ export const BUILDING_RECORDS = [
       "ar": "منتدى الطلاب"
     },
     "description": {
-      "en": "Men’s student forum shown in Zone A.",
-      "ar": "منتدى الطلاب الموضح في المنطقة A."
+      "en": "Men’s student forum in Zone A.",
+      "ar": "ملتقى الطلاب في المنطقة A."
     },
     "categories": [
       "student-services"
@@ -414,8 +414,8 @@ export const BUILDING_RECORDS = [
       "ar": "مبنى المكتبة"
     },
     "description": {
-      "en": "Library building in Zone A. UOS Library provides collections and study and research support.",
-      "ar": "مبنى المكتبة في المنطقة A. توفر مكتبات الجامعة مصادر معرفية ودعمًا للدراسة والبحث."
+      "en": "Library facilities in Zone A, with collections and study and research support.",
+      "ar": "مرافق المكتبة في المنطقة A، مع مصادر معرفية ودعم للدراسة والبحث."
     },
     "categories": [
       "libraries"
@@ -440,8 +440,8 @@ export const BUILDING_RECORDS = [
       "ar": "قاعات دراسية"
     },
     "description": {
-      "en": "Classroom building in Zone A. The supplied map does not list individual rooms.",
-      "ar": "مبنى قاعات دراسية في المنطقة A. لا تتضمن الخريطة المرفقة تفاصيل القاعات الفردية."
+      "en": "Classrooms in Zone A.",
+      "ar": "قاعات دراسية في المنطقة A."
     },
     "categories": [
       "academic"
@@ -463,8 +463,8 @@ export const BUILDING_RECORDS = [
       "ar": "إدارة الأعمال / الحوسبة والمعلوماتية"
     },
     "description": {
-      "en": "The map lists both the College of Business Administration and the College of Computing and Informatics at A9.",
-      "ar": "تدرج الخريطة في A9 كلًا من كلية إدارة الأعمال وكلية الحوسبة والمعلوماتية."
+      "en": "A9 houses the College of Business Administration and the College of Computing and Informatics.",
+      "ar": "يضم المبنى A9 كلية إدارة الأعمال وكلية الحوسبة والمعلوماتية."
     },
     "categories": [
       "academic"
@@ -491,8 +491,8 @@ export const BUILDING_RECORDS = [
       "ar": "قاعات دراسية"
     },
     "description": {
-      "en": "Classroom building in Zone A. The supplied map does not list individual rooms.",
-      "ar": "مبنى قاعات دراسية في المنطقة A. لا تتضمن الخريطة المرفقة تفاصيل القاعات الفردية."
+      "en": "Classrooms in Zone A.",
+      "ar": "قاعات دراسية في المنطقة A."
     },
     "categories": [
       "academic"
@@ -514,8 +514,8 @@ export const BUILDING_RECORDS = [
       "ar": "كلية العلوم"
     },
     "description": {
-      "en": "College of Sciences. The official college page identifies A11; the existing HallV3 tour uses M7A.",
-      "ar": "كلية العلوم. تحدد الصفحة الرسمية للكلية المبنى A11، وتستخدم الجولة الحالية في HallV3 الرمز M7A."
+      "en": "The College of Sciences is located in A11.",
+      "ar": "تقع كلية العلوم في المبنى A11."
     },
     "categories": [
       "academic"
@@ -547,8 +547,8 @@ export const BUILDING_RECORDS = [
       "ar": "قاعات دراسية"
     },
     "description": {
-      "en": "Classroom building in Zone A. The supplied map does not list individual rooms.",
-      "ar": "مبنى قاعات دراسية في المنطقة A. لا تتضمن الخريطة المرفقة تفاصيل القاعات الفردية."
+      "en": "Classrooms in Zone A.",
+      "ar": "قاعات دراسية في المنطقة A."
     },
     "categories": [
       "academic"
@@ -564,8 +564,8 @@ export const BUILDING_RECORDS = [
     "aliases": [],
     "tourBindingIds": [],
     "publicNotice": {
-      "en": "Additional research-office information needs confirmation.",
-      "ar": "معلومات مكتب البحوث الإضافية تحتاج إلى تأكيد."
+      "en": "Please confirm the research office location before visiting.",
+      "ar": "يرجى تأكيد موقع مكتب البحوث قبل الزيارة."
     }
   },
   {
@@ -577,8 +577,8 @@ export const BUILDING_RECORDS = [
       "ar": "كلية الهندسة"
     },
     "description": {
-      "en": "College of Engineering building identified in Zone A.",
-      "ar": "مبنى كلية الهندسة المحدد في المنطقة A."
+      "en": "College of Engineering facilities in Zone A.",
+      "ar": "مرافق كلية الهندسة في المنطقة A."
     },
     "categories": [
       "academic"
@@ -603,8 +603,8 @@ export const BUILDING_RECORDS = [
       "ar": "قاعات دراسية"
     },
     "description": {
-      "en": "Classroom building in Zone A. The supplied map does not list individual rooms.",
-      "ar": "مبنى قاعات دراسية في المنطقة A. لا تتضمن الخريطة المرفقة تفاصيل القاعات الفردية."
+      "en": "Classrooms in Zone A.",
+      "ar": "قاعات دراسية في المنطقة A."
     },
     "categories": [
       "academic"
@@ -626,8 +626,8 @@ export const BUILDING_RECORDS = [
       "ar": "المبنى A15"
     },
     "description": {
-      "en": "This code appears on the supplied map, but its function is not identified in the legend.",
-      "ar": "يظهر هذا الرمز في الخريطة المرفقة، لكن وظيفة المبنى غير موضحة في دليلها."
+      "en": "Building A15 · Zone A",
+      "ar": "المبنى A15 · المنطقة A"
     },
     "categories": [],
     "sourceIds": [
@@ -651,8 +651,8 @@ export const BUILDING_RECORDS = [
       "ar": "المجمع الرياضي — طلاب"
     },
     "description": {
-      "en": "Men’s sports complex. UOS describes its sports complexes as providing indoor sports halls, gyms and swimming pools.",
-      "ar": "المجمع الرياضي للطلاب. تصف الجامعة مجمعاتها الرياضية بأنها تضم صالات رياضية داخلية وصالات لياقة ومسابح."
+      "en": "Men’s sports complex, with indoor sports halls, gyms and swimming pools.",
+      "ar": "المجمع الرياضي للطلاب، ويضم صالات رياضية داخلية وصالات لياقة ومسابح."
     },
     "categories": [
       "sports"
@@ -703,8 +703,8 @@ export const BUILDING_RECORDS = [
       "ar": "المبنى A18"
     },
     "description": {
-      "en": "This code appears on the supplied map, but its function is not identified in the legend.",
-      "ar": "يظهر هذا الرمز في الخريطة المرفقة، لكن وظيفة المبنى غير موضحة في دليلها."
+      "en": "Building A18 · Zone A",
+      "ar": "المبنى A18 · المنطقة A"
     },
     "categories": [],
     "sourceIds": [
@@ -728,8 +728,8 @@ export const BUILDING_RECORDS = [
       "ar": "استاد جامعة الشارقة"
     },
     "description": {
-      "en": "University of Sharjah Stadium, identified in Zone A.",
-      "ar": "استاد جامعة الشارقة المحدد في المنطقة A."
+      "en": "University of Sharjah Stadium in Zone A.",
+      "ar": "استاد جامعة الشارقة في المنطقة A."
     },
     "categories": [
       "sports"
@@ -753,8 +753,8 @@ export const BUILDING_RECORDS = [
       "ar": "قاعات دراسية"
     },
     "description": {
-      "en": "Classroom building in Zone A. The supplied map does not list individual rooms.",
-      "ar": "مبنى قاعات دراسية في المنطقة A. لا تتضمن الخريطة المرفقة تفاصيل القاعات الفردية."
+      "en": "Classrooms in Zone A.",
+      "ar": "قاعات دراسية في المنطقة A."
     },
     "categories": [
       "academic"
@@ -776,8 +776,8 @@ export const BUILDING_RECORDS = [
       "ar": "المبنى الرئيسي"
     },
     "description": {
-      "en": "Main building in Zone B. The supplied map does not enumerate its individual offices.",
-      "ar": "المبنى الرئيسي في المنطقة B. لا تفصل الخريطة المرفقة المكاتب الموجودة داخله."
+      "en": "Main building in Zone B.",
+      "ar": "المبنى الرئيسي في المنطقة B."
     },
     "categories": [
       "administration"
@@ -799,8 +799,8 @@ export const BUILDING_RECORDS = [
       "ar": "مكتب مسجل الجامعة"
     },
     "description": {
-      "en": "Registrar services include admission, registration, student records and graduation. B2 is the office’s listing in the supplied map.",
-      "ar": "تشمل خدمات مسجل الجامعة القبول والتسجيل والسجلات الطلابية والتخرج. تدرج الخريطة المرفقة المكتب في B2."
+      "en": "Registrar services include admission, registration, student records and graduation.",
+      "ar": "تشمل خدمات التسجيل القبول والتسجيل وسجلات الطلبة والتخرج."
     },
     "categories": [
       "student-services",
@@ -817,8 +817,8 @@ export const BUILDING_RECORDS = [
     "aliases": [],
     "tourBindingIds": [],
     "publicNotice": {
-      "en": "The office website gives B1-A; confirm the visit location before travelling.",
-      "ar": "تحدد صفحة المكتب الموقع B1-A؛ يُرجى تأكيد موقع الزيارة قبل التوجه إليه."
+      "en": "Please confirm the office location before visiting: the Registrar website gives B1-A, while the campus directory uses B2.",
+      "ar": "يرجى تأكيد موقع المكتب قبل الزيارة: يحدد موقع التسجيل المبنى B1-A، بينما يستخدم دليل الحرم الجامعي الرمز B2."
     }
   },
   {
@@ -830,8 +830,8 @@ export const BUILDING_RECORDS = [
       "ar": "المختبرات المركزية"
     },
     "description": {
-      "en": "One of the two central laboratory buildings identified in Zone B.",
-      "ar": "أحد مبنيي المختبرات المركزية المحددين في المنطقة B."
+      "en": "Central laboratory facilities in Zone B.",
+      "ar": "مرافق المختبرات المركزية في المنطقة B."
     },
     "categories": [
       "research"
@@ -853,8 +853,8 @@ export const BUILDING_RECORDS = [
       "ar": "المختبرات المركزية"
     },
     "description": {
-      "en": "One of the two central laboratory buildings identified in Zone B.",
-      "ar": "أحد مبنيي المختبرات المركزية المحددين في المنطقة B."
+      "en": "Central laboratory facilities in Zone B.",
+      "ar": "مرافق المختبرات المركزية في المنطقة B."
     },
     "categories": [
       "research"
@@ -876,8 +876,8 @@ export const BUILDING_RECORDS = [
       "ar": "مبنى الغزالي"
     },
     "description": {
-      "en": "The map lists the College of Sharia and Islamic Studies and the College of Law here.",
-      "ar": "تدرج الخريطة هنا كلية الشريعة والدراسات الإسلامية وكلية القانون."
+      "en": "Al Ghazali Building houses the College of Sharia and Islamic Studies and the College of Law.",
+      "ar": "يضم مبنى الغزالي كلية الشريعة والدراسات الإسلامية وكلية القانون."
     },
     "categories": [
       "academic"
@@ -903,8 +903,8 @@ export const BUILDING_RECORDS = [
       "ar": "مبنى الفارابي"
     },
     "description": {
-      "en": "The map lists Arts, Humanities and Social Sciences and Public Policy. UOS also identifies Al Zahra Hall inside C2.",
-      "ar": "تدرج الخريطة كليتي الآداب والعلوم الإنسانية والاجتماعية والسياسات العامة. وتحدد الجامعة أيضًا قاعة الزهراء داخل C2."
+      "en": "Al Farabi Building houses Arts, Humanities and Social Sciences and Public Policy. Al Zahra Hall is inside C2.",
+      "ar": "يضم مبنى الفارابي الآداب والعلوم الإنسانية والاجتماعية والسياسة العامة. تقع قاعة الزهراء داخل المبنى C2."
     },
     "categories": [
       "academic",
@@ -939,8 +939,8 @@ export const BUILDING_RECORDS = [
       "ar": "كلية الآداب والعلوم الإنسانية والاجتماعية"
     },
     "description": {
-      "en": "Building assigned to the College of Arts, Humanities and Social Sciences in the supplied map.",
-      "ar": "مبنى مخصص لكلية الآداب والعلوم الإنسانية والاجتماعية بحسب الخريطة المرفقة."
+      "en": "The College of Arts, Humanities and Social Sciences is located in C3.",
+      "ar": "تقع كلية الآداب والعلوم الإنسانية والاجتماعية في المبنى C3."
     },
     "categories": [
       "academic"
@@ -965,8 +965,8 @@ export const BUILDING_RECORDS = [
       "ar": "مجمع المطاعم"
     },
     "description": {
-      "en": "Dining hall in Zone C, with an existing C4 tour in HallV3.",
-      "ar": "مجمع المطاعم في المنطقة C، وله جولة C4 حالية في HallV3."
+      "en": "Dining facilities in Zone C.",
+      "ar": "مرافق تناول الطعام في المنطقة C."
     },
     "categories": [
       "dining"
@@ -991,8 +991,8 @@ export const BUILDING_RECORDS = [
       "ar": "مركز الطالبات"
     },
     "description": {
-      "en": "Women’s student centre. The Student Affairs contact page identifies C5.",
-      "ar": "مركز الطالبات. تحدد صفحة التواصل لعمادة شؤون الطالبات المبنى C5."
+      "en": "Women’s student centre, with Student Affairs services in C5.",
+      "ar": "مركز الطالبات، وتتوفر فيه خدمات شؤون الطلبة في المبنى C5."
     },
     "categories": [
       "student-services"
@@ -1017,8 +1017,8 @@ export const BUILDING_RECORDS = [
       "ar": "منتدى الطالبات"
     },
     "description": {
-      "en": "Women’s student forum shown in Zone C.",
-      "ar": "منتدى الطالبات الموضح في المنطقة C."
+      "en": "Women’s student forum in Zone C.",
+      "ar": "ملتقى الطالبات في المنطقة C."
     },
     "categories": [
       "student-services"
@@ -1042,8 +1042,8 @@ export const BUILDING_RECORDS = [
       "ar": "مبنى المكتبة"
     },
     "description": {
-      "en": "Library building in Zone C. UOS Library provides collections and study and research support.",
-      "ar": "مبنى المكتبة في المنطقة C. توفر مكتبات الجامعة مصادر معرفية ودعمًا للدراسة والبحث."
+      "en": "Library facilities in Zone C, with collections and study and research support.",
+      "ar": "مرافق المكتبة في المنطقة C، مع مصادر معرفية ودعم للدراسة والبحث."
     },
     "categories": [
       "libraries"
@@ -1068,8 +1068,8 @@ export const BUILDING_RECORDS = [
       "ar": "قاعات دراسية"
     },
     "description": {
-      "en": "Classroom building in Zone C. The supplied map does not list individual rooms.",
-      "ar": "مبنى قاعات دراسية في المنطقة C. لا تتضمن الخريطة المرفقة تفاصيل القاعات الفردية."
+      "en": "Classrooms in Zone C.",
+      "ar": "قاعات دراسية في المنطقة C."
     },
     "categories": [
       "academic"
@@ -1091,8 +1091,8 @@ export const BUILDING_RECORDS = [
       "ar": "كلية الحوسبة والمعلوماتية"
     },
     "description": {
-      "en": "College of Computing and Informatics building identified in Zone C.",
-      "ar": "مبنى كلية الحوسبة والمعلوماتية المحدد في المنطقة C."
+      "en": "College of Computing and Informatics facilities in Zone C.",
+      "ar": "مرافق كلية الحوسبة والمعلوماتية في المنطقة C."
     },
     "categories": [
       "academic"
@@ -1117,8 +1117,8 @@ export const BUILDING_RECORDS = [
       "ar": "كلية إدارة الأعمال"
     },
     "description": {
-      "en": "College of Business Administration building identified in Zone C.",
-      "ar": "مبنى كلية إدارة الأعمال المحدد في المنطقة C."
+      "en": "College of Business Administration facilities in Zone C.",
+      "ar": "مرافق كلية إدارة الأعمال في المنطقة C."
     },
     "categories": [
       "academic"
@@ -1143,8 +1143,8 @@ export const BUILDING_RECORDS = [
       "ar": "كلية الاتصال"
     },
     "description": {
-      "en": "College of Communication. Its official contact page identifies C11.",
-      "ar": "كلية الاتصال. تحدد صفحة التواصل الرسمية للكلية المبنى C11."
+      "en": "The College of Communication is located in C11.",
+      "ar": "تقع كلية الاتصال في المبنى C11."
     },
     "categories": [
       "academic"
@@ -1169,8 +1169,8 @@ export const BUILDING_RECORDS = [
       "ar": "قاعات دراسية"
     },
     "description": {
-      "en": "Classroom building in Zone C. The supplied map does not list individual rooms.",
-      "ar": "مبنى قاعات دراسية في المنطقة C. لا تتضمن الخريطة المرفقة تفاصيل القاعات الفردية."
+      "en": "Classrooms in Zone C.",
+      "ar": "قاعات دراسية في المنطقة C."
     },
     "categories": [
       "academic"
@@ -1192,8 +1192,8 @@ export const BUILDING_RECORDS = [
       "ar": "كلية الهندسة"
     },
     "description": {
-      "en": "College of Engineering building identified in Zone C.",
-      "ar": "مبنى كلية الهندسة المحدد في المنطقة C."
+      "en": "College of Engineering facilities in Zone C.",
+      "ar": "مرافق كلية الهندسة في المنطقة C."
     },
     "categories": [
       "academic"
@@ -1218,8 +1218,8 @@ export const BUILDING_RECORDS = [
       "ar": "قاعات دراسية"
     },
     "description": {
-      "en": "Classroom building in Zone C. The supplied map does not list individual rooms.",
-      "ar": "مبنى قاعات دراسية في المنطقة C. لا تتضمن الخريطة المرفقة تفاصيل القاعات الفردية."
+      "en": "Classrooms in Zone C.",
+      "ar": "قاعات دراسية في المنطقة C."
     },
     "categories": [
       "academic"
@@ -1241,8 +1241,8 @@ export const BUILDING_RECORDS = [
       "ar": "المجمع الرياضي — طالبات"
     },
     "description": {
-      "en": "Women’s sports complex. UOS describes its sports complexes as providing indoor sports halls, gyms and swimming pools.",
-      "ar": "المجمع الرياضي للطالبات. تصف الجامعة مجمعاتها الرياضية بأنها تضم صالات رياضية داخلية وصالات لياقة ومسابح."
+      "en": "Women’s sports complex, with indoor sports halls, gyms and swimming pools.",
+      "ar": "المجمع الرياضي للطالبات، ويضم صالات رياضية داخلية وصالات لياقة ومسابح."
     },
     "categories": [
       "sports"
@@ -1267,8 +1267,8 @@ export const BUILDING_RECORDS = [
       "ar": "قاعات دراسية"
     },
     "description": {
-      "en": "Classroom building in Zone C. The supplied map does not list individual rooms.",
-      "ar": "مبنى قاعات دراسية في المنطقة C. لا تتضمن الخريطة المرفقة تفاصيل القاعات الفردية."
+      "en": "Classrooms in Zone C.",
+      "ar": "قاعات دراسية في المنطقة C."
     },
     "categories": [
       "academic"
@@ -1290,8 +1290,8 @@ export const BUILDING_RECORDS = [
       "ar": "مبنى جابر بن حيان"
     },
     "description": {
-      "en": "The map lists the College of Pharmacy and the College of Health Sciences in this building.",
-      "ar": "تدرج الخريطة في هذا المبنى كلية الصيدلة وكلية العلوم الصحية."
+      "en": "Jabir Bin Hayyan Building houses the College of Pharmacy and the College of Health Sciences.",
+      "ar": "يضم مبنى جابر بن حيان كلية الصيدلة وكلية العلوم الصحية."
     },
     "categories": [
       "academic"
@@ -1317,8 +1317,8 @@ export const BUILDING_RECORDS = [
       "ar": "مسرح الرازي"
     },
     "description": {
-      "en": "Al Razi Auditorium, identified at E2 in the supplied map.",
-      "ar": "مسرح الرازي المحدد بالرمز E2 في الخريطة المرفقة."
+      "en": "Al Razi Auditorium is located in E2.",
+      "ar": "يقع مسرح الرازي في المبنى E2."
     },
     "categories": [
       "events"
@@ -1346,8 +1346,8 @@ export const BUILDING_RECORDS = [
       "ar": "المبنى الإداري لكليات الطب والعلوم الصحية"
     },
     "description": {
-      "en": "Administrative building for the medical and health sciences colleges, as named in the supplied map. This is not the E4 library.",
-      "ar": "المبنى الإداري لكليات الطب والعلوم الصحية، وفق تسمية الخريطة المرفقة. وهو ليس مبنى المكتبة E4."
+      "en": "Administrative building for the colleges of medical and health sciences. The library is in E4.",
+      "ar": "المبنى الإداري لكليات الطب والعلوم الصحية. تقع المكتبة في المبنى E4."
     },
     "categories": [
       "administration"
@@ -1369,8 +1369,8 @@ export const BUILDING_RECORDS = [
       "ar": "مبنى المكتبة"
     },
     "description": {
-      "en": "Library building in Zone E. The current HallV3 library tour is linked to this map code.",
-      "ar": "مبنى المكتبة في المنطقة E. ترتبط الجولة الحالية للمكتبة في HallV3 بهذا الرمز على الخريطة."
+      "en": "Library facilities in Zone E.",
+      "ar": "مرافق المكتبة في المنطقة E."
     },
     "categories": [
       "libraries"
@@ -1403,8 +1403,8 @@ export const BUILDING_RECORDS = [
       "ar": "كلية الطب"
     },
     "description": {
-      "en": "College of Medicine building identified in Zone E.",
-      "ar": "مبنى كلية الطب المحدد في المنطقة E."
+      "en": "College of Medicine facilities in Zone E.",
+      "ar": "مرافق كلية الطب في المنطقة E."
     },
     "categories": [
       "academic"
@@ -1455,8 +1455,8 @@ export const BUILDING_RECORDS = [
       "ar": "المبنى E6A"
     },
     "description": {
-      "en": "This code appears on the supplied map, but its function is not identified in the legend.",
-      "ar": "يظهر هذا الرمز في الخريطة المرفقة، لكن وظيفة المبنى غير موضحة في دليلها."
+      "en": "Building E6A · Zone E",
+      "ar": "المبنى E6A · المنطقة E"
     },
     "categories": [],
     "sourceIds": [
@@ -1480,8 +1480,8 @@ export const BUILDING_RECORDS = [
       "ar": "مبنى ابن سينا"
     },
     "description": {
-      "en": "The map lists the Clinical Surgical Training Center and the Diabetes Center here. The training centre’s contact page confirms E7.",
-      "ar": "تدرج الخريطة هنا مركز التدريب الإكلينيكي والجراحي ومركز السكري. وتؤكد صفحة التواصل لمركز التدريب الرمز E7."
+      "en": "Ibn Sina Building houses the Clinical Surgical Training Center and the Diabetes Center.",
+      "ar": "يضم مبنى ابن سينا مركز التدريب الإكلينيكي والجراحي ومركز السكري."
     },
     "categories": [
       "health"
@@ -1506,8 +1506,8 @@ export const BUILDING_RECORDS = [
       "ar": "مجمع المطاعم"
     },
     "description": {
-      "en": "Dining hall identified in Zone E.",
-      "ar": "مجمع المطاعم المحدد في المنطقة E."
+      "en": "Dining facilities in Zone E.",
+      "ar": "مرافق تناول الطعام في المنطقة E."
     },
     "categories": [
       "dining"
@@ -1529,8 +1529,8 @@ export const BUILDING_RECORDS = [
       "ar": "كلية طب الأسنان"
     },
     "description": {
-      "en": "College of Dental Medicine. The separately mapped University Dental Hospital is E11.",
-      "ar": "كلية طب الأسنان. أما مستشفى الأسنان الجامعي فهو مبنى منفصل على الخريطة بالرمز E11."
+      "en": "The College of Dental Medicine is located in E9. The University Dental Hospital is in the separate E11 building.",
+      "ar": "تقع كلية طب الأسنان في المبنى E9. يقع مستشفى الأسنان الجامعي في مبنى منفصل بالرمز E11."
     },
     "categories": [
       "academic"
@@ -1555,8 +1555,8 @@ export const BUILDING_RECORDS = [
       "ar": "المبنى E9A"
     },
     "description": {
-      "en": "This code appears on the supplied map, but its function is not identified in the legend.",
-      "ar": "يظهر هذا الرمز في الخريطة المرفقة، لكن وظيفة المبنى غير موضحة في دليلها."
+      "en": "Building E9A · Zone E",
+      "ar": "المبنى E9A · المنطقة E"
     },
     "categories": [],
     "sourceIds": [
@@ -1580,8 +1580,8 @@ export const BUILDING_RECORDS = [
       "ar": "المبنى E10"
     },
     "description": {
-      "en": "This code appears on the supplied map, but its function is not identified in the legend.",
-      "ar": "يظهر هذا الرمز في الخريطة المرفقة، لكن وظيفة المبنى غير موضحة في دليلها."
+      "en": "Building E10 · Zone E",
+      "ar": "المبنى E10 · المنطقة E"
     },
     "categories": [],
     "sourceIds": [
@@ -1633,8 +1633,8 @@ export const BUILDING_RECORDS = [
       "ar": "المبنى E16"
     },
     "description": {
-      "en": "This code appears on the supplied map, but its function is not identified in the legend.",
-      "ar": "يظهر هذا الرمز في الخريطة المرفقة، لكن وظيفة المبنى غير موضحة في دليلها."
+      "en": "Building E16 · Zone E",
+      "ar": "المبنى E16 · المنطقة E"
     },
     "categories": [],
     "sourceIds": [
@@ -1658,8 +1658,8 @@ export const BUILDING_RECORDS = [
       "ar": "المبنى E17"
     },
     "description": {
-      "en": "This code appears on the supplied map, but its function is not identified in the legend.",
-      "ar": "يظهر هذا الرمز في الخريطة المرفقة، لكن وظيفة المبنى غير موضحة في دليلها."
+      "en": "Building E17 · Zone E",
+      "ar": "المبنى E17 · المنطقة E"
     },
     "categories": [],
     "sourceIds": [
@@ -1683,8 +1683,8 @@ export const BUILDING_RECORDS = [
       "ar": "المبنى E18"
     },
     "description": {
-      "en": "This code appears on the supplied map, but its function is not identified in the legend.",
-      "ar": "يظهر هذا الرمز في الخريطة المرفقة، لكن وظيفة المبنى غير موضحة في دليلها."
+      "en": "Building E18 · Zone E",
+      "ar": "المبنى E18 · المنطقة E"
     },
     "categories": [],
     "sourceIds": [
@@ -1708,8 +1708,8 @@ export const BUILDING_RECORDS = [
       "ar": "المبنى E19"
     },
     "description": {
-      "en": "This code appears on the supplied map, but its function is not identified in the legend.",
-      "ar": "يظهر هذا الرمز في الخريطة المرفقة، لكن وظيفة المبنى غير موضحة في دليلها."
+      "en": "Building E19 · Zone E",
+      "ar": "المبنى E19 · المنطقة E"
     },
     "categories": [],
     "sourceIds": [
@@ -2170,8 +2170,8 @@ export const BUILDING_RECORDS = [
       "ar": "المبنى H9"
     },
     "description": {
-      "en": "This code appears on the supplied map, but its function is not identified in the legend.",
-      "ar": "يظهر هذا الرمز في الخريطة المرفقة، لكن وظيفة المبنى غير موضحة في دليلها."
+      "en": "Building H9 · Zone H",
+      "ar": "المبنى H9 · المنطقة H"
     },
     "categories": [],
     "sourceIds": [
@@ -2195,8 +2195,8 @@ export const BUILDING_RECORDS = [
       "ar": "إدارة السكن الجامعي — طالبات"
     },
     "description": {
-      "en": "Administration building for women’s university dormitories, as identified in the supplied map.",
-      "ar": "مبنى إدارة السكن الجامعي للطالبات، وفق الرمز المحدد في الخريطة المرفقة."
+      "en": "Administration building for women’s university dormitories.",
+      "ar": "مبنى إدارة السكن الجامعي للطالبات."
     },
     "categories": [
       "housing",
@@ -2224,8 +2224,8 @@ export const SUPPLEMENTAL_PLACES = [
       "ar": "مستشفى الجامعة بالشارقة"
     },
     "description": {
-      "en": "University Hospital shown on the campus map; separate from the E11 dental hospital.",
-      "ar": "مستشفى الجامعة الموضح على خريطة الحرم الجامعي، وهو منفصل عن مستشفى الأسنان E11."
+      "en": "University Hospital Sharjah is separate from the University Dental Hospital in E11.",
+      "ar": "مستشفى الجامعة بالشارقة منفصل عن مستشفى الأسنان الجامعي في المبنى E11."
     },
     "categories": [
       "health"
@@ -2249,8 +2249,8 @@ export const SUPPLEMENTAL_PLACES = [
       "ar": "سكن الموظفين"
     },
     "description": {
-      "en": "Housing area labelled Faculty Housing in the supplied map.",
-      "ar": "منطقة سكنية تحمل تسمية سكن الموظفين في الخريطة المرفقة."
+      "en": "Faculty housing on campus.",
+      "ar": "سكن الموظفين في الحرم الجامعي."
     },
     "categories": [
       "housing"
@@ -2271,8 +2271,8 @@ export const SUPPLEMENTAL_PLACES = [
       "ar": "سكن الموظفين"
     },
     "description": {
-      "en": "Housing area labelled Faculty Housing in the supplied map.",
-      "ar": "منطقة سكنية تحمل تسمية سكن الموظفين في الخريطة المرفقة."
+      "en": "Faculty housing on campus.",
+      "ar": "سكن الموظفين في الحرم الجامعي."
     },
     "categories": [
       "housing"
@@ -2293,8 +2293,8 @@ export const SUPPLEMENTAL_PLACES = [
       "ar": "مجمع البيروني"
     },
     "description": {
-      "en": "Named complex shown on the supplied campus map. Individual block details have not been verified.",
-      "ar": "مجمع مسمى في خريطة الحرم الجامعي المرفقة. لم يتم التحقق من تفاصيل مبانيه الفردية."
+      "en": "Al Bayrouni Complex. Individual block information is awaiting confirmation.",
+      "ar": "مجمع البيروني. معلومات المباني الفردية بانتظار التأكيد."
     },
     "categories": [],
     "sourceIds": [
@@ -2313,8 +2313,8 @@ export const SUPPLEMENTAL_PLACES = [
       "ar": "مجمع الخوارزمي"
     },
     "description": {
-      "en": "Named complex shown on the supplied campus map. Individual block details have not been verified.",
-      "ar": "مجمع مسمى في خريطة الحرم الجامعي المرفقة. لم يتم التحقق من تفاصيل مبانيه الفردية."
+      "en": "Al Khawarzmi Complex. Individual block information is awaiting confirmation.",
+      "ar": "مجمع الخوارزمي. معلومات المباني الفردية بانتظار التأكيد."
     },
     "categories": [],
     "sourceIds": [
@@ -2333,8 +2333,8 @@ export const SUPPLEMENTAL_PLACES = [
       "ar": "مجمع ابن خلدون"
     },
     "description": {
-      "en": "Named complex shown on the supplied campus map. Individual block details have not been verified.",
-      "ar": "مجمع مسمى في خريطة الحرم الجامعي المرفقة. لم يتم التحقق من تفاصيل مبانيه الفردية."
+      "en": "Ibn Khaldun Complex. Individual block information is awaiting confirmation.",
+      "ar": "مجمع ابن خلدون. معلومات المباني الفردية بانتظار التأكيد."
     },
     "categories": [],
     "sourceIds": [
@@ -2353,8 +2353,8 @@ export const SUPPLEMENTAL_PLACES = [
       "ar": "مجمع الزهراوي"
     },
     "description": {
-      "en": "Named complex shown on the supplied campus map. Individual block details have not been verified.",
-      "ar": "مجمع مسمى في خريطة الحرم الجامعي المرفقة. لم يتم التحقق من تفاصيل مبانيه الفردية."
+      "en": "Al Zahrawi Complex. Individual block information is awaiting confirmation.",
+      "ar": "مجمع الزهراوي. معلومات المباني الفردية بانتظار التأكيد."
     },
     "categories": [],
     "sourceIds": [
@@ -2373,8 +2373,8 @@ export const SUPPLEMENTAL_PLACES = [
       "ar": "متاجر — الجرينة"
     },
     "description": {
-      "en": "Landmark identified in the supplied campus map.",
-      "ar": "معلم محدد في خريطة الحرم الجامعي المرفقة."
+      "en": "Matajer Al Juraina is a campus-area landmark.",
+      "ar": "متاجر — الجرينة من معالم منطقة الحرم الجامعي."
     },
     "categories": [
       "landmarks"
@@ -2395,8 +2395,8 @@ export const SUPPLEMENTAL_PLACES = [
       "ar": "ميدان الساعة بالمدينة الجامعية"
     },
     "description": {
-      "en": "Landmark identified in the supplied campus map.",
-      "ar": "معلم محدد في خريطة الحرم الجامعي المرفقة."
+      "en": "University City Clock Tower Roundabout is a campus-area landmark.",
+      "ar": "ميدان الساعة بالمدينة الجامعية من معالم منطقة الحرم الجامعي."
     },
     "categories": [
       "landmarks"
@@ -2417,8 +2417,8 @@ export const SUPPLEMENTAL_PLACES = [
       "ar": "قاعة المدينة الجامعية"
     },
     "description": {
-      "en": "Landmark identified in the supplied campus map.",
-      "ar": "معلم محدد في خريطة الحرم الجامعي المرفقة."
+      "en": "University City Hall is a campus-area landmark.",
+      "ar": "قاعة المدينة الجامعية من معالم منطقة الحرم الجامعي."
     },
     "categories": [
       "landmarks"
