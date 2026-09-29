@@ -276,14 +276,14 @@ globalThis.UOS_TOUR_ASSETS=Object.freeze({
       "c4-013.glb": "719b3b1816e1",
       "c4-014.glb": "8b1ff86010d4",
       "c4-015.glb": "c33ab53a928c",
-      "al-zahra-001.glb": "83ab7dd7d9be",
-      "al-zahra-002.glb": "0afac9966e95",
-      "al-zahra-003.glb": "73cec185202c",
-      "al-zahra-004.glb": "3400eef6f834",
-      "al-zahra-005.glb": "87e9bf6e1668",
-      "al-zahra-006.glb": "452ec36f0517",
-      "al-zahra-007.glb": "d177760cf666",
-      "al-zahra-008.glb": "4dbf1dafdf6e"
+      "al-zahra-001.glb": "2627183ef618",
+      "al-zahra-002.glb": "6ad54efb319d",
+      "al-zahra-003.glb": "a9f5af9be77c",
+      "al-zahra-004.glb": "c8f0510f19b7",
+      "al-zahra-005.glb": "d3be74a8c221",
+      "al-zahra-006.glb": "78dc91139f0c",
+      "al-zahra-007.glb": "3f5d82117617",
+      "al-zahra-008.glb": "33564d1d5a3d"
     }
   }
 });
