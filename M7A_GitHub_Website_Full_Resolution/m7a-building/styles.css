@@ -291,3 +291,34 @@ body.moving .bottom{opacity:.22;transform:translateY(7px)}
 @media(prefers-reduced-motion:reduce){
   body.moving .topbar,body.moving .bottom{opacity:1;transform:none}
 }
+
+/* Compact turn-by-turn status; route selection stays in directions.js/findPath(). */
+#directions-panel{
+  width:min(360px,calc(100vw - 24px));
+  gap:8px;
+  padding:10px 11px;
+  border-color:rgba(255,228,154,.45);
+  border-radius:14px;
+  background:rgba(4,54,58,.94);
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+}
+#directions-panel strong{font-size:12px;line-height:1.25}
+#directions-panel small{margin-top:3px;font-size:10px;color:#ffe49a}
+#directions-panel #directions-next,#directions-panel #directions-stop{
+  min-height:34px;
+  padding:0 9px;
+  font-size:10px;
+  white-space:nowrap;
+}
+#directions-panel #directions-stop{background:rgba(255,255,255,.1);color:#fff}
+#directions-panel[data-state="arrived"]{border-color:rgba(126,232,200,.58);background:rgba(0,89,75,.95)}
+#directions-panel[data-state="arrived"] small{color:#b9f5dd}
+html[dir="rtl"] #directions-panel{direction:rtl;text-align:right}
+@media(max-width:600px){
+  #directions-panel{bottom:max(90px,calc(env(safe-area-inset-bottom) + 78px));width:calc(100vw - 20px)}
+  #directions-panel #directions-next{display:none}
+}
+@media(prefers-reduced-motion:reduce){
+  #directions-panel{backdrop-filter:none;-webkit-backdrop-filter:none}
+}
