@@ -17,7 +17,7 @@ const points=[
 const edge=(to,angle,arrivalAngle,back=false,hotspotAngle=angle,arrowAngle=angle,hotspotDistance=1.05,preserveView=true)=>({to,angle,arrowAngle,hotspotAngle,hotspotDistance,arrivalAngle,departureAngle:angle,preserveView,...(back?{back:true}:{})});
 const forwardArrival=i=>{
  const target=points[i+1];
- if(i===0)return (target[2]??target[3])-Math.PI/2;
+ if(i===0)return (target[2]??target[3])+Math.PI/2;
  if(i===3||i===7||i===8)return target[3]+Math.PI;
  return target[2]??target[3];
 };

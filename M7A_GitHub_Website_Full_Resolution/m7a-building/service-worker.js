@@ -3,8 +3,8 @@ importScripts('./tour-assets.generated.js');
 const ASSET_MANIFEST=self.UOS_TOUR_ASSETS;
 const CACHE_PREFIX='uos-tour:'+self.registration.scope+':';
 const SHELL_CACHE=CACHE_PREFIX+'shell-'+ASSET_MANIFEST.buildId;
-const PANORAMA_CACHE=CACHE_PREFIX+'panoramas-v7';
-const LEGACY_CACHES=['m7a-tour-v7','m7a-tour:'+self.registration.scope+':panoramas-v3',CACHE_PREFIX+'panoramas-v3',CACHE_PREFIX+'panoramas-v4',CACHE_PREFIX+'panoramas-v5',CACHE_PREFIX+'panoramas-v6'];
+const PANORAMA_CACHE=CACHE_PREFIX+'panoramas-v8';
+const LEGACY_CACHES=['m7a-tour-v7','m7a-tour:'+self.registration.scope+':panoramas-v3',CACHE_PREFIX+'panoramas-v3',CACHE_PREFIX+'panoramas-v4',CACHE_PREFIX+'panoramas-v5',CACHE_PREFIX+'panoramas-v6',CACHE_PREFIX+'panoramas-v7'];
 
 const CORE_ASSETS=['./',...ASSET_MANIFEST.coreAssets];
 const EXTERNAL_ASSETS=[
