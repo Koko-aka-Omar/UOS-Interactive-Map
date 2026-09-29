@@ -1014,7 +1014,7 @@ async function transitionTo(i,selectedRoute=null,fromMap=false){
   const ox=THREE.MathUtils.clamp((anchor.x+1)*50,15,85);
   const oy=THREE.MathUtils.clamp((1-anchor.y)*50,20,80);
   travelFrame.style.transformOrigin=ox+'% '+oy+'%';
-  const initialTravelTransform=transitionKind==='back'?'scale(.992)':transitionKind==='stairs'?\`translateY(\${stairSign*4}px) scale(1.008)\`:'scale(1.008)';
+  const initialTravelTransform=transitionKind==='back'?'scale(.992)':transitionKind==='stairs'?`translateY(${stairSign*4}px) scale(1.008)`:'scale(1.008)';
   travelFrame.style.transform=initialTravelTransform;travelFrame.style.opacity='1';travelFrame.style.filter='none';travelFrame.style.display='block';
 
   const destination=locationLabel(i);loadingScene=i;
