@@ -281,3 +281,13 @@
 @media(prefers-reduced-motion:reduce){#hall-results,#hall-detail{animation:none!important}.hall-result,#map-panel.campus-map-panel{transition:none!important}}
 .site-footer{z-index:111}
 @media(max-width:600px){.campus-map-card.showing-group #hall-search{display:none}.campus-map-card.showing-group{max-height:34dvh}}
+
+
+/* Travel feedback: the scene stays primary while a calibrated route is loading. */
+body.moving .topbar,body.moving .bottom{pointer-events:none}
+body.moving .topbar{opacity:.18;transform:translateY(-6px)}
+body.moving .bottom{opacity:.22;transform:translateY(7px)}
+#travel-frame{backface-visibility:hidden;contain:paint}
+@media(prefers-reduced-motion:reduce){
+  body.moving .topbar,body.moving .bottom{opacity:1;transform:none}
+}
