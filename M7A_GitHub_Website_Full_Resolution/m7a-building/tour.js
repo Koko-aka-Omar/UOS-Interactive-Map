@@ -1101,20 +1101,20 @@ el.addEventListener('pointermove',e=>{
   if(touches.size===2){const [a,b]=[...touches.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);if(pinchDistance!==null)zoom((pinchDistance-d)*0.12);pinchDistance=d;return;}
   if(gesture && gesture.id===e.pointerId){
     const dx=e.clientX-gesture.x,dy=e.clientY-gesture.y;
-    if(Math.hypot(dx,dy)>8)gesture.moved=true;
+    if(!gesture.moved&&Math.hypot(dx,dy)>8){gesture.moved=true;document.body.classList.add('viewer-looking');}
     if(gesture.moved){noteLookAround();yaw=gesture.yaw-dx*0.004;pitch=THREE.MathUtils.clamp(gesture.pitch-dy*0.004,-1.45,1.45);camera.rotation.set(pitch,yaw,0);}
   }
   checkHotspotHover(e.clientX,e.clientY);
 });
 function release(e,cancelled=false){
   const g=gesture;touches.delete(e.pointerId);pinchDistance=null;dragging=false;
-  if(coarsePointer)document.body.classList.remove('mobile-looking');
+  document.body.classList.remove('viewer-looking');
   if(g?.id===e.pointerId){checkHotspotHover(e.clientX,e.clientY);gesture=null;if(g.moved&&motionEnabled)motionNeedsCalibrate=true;if(!cancelled && !g.moved && Math.hypot(e.clientX-g.x,e.clientY-g.y)<8 && g.hit && hoverHotspot===g.hit && g.hit.userData.route)transitionTo(g.hit.userData.route.to,g.hit.userData.route);}
   if(el.hasPointerCapture(e.pointerId))el.releasePointerCapture(e.pointerId);
 }
 el.addEventListener('pointerup',e=>release(e));
 el.addEventListener('pointercancel',e=>release(e,true));
-el.addEventListener('lostpointercapture',()=>{gesture=null;dragging=false;document.body.classList.remove('mobile-looking');});
+el.addEventListener('lostpointercapture',()=>{gesture=null;dragging=false;document.body.classList.remove('viewer-looking');});
 el.addEventListener('pointerleave',()=>{hoverHotspot=null;updateRouteLabel();el.title='';el.style.cursor='grab';});
 
 // Optional phone-motion view. It is calibrated to the current camera direction,
