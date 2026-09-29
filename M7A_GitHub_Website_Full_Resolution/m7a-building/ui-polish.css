@@ -531,7 +531,7 @@ html[dir="rtl"] .campus-home-intro:after{background:linear-gradient(270deg,#00c3
 .location-dot{width:7px;height:7px}
 
 /* The UI recedes only while a real look-around gesture is in progress. */
-.topbar,.bottom{will-change:opacity,transform}
+.topbar,.bottom{will-change:opacity,transform;transition:opacity .16s ease,transform .16s ease}
 body.viewer-looking:not(.more-open) .topbar{opacity:.28;transform:translateY(-4px)}
 body.viewer-looking .bottom{opacity:.35;transform:translateY(5px)}
 body.viewer-looking .topbar,body.viewer-looking .bottom{pointer-events:none}
