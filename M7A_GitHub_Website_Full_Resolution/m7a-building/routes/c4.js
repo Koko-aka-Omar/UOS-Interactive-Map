@@ -1,52 +1,53 @@
-// C4 standalone tour. Panorama filename order 042–056 is the authoritative walking order.
+// C4 standalone tour. Scene IDs keep panorama filenames 042–056 stable.
 export const PANORAMAS=Array.from({length:15},(_,i)=>'c4-'+String(i+1).padStart(3,'0')+'.glb');
 export const VISUAL_CALIBRATION=[];
 
-const points=[
-  ['C4 Entrance','مدخل C4',3.07,null],
-  ['Entry Corridor','ممر المدخل',3.12,0.03],
-  ['Collaboration Corridor','ممر مساحات التعاون',3.13,0.02],
-  ['Café Corridor','ممر المقهى',3.15,0.04],
-  ['Café Lounge','استراحة المقهى',4.46,0.08],
-  ['Study Booths','مقصورات الدراسة',3.04,6.06],
-  ['Breakfast Counter','منطقة الإفطار',0.12,4.66],
-  ['Main Lounge','الاستراحة الرئيسية',6.02,0.25],
-  ['Recreation Corridor','ممر الترفيه',4.48,0.43],
-  ['Games Area','منطقة الألعاب',3.14,6.12],
-  ['Tiered Seating','الجلسات المتدرجة',2.28,5.40],
-  ['Dining Hall','قاعة الطعام',3.12,4.88],
-  ['Food Court Corridor','ممر المطاعم',3.15,0.58],
-  ['Food Counter','منطقة المطاعم',3.20,0.20],
-  ['Dining Area','منطقة الطعام',null,3.13]
+const scenes=[
+  {name:'C4 Entrance',ar:'مدخل C4',view:3.07,routes:[[1,3.07]]},
+  {name:'Entry Corridor',ar:'ممر المدخل',view:3.12,routes:[[0,0.03,true],[2,3.12]]},
+  {name:'Collaboration Corridor',ar:'ممر مساحات التعاون',view:3.13,routes:[[1,0.02,true],[3,3.13]]},
+  {name:'Café Corridor',ar:'ممر المقهى',view:3.15,routes:[[2,0.04,true],[4,1.57],[5,4.46],[6,3.15]]},
+  {name:'Café Lounge',ar:'استراحة المقهى',view:3.14,routes:[[3,0.08,true]]},
+  {name:'Study Booths',ar:'مقصورات الدراسة',view:3.04,routes:[[3,6.06,true]]},
+  {name:'Breakfast Counter',ar:'منطقة الإفطار',view:3.15,routes:[[3,0.12,true],[7,4.66],[8,3.15]]},
+  {name:'Main Lounge',ar:'الاستراحة الرئيسية',view:3.14,routes:[[6,0.25,true]]},
+  {name:'Recreation Corridor',ar:'ممر الترفيه',view:4.48,routes:[[6,0.43,true],[9,4.48]]},
+  {name:'Games Area',ar:'منطقة الألعاب',view:3.14,routes:[[8,6.12,true],[10,3.14]]},
+  {name:'Tiered Seating',ar:'الجلسات المتدرجة',view:2.28,routes:[[9,5.40,true],[11,2.28]]},
+  {name:'Dining Hall',ar:'قاعة الطعام',view:3.12,routes:[[10,4.88,true],[12,3.12]]},
+  {name:'Food Court Corridor',ar:'ممر المطاعم',view:3.15,routes:[[11,0.58,true],[13,3.15]]},
+  {name:'Food Counter',ar:'منطقة المطاعم',view:3.20,routes:[[12,0.20,true],[14,3.20]]},
+  {name:'Dining Area',ar:'منطقة الطعام',view:0.00,routes:[[13,3.13,true]]}
 ];
 
 const start=58;
 const normalize=angle=>(angle+Math.PI*2)%(Math.PI*2);
+const parents=[null,0,1,2,3,3,3,6,6,8,9,10,11,12,13];
 const edge=(to,angle,arrivalAngle,back=false,hotspotDistance=1.05)=>({
   to,angle,arrowAngle:angle,hotspotAngle:angle,hotspotDistance,
   arrivalAngle,departureAngle:angle,preserveView:false,
   ...(back?{back:true}:{})
 });
-const forwardArrival=i=>{
-  const target=points[i+1];
-  return target[2]??normalize(target[3]+Math.PI);
-};
-const backwardArrival=i=>{
-  const target=points[i-1];
-  return target[3]??normalize(target[2]+Math.PI);
+const reciprocalBearing=(from,to)=>{
+  const reciprocal=scenes[to].routes.find(route=>route[0]===from);
+  if(!reciprocal)throw new Error('Missing reciprocal C4 route');
+  return reciprocal[1];
 };
 
-export const LOCATIONS=points.map((point,index)=>({
+export const LOCATIONS=scenes.map((scene,index)=>({
   id:'c4-'+String(index+1).padStart(3,'0'),
   area:'C4',
-  name:point[0],
+  name:scene.name,
   checkpoint:index+1,
-  view:point[2]??normalize(point[3]+Math.PI),
-  ...(index?{back:start+index-1}:{}),
-  routes:[
-    ...(index?[edge(start+index-1,point[3],backwardArrival(index),true)]:[]),
-    ...(index<points.length-1?[edge(start+index+1,point[2],forwardArrival(index),false,index===0?0.82:1.05)]:[])
-  ]
+  view:scene.view,
+  ...(parents[index]!==null?{back:start+parents[index]}:{}),
+  routes:scene.routes.map(([to,angle,back=false])=>edge(
+    start+to,
+    angle,
+    normalize(reciprocalBearing(index,to)+Math.PI),
+    back,
+    index===0&&to===1?0.82:1.05
+  ))
 }));
 
-export const LOCATION_AR=points.map(point=>({area:'C4',name:point[1]}));
+export const LOCATION_AR=scenes.map(scene=>({area:'C4',name:scene.ar}));
