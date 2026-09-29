@@ -598,3 +598,10 @@ body.viewer-looking .bottom{opacity:.14;transform:translateY(9px)}
   .brand{width:min(230px,38vw);max-width:min(230px,38vw)}
   .bottom{right:8px}
 }
+
+/* Transition overlay is driven by tour.js; keep the blend isolated from viewer controls. */
+body.moving #route-tip{opacity:0}
+#travel-frame{isolation:isolate}
+@media(prefers-reduced-motion:reduce){
+  #travel-frame{filter:none!important}
+}
