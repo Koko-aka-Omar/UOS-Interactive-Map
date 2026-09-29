@@ -33,14 +33,14 @@ export function addCampusArtworkLabels(map, corners, halls) {
   };
   map.on('zoom', resize); map.on('resize', resize); resize();
   // Only buildings with an actual tour receive a highlight.
-  const footprints = {e3: [[537,3362],[581,3362],[581,3376],[594,3376],[594,3402],[581,3402],[581,3411],[537,3411]], e2: [[540,3280],[611,3280],[620,3298],[603,3336],[551,3336],[540,3320]],
+  const footprints = {e2: [[540,3280],[611,3280],[620,3298],[603,3336],[551,3336],[540,3320]],
     m7: [[473,987],[515,987],[515,1026],[473,1026]]};
   const features = halls.filter(hall => hall.tour && footprints[hall.id]).map(hall => {
     const ring = footprints[hall.id].map(([x,y]) => point(x,y)); ring.push(ring[0]);
     return {type:'Feature',properties:{},geometry:{type:'Polygon',coordinates:[ring]}};
   });
   // Irregular artwork footprints use focused beacons at their exact label centres.
-  const beacons={a4:[558,716],c4:[555,1708],'al-zahra':[535,1990]};
+  const beacons={a4:[558,716],c4:[555,1708],'al-zahra':[535,1990],e3:[577,3462]};
   Object.entries(beacons).forEach(([hallId,[x,y]])=>{
     if(halls.some(hall=>hall.id===hallId&&hall.tour)){
       features.push({type:'Feature',properties:{kind:'tour-beacon'},geometry:{type:'Point',coordinates:point(x,y)}});

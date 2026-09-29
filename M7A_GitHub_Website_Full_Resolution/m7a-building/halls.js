@@ -63,10 +63,10 @@ export const HALLS = [
     rooms: []
   },
   {
-    id: 'e3', code: 'E3',
+    id: 'e3', code: 'E4',
     name: { en: 'Library', ar: 'المكتبة' },
-    // E3 library position on the campus artwork; not a GPS coordinate.
-    mapCoordinates: [55.46958970693754, 25.279927082215018],
+    // E4 library position on the campus artwork; not a GPS coordinate.
+    mapCoordinates: [55.46917861123175, 25.279846706387637],
     thumbnail: './panoramas-mobile/library-entrance-018.jpg',
     tour: { scene: 'library-entrance-018' },
     rooms: [
