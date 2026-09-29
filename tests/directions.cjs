@@ -14,7 +14,7 @@ const locations=routeFiles.flatMap(file=>loadExports(path.join(root,'routes',fil
 const byId=id=>locations.findIndex(item=>item.id===id);
 (async()=>{
   const {findPath}=await import('data:text/javascript;base64,'+fs.readFileSync(path.join(root,'directions.js')).toString('base64'));
-  assert.equal(locations.length,73,'all 73 current checkpoints loaded');
+  assert.equal(locations.length,81,'all 81 current checkpoints loaded');
   const unseen=new Set(locations.map((_,i)=>i)),components=[];
   while(unseen.size){
     const start=unseen.values().next().value,queue=[start],component=[];
@@ -26,7 +26,7 @@ const byId=id=>locations.findIndex(item=>item.id===id);
     }
     components.push(component);
   }
-  assert.equal(components.length,3,"M7A, Auditorium/Library, and Men's Hall form three connected components");
+  assert.equal(components.length,5,"M7A, Auditorium/Library, Men's Hall, C4, and Al Zahra form five standalone connected components");
   for(const component of components)for(const from of component)for(const to of component){
     const route=findPath(locations,from,to);assert(route,locations[from].id+' reaches '+locations[to].id);
     assert.equal(route[0],from);assert.equal(route.at(-1),to);assert.equal(new Set(route).size,route.length);
