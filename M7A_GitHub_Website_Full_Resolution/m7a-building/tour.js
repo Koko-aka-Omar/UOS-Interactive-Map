@@ -296,22 +296,32 @@ function positionTourPanels(){
 new ResizeObserver(positionTourPanels).observe(document.querySelector('.topbar'));
 addEventListener('resize',positionTourPanels);positionTourPanels();
 let campusMap=null;
-let directionsTarget=null,directionsNext=null;
+let directionsTarget=null,directionsNext=null,arrivalTimer=null;
 const directionsPanel=document.createElement('section');
 directionsPanel.id='directions-panel';directionsPanel.hidden=true;
-directionsPanel.innerHTML='<div><strong id="directions-title"></strong><small id="directions-step" role="status" aria-live="polite"></small></div><button id="directions-next" type="button"></button><button id="directions-stop" type="button">×</button>';
+directionsPanel.innerHTML='<div><strong id="directions-title"></strong><small id="directions-step" role="status" aria-live="polite"></small></div><button id="directions-next" type="button"></button><button id="directions-stop" type="button"></button>';
 document.body.append(directionsPanel);
+function clearArrivalTimer(){if(arrivalTimer){clearTimeout(arrivalTimer);arrivalTimer=null;}}
 function updateDirections(){
   directionsPanel.hidden=directionsTarget===null;
   directionsNext=null;
-  if(directionsTarget===null)return;
+  if(directionsTarget===null){clearArrivalTimer();return;}
   const path=findPath(LOCATIONS,current,directionsTarget),ar=currentLanguage==='ar';
   const arrived=current===directionsTarget;
   directionsNext=path?.[1]??null;
-  document.getElementById('directions-title').textContent=(arrived?(ar?'وصلت إلى ':'You’ve arrived at '):(ar?'الاتجاهات إلى ':'Directions to '))+localizedLocation(directionsTarget).name;
-  document.getElementById('directions-step').textContent=transitioning?(ar?'جارٍ الانتقال…':'Moving…'):arrived?(ar?'أنت الآن في القاعة المطلوبة.':'You’re at your destination.'):!path?(ar?'لا يوجد مسار متصل من هذا الموقع.':'No connected route from this viewpoint.'):(ar?'التالي: ':'Next: ')+localizedLocation(directionsNext).name+' · '+(ar?'الانتقالات المتبقية: ':'Steps remaining: ')+(path.length-1);
-  const next=document.getElementById('directions-next');next.hidden=directionsNext===null;next.disabled=!ready||transitioning;next.textContent=ar?'متابعة':'Continue';
-  const stop=document.getElementById('directions-stop');stop.setAttribute('aria-label',ar?'إنهاء الاتجاهات':'End directions');
+  directionsPanel.dataset.state=arrived?'arrived':'active';
+  const title=document.getElementById('directions-title'),step=document.getElementById('directions-step');
+  if(arrived){
+    title.textContent=ar?'لقد وصلت':'You have arrived';
+    step.textContent=localizedLocation(directionsTarget).name;
+    if(!arrivalTimer)arrivalTimer=setTimeout(()=>{directionsTarget=null;updateDirections();lastMobileFrame='';updateHotspotVisuals(performance.now());},2400);
+  }else{
+    clearArrivalTimer();
+    title.textContent=(ar?'في طريقك إلى ':'Going to ')+localizedLocation(directionsTarget).name;
+    step.textContent=transitioning?(ar?'جارٍ الانتقال…':'Moving…'):!path?(ar?'لا يوجد مسار متصل من هذا الموقع.':'No connected route from this viewpoint.'):(ar?(path.length-1)+' نقاط تفتيش متبقية':(path.length-1)+' checkpoints remaining');
+  }
+  const next=document.getElementById('directions-next');next.hidden=directionsNext===null;next.disabled=!ready||transitioning;next.textContent=ar?'اتبع السهم':'Follow next arrow';
+  const stop=document.getElementById('directions-stop');stop.textContent=ar?'إنهاء الاتجاهات':'End directions';stop.setAttribute('aria-label',ar?'إنهاء الاتجاهات':'End directions');
 }
 function startRoomDirections(sceneId){
   const target=LOCATIONS.findIndex(item=>item.id===sceneId);
@@ -323,7 +333,7 @@ function startRoomDirections(sceneId){
   document.getElementById(directionsNext===null?'directions-stop':'directions-next').focus({preventScroll:true});
 }
 document.getElementById('directions-next').onclick=()=>{if(directionsNext!==null)transitionTo(directionsNext);};
-document.getElementById('directions-stop').onclick=()=>{directionsTarget=null;updateDirections();lastMobileFrame='';updateHotspotVisuals(performance.now());mapToggle.focus({preventScroll:true});};
+document.getElementById('directions-stop').onclick=()=>{clearArrivalTimer();directionsTarget=null;updateDirections();lastMobileFrame='';updateHotspotVisuals(performance.now());mapToggle.focus({preventScroll:true});};
 function openDirectoryTour(target){
   directionsTarget=null;updateDirections();
   if(target.scene){const index=LOCATIONS.findIndex(item=>item.id===target.scene);if(index>=0)openPanoramaFromCampus(index);}
