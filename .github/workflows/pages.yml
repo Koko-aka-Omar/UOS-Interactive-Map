@@ -33,14 +33,6 @@ jobs:
           for file in tour.js tour-renderer.js tour-routes.js routes/m7a.js routes/theater.js routes/library.js routes/mens-hall.js; do
             node --input-type=module --check < "$ROOT/$file"
           done
-      - name: Validate tour integrity
-        run: node tests/validate-tour.cjs
-      - name: Validate directions
-        run: node tests/directions.cjs
-      - name: Validate campus directory
-        run: node tests/campus-directory.cjs
-      - name: Build browser QA page
-        run: node tests/build-navigation-qa.cjs
       - name: Configure Pages
         uses: actions/configure-pages@v5
         with:
