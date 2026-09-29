@@ -77,6 +77,8 @@
       <div class="directory-heading"><strong id="directory-title">Explore campus</strong><button id="directory-collapse" type="button" aria-controls="directory-body" aria-expanded="true" aria-label="Collapse details">−</button></div>
       <p id="directory-intro">Choose a building to start a 360° tour.</p>
       <div id="directory-body">
+        <div id="campus-filters" role="group" aria-label="Building filters"></div>
+        <small id="directory-count" role="status"></small>
         <button id="directory-browse" type="button" hidden>All halls</button>
         <input id="hall-search" type="search" placeholder="Search halls or rooms" aria-label="Search halls or rooms" autocomplete="off">
         <div id="hall-results" aria-live="polite"></div>
@@ -84,6 +86,7 @@
       </div>
     </div>
     <div class="campus-map-actions">
+      <button id="campus-overview" type="button" aria-label="Campus overview">⌂</button>
       <button class="campus-map-language" id="campus-language-toggle" type="button" aria-label="Switch to Arabic" title="العربية">ع</button>
       <button class="campus-map-close" data-close-panel type="button" aria-label="Close map" data-i18n-aria="closeMap">×</button>
     </div>

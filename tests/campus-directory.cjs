@@ -2,7 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const assert = require('node:assert/strict');
 const root = path.join(__dirname, '../M7A_GitHub_Website_Full_Resolution/m7a-building');
-const load = file => import('data:text/javascript;base64,' + fs.readFileSync(path.join(root, file)).toString('base64'));
+const load = file => import(require('node:url').pathToFileURL(path.join(root,file)).href);
 (async () => {
   const { groupNearby, searchHalls } = await load('campus-directory.js');
   const { HALLS } = await load('halls.js');
@@ -16,7 +16,7 @@ const load = file => import('data:text/javascript;base64,' + fs.readFileSync(pat
   assert.equal(searchHalls(HALLS, 'does-not-exist', 'en').length, 0);
   assert.equal(searchHalls(HALLS, '', 'en').length, HALLS.length);
   const ids = new Set();
-  const routeFiles = ['m7a.js', 'theater.js', 'library.js', 'mens-hall.js'];
+  const routeFiles = [...fs.readFileSync(path.join(root,'tour-routes.js'),'utf8').matchAll(/from\s+['"]\.\/routes\/([^'"]+\.js)['"]/g)].map(match=>match[1]);
   const routeIds = new Set();
   for (const routeFile of routeFiles) {
     const routeModule = await load(path.join('routes', routeFile));

@@ -4,6 +4,8 @@ import { createPanoramaRenderer } from './tour-renderer.js';
 import { HALLS } from './halls.js';
 import { addCampusArtworkLabels } from './campus-map-labels.js';
 import { createDirectory, searchHalls, localized } from './campus-directory.js';
+import { CAMPUS_BUILDINGS, buildingForLegacyHall } from './campus-buildings.js';
+import { CAMPUS_CORNERS } from './campus-geometry.js';
 import { findPath } from './directions.js';
 import { PANORAMA_FILES, VISUAL_CALIBRATION, LOCATIONS, LOCATION_AR, TOUR_AREAS, areaForScene, getHotspotStyle } from './tour-routes.js';
 import { I18N } from './tour-i18n.js';
@@ -184,15 +186,9 @@ travelErrorRetry.onclick=()=>{
 // Reverse routes must be calibrated in their own image, not by adding PI.
 // Outdoor destinations are buildings; indoor checkpoints stay in LOCATIONS.
 // M7 coordinates supplied by the site owner.
-const CAMPUS_BUILDINGS=HALLS;
 // Render the portrait source artwork 90° clockwise so the campus runs horizontally.
 // Order is image TL→NE, TR→SE, BR→SW, BL→NW.
-const CAMPUS_MAP_CORNERS=[
-  [55.48841122384587,25.282745259662605],
-  [55.48841122384587,25.27822411937236],
-  [55.465534303353394,25.27822411937236],
-  [55.465534303353394,25.282745259662605]
-];
+const CAMPUS_MAP_CORNERS=CAMPUS_CORNERS;
 const requestedScene=new URLSearchParams(location.search).get('scene');
 const requestedSceneIndex=LOCATIONS.findIndex(loc=>loc.id===requestedScene);
 const INITIAL_SCENE=requestedSceneIndex>=0?requestedSceneIndex:0;
@@ -278,9 +274,13 @@ function updateTourSearch(){
     row.append(title,detail);
     const target=room?room.tour:hall.tour,actions=document.createElement('div');actions.className='tour-search-actions';
     if(target){
-      if(target.scene){const button=document.createElement('button');button.type='button';button.textContent=ar?'أرشدني إلى القاعة':'Show me the way';button.disabled=!ready||transitioning;button.onclick=()=>startRoomDirections(target.scene);actions.append(button);}
+      if(target.scene&&ready&&findPath(LOCATIONS,current,LOCATIONS.findIndex(item=>item.id===target.scene))){const button=document.createElement('button');button.type='button';button.textContent=ar?'أرشدني إلى القاعة':'Show me the way';button.disabled=transitioning;button.onclick=()=>startRoomDirections(target.scene);actions.append(button);}
       const enter=document.createElement('button');enter.type='button';enter.textContent=ar?'فتح العرض بزاوية 360°':'Open 360° view';enter.disabled=Boolean(target.scene)&&transitioning;enter.onclick=()=>openDirectoryTour(target);actions.append(enter);
-    }else{detail.textContent+=' · '+(ar?'الجولة متاحة قريبًا':'Tour coming soon');}
+    }else{
+      detail.textContent+=' · '+(ar?'معلومات المبنى':'Building information');
+      const information=document.createElement('button');information.type='button';information.textContent=ar?'عرض المعلومات':'View information';
+      information.onclick=()=>{showCampusHome();requestAnimationFrame(()=>directory.selectById(hall.id));};actions.append(information);
+    }
     row.append(actions);root.append(row);
   }
   document.getElementById('tour-search-status').textContent=results.length?(ar?'النتائج: ':'Results: ')+results.length:(ar?'لا توجد مبانٍ أو قاعات مطابقة':'No matching halls or rooms');
@@ -341,10 +341,11 @@ function openDirectoryTour(target){
 }
 function hallIdForScene(i=current){return areaForScene(i)?.hallId??null;}
 function isM7Scene(i=current){return hallIdForScene(i)==='m7';}
-const directory=createDirectory({halls:CAMPUS_BUILDINGS,root:mapPanel,language:()=>currentLanguage,isReady:()=>!transitioning,startDirections:startRoomDirections,openTour:openDirectoryTour,currentHallId:()=>object?hallIdForScene():null});
+const initialBuilding=requestedSceneIndex>=0?buildingForLegacyHall(hallIdForScene(INITIAL_SCENE)):null;
+const directory=createDirectory({halls:CAMPUS_BUILDINGS,root:mapPanel,language:()=>currentLanguage,isReady:()=>!transitioning,startDirections:startRoomDirections,canGuide:scene=>{const target=LOCATIONS.findIndex(item=>item.id===scene);return ready&&target>=0&&Boolean(findPath(LOCATIONS,current,target));},openTour:openDirectoryTour,currentHallId:()=>object?hallIdForScene():null,initialTarget:initialBuilding?{hallId:initialBuilding.id,roomId:initialBuilding.rooms.find(room=>room.tour?.scene===requestedScene)?.id}:null});
 function initCampusMap(){
   if(campusMap||!window.maplibregl)return;
-  const building=CAMPUS_BUILDINGS[0];
+  const building=buildingForLegacyHall('m7');
   campusMap=new maplibregl.Map({
     container:'campus-map',
     style:{
@@ -378,16 +379,18 @@ function initCampusMap(){
   campusMap.addControl(new maplibregl.AttributionControl({compact:true,customAttribution:'University of Sharjah · Campus Map 2026'}),'bottom-right');
   campusMap.addControl(new maplibregl.NavigationControl({showCompass:false,showZoom:true,visualizePitch:false}),'top-right');
   campusMap.fitBounds([CAMPUS_MAP_CORNERS[2],CAMPUS_MAP_CORNERS[0]], {padding:{top:100,bottom:220,left:35,right:70},duration:0});
-  addCampusArtworkLabels(campusMap,CAMPUS_MAP_CORNERS,CAMPUS_BUILDINGS);
-  directory.attach(campusMap);
-  updateCampusMap();
+  const artwork=addCampusArtworkLabels(campusMap,CAMPUS_MAP_CORNERS,CAMPUS_BUILDINGS,members=>directory.selectGroup(members));
+  directory.attach(campusMap,artwork);
 }
 function updateCampusMap(){
+  document.getElementById('campus-overview').setAttribute('aria-label',currentLanguage==='ar'?'نظرة عامة على الحرم الجامعي':'Campus overview');
+  document.getElementById('campus-filters').setAttribute('aria-label',currentLanguage==='ar'?'تصفية المباني':'Building filters');
   document.getElementById('campus-current-location').textContent=object?locationLabel():t('tourMap');
   directory.update();
   document.getElementById('campus-map').setAttribute('aria-label',t('campusMapAria'));
 }
 function closePanels(){
+  if(mapPanel.classList.contains('open'))directory.leave();
   if(!object)return;
   for(const [panel,button] of [[mapPanel,mapToggle],[infoPanel,infoToggle],[searchPanel,searchToggle]]){
     panel.classList.remove('open');panel.setAttribute('aria-hidden','true');button.setAttribute('aria-pressed','false');
@@ -401,7 +404,7 @@ function togglePanel(panel,button){
   closePanels();
   if(open){
     panel.inert=false;panel.classList.add('open');panel.setAttribute('aria-hidden','false');button.setAttribute('aria-pressed','true');
-    if(panel===mapPanel){initCampusMap();requestAnimationFrame(()=>{campusMap?.resize();updateCampusMap();});setTimeout(()=>campusMap?.resize(),280);}
+    if(panel===mapPanel){initCampusMap();requestAnimationFrame(()=>{directory.restore();updateCampusMap();});}
   }
   updateRouteLabel();
 }
@@ -411,8 +414,7 @@ function showCampusHome(writeHistory=false){
   closePanels();
   mapPanel.inert=false;mapPanel.classList.add('open');mapPanel.setAttribute('aria-hidden','false');mapToggle.setAttribute('aria-pressed','true');
   initCampusMap();
-  requestAnimationFrame(()=>{campusMap?.resize();updateCampusMap();});
-  setTimeout(()=>campusMap?.resize(),220);
+  requestAnimationFrame(()=>{directory.restore();updateCampusMap();});
   if(writeHistory&&!historyTraversal)writeCampusHistory(false);
 }
 mapToggle.onclick=()=>{setMoreMenuOpen(false);togglePanel(mapPanel,mapToggle);};
@@ -454,6 +456,7 @@ async function navigateFromMap(target){
 }
 async function openPanoramaFromCampus(target){
   if(transitioning||!Number.isInteger(target)||!LOCATIONS[target])return;
+  directory.leave();
   if(object&&target===current){closePanels();mapToggle.focus({preventScroll:true});return;}
   transitioning=true;loadingScene=target;app.setAttribute('aria-busy','true');
   loading.style.display='grid';loading.classList.remove('done');setInitialProgress(0);directory.update();
@@ -797,7 +800,7 @@ function localizedLocation(i=current){
 function locationLabel(i=current){const loc=localizedLocation(i);return loc.area+' · '+loc.name;}
 function tourAreaTitle(i=current){
   if(isM7Scene(i))return t('building');
-  const hall=CAMPUS_BUILDINGS.find(item=>item.id===hallIdForScene(i));
+  const hall=HALLS.find(item=>item.id===hallIdForScene(i));
   return hall?localized(hall.name,currentLanguage):localizedLocation(i).area;
 }
 function backTarget(){return LOCATIONS[current]?.back ?? null;}

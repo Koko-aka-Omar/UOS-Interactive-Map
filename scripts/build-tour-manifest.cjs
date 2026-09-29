@@ -21,6 +21,10 @@ function loadExports(file,names){
   return sandbox.module.exports;
 }
 function gitBlob(rel){
+  // Sparse code-only checkouts may use tracked blob IDs without reading images.
+  // The default full-checkout behavior still hashes actual files.
+  if(process.argv.includes('--tracked-assets')&&!fs.existsSync(path.join(root,rel)))
+    return execFileSync('git',['rev-parse','HEAD:M7A_GitHub_Website_Full_Resolution/m7a-building/'+rel],{cwd:repoRoot,encoding:'utf8'}).trim();
   return execFileSync('git',['hash-object',path.join(root,rel)],{cwd:repoRoot,encoding:'utf8'}).trim();
 }
 function discoverCore(){

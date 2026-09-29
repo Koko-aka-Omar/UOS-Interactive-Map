@@ -411,6 +411,32 @@ html[dir="rtl"] .more-menu .tool{direction:rtl;text-align:right}
 }
 .campus-only .campus-map-heading{display:none}
 .campus-only .campus-map-card{box-shadow:0 18px 48px rgba(0,54,64,.17)}
+
+/* Campus directory states only; no panorama or arrow styling changes. */
+#campus-filters{display:flex;align-items:center;gap:5px;flex-wrap:wrap;margin-block:8px}
+.campus-filter,.campus-filter-more summary{min-height:36px;padding:6px 9px;border:1px solid #d5e4df;border-radius:10px;background:#f6faf8;color:#236858;font:inherit;font-size:11px;cursor:pointer}
+.campus-filter[aria-pressed="true"]{background:#087f72;color:#fff;border-color:#087f72}
+.campus-filter:focus-visible,.campus-filter-more summary:focus-visible{outline:2px solid #087f72;outline-offset:2px}
+.campus-filter-more{position:relative}.campus-filter-more[open]{flex-basis:100%}
+.campus-filter-more .campus-filter{margin:4px}
+.hall-description,.hall-notice,.hall-venue{font-size:13px;line-height:1.6;margin-block:10px}
+.hall-notice{padding:8px;border-inline-start:3px solid #819d94;background:#f0f5f2}
+.hall-venue{color:#087f72;font-weight:700}
+.hall-sources{font-size:11px;margin-block:12px}.hall-sources a{display:block;color:#126e67;padding:5px 0;overflow-wrap:anywhere}
+#directory-count{font-variant-numeric:tabular-nums}
+.campus-building-target{width:44px;height:44px;display:grid;place-items:center;border:0;padding:0;background:transparent;cursor:pointer;z-index:1}
+.campus-building-ink{position:relative;display:grid;place-items:center;min-width:12px;min-height:12px;border-radius:4px;transition:box-shadow .18s,outline-color .18s}
+.campus-code-mask{position:absolute;inset:auto;pointer-events:none}
+.campus-code-text{position:relative;display:block;white-space:nowrap;color:#fff;font-family:Arial,sans-serif;font-weight:700;line-height:1.05;padding:calc(2px * var(--campus-art-scale,1));border-radius:1px;pointer-events:none}
+.campus-availability{position:absolute;inset-inline-start:100%;top:100%;font:700 9px Arial,sans-serif;padding:2px 3px;border-radius:4px;background:#e9fff6;color:#126858;pointer-events:none}
+.campus-building-target.has-tour .campus-building-ink{box-shadow:0 0 0 1px #a7e5cf,0 0 5px 2px #58b59445}
+.campus-building-target.filter-match .campus-building-ink{outline:2px solid #95bbad}
+.campus-building-target.filter-other .campus-building-ink{outline-color:transparent}
+.campus-building-target.is-selected .campus-building-ink{outline:3px solid #006e62;outline-offset:3px;box-shadow:0 0 0 5px #ffffffc0}
+.campus-building-target:focus-visible{outline:2px solid #087f72;border-radius:9px}
+@media(hover:hover){.campus-building-target:hover .campus-building-ink{box-shadow:0 0 0 2px #d2f0e4}}
+@media(max-width:600px){#campus-filters{flex-wrap:nowrap;overflow-x:auto;min-height:44px}.campus-filter,.campus-filter-more summary{flex-shrink:0;white-space:nowrap;min-height:40px}.campus-filter-more[open]{position:static;flex-basis:auto}.campus-filter-more[open] .campus-filter{display:block}}
+@media(prefers-reduced-motion:reduce){.campus-building-ink{transition:none!important}}
 html[dir="rtl"] .campus-home-intro{direction:rtl}
 html[dir="rtl"] .campus-home-intro:after{background:linear-gradient(270deg,#00c389,#7ee8c8,transparent 84%)}
 

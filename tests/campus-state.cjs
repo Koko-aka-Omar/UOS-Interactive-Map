@@ -1,0 +1,50 @@
+const assert=require('node:assert/strict');
+const path=require('node:path');
+const {pathToFileURL}=require('node:url');
+const load=file=>import(pathToFileURL(path.join(__dirname,'../M7A_GitHub_Website_Full_Resolution/m7a-building',file)).href);
+(async()=>{
+  const {CAMPUS_BUILDINGS:halls,buildingForLegacyHall}=await load('campus-buildings.js');
+  const {CATEGORIES,SOURCES,BUILDING_RECORDS,SUPPLEMENTAL_PLACES}=await load('campus-inventory.js');
+  const {ARTWORK_VERSION,artworkPoint,CAMPUS_CORNERS}=await load('campus-geometry.js');
+  const {matchesFilters,sanitizeCampusState,createCampusStateStore}=await load('campus-state.js');
+  const {searchHalls}=await load('campus-directory.js');
+  assert.equal(BUILDING_RECORDS.length,76);assert.equal(SUPPLEMENTAL_PLACES.length,10);
+  assert.equal(new Set(halls.map(hall=>hall.id)).size,86);
+  for(const hall of halls){
+    assert(hall.name.en&&hall.name.ar&&hall.description.en&&hall.description.ar);
+    assert(hall.sourceIds.every(id=>SOURCES[id]));assert(hall.categories.every(id=>CATEGORIES[id]));
+  }
+  assert(BUILDING_RECORDS.every(hall=>hall.code&&!/^E1[2-5]$/.test(hall.code)));
+  assert.equal(halls.filter(hall=>hall.code&&!hall.anchor).length,0);
+  assert.equal(halls.filter(hall=>hall.tour).length,6);
+  assert.equal(buildingForLegacyHall('e3').code,'E4');
+  assert(!halls.find(hall=>hall.code==='E3').tour);
+  assert(halls.find(hall=>hall.code==='A9').description.en.includes('Business'));
+  assert(halls.find(hall=>hall.code==='C2').name.en.includes('Farabi'));
+  assert(halls.find(hall=>hall.code==='H5').name.en.includes('Hind'));
+  assert(halls.find(hall=>hall.code==='H6').name.en.includes('Safiya'));
+  assert(halls.find(hall=>hall.code==='A5').categories.includes('student-services'));
+  assert(halls.find(hall=>hall.code==='C5').categories.includes('student-services'));
+  assert.deepEqual(artworkPoint(0,0),CAMPUS_CORNERS[0]);
+  assert.deepEqual(artworkPoint(900,4118),CAMPUS_CORNERS[2]);
+  assert.equal(halls.filter(hall=>matchesFilters(hall,'dining',true)).length,2);
+  assert.equal(halls.filter(hall=>matchesFilters(hall,'libraries',true)).length,1);
+  assert.equal(searchHalls(halls,'M7 A','en')[0].hall.code,'A11');
+  assert.equal(searchHalls(halls,'E٤','ar')[0].hall.code,'E4');
+  assert.equal(searchHalls(halls,'Al Zahra','en')[0].hall.code,'C2');
+  const camera={center:[55.47,25.28],zoom:16.237,bearing:0,pitch:0,padding:{top:3,right:4,bottom:5,left:6}};
+  const state={version:1,artwork:ARTWORK_VERSION,camera,selectedId:'building-a11',roomId:'m7a-002',activeCategory:'libraries',toursOnly:true,query:'002',collapsed:true,sheetExpanded:true,scroll:47};
+  assert.deepEqual(sanitizeCampusState(state,halls,CATEGORIES),state);
+  const stale=sanitizeCampusState({...state,roomId:'missing',activeCategory:'missing'},halls,CATEGORIES);
+  assert.deepEqual(stale.camera,camera);assert.equal(stale.roomId,null);assert.equal(stale.activeCategory,null);
+  assert.equal(sanitizeCampusState({...state,selectedId:'missing'},halls,CATEGORIES).selectedId,null);
+  assert.deepEqual(sanitizeCampusState({...state,activeCategory:{toString:{}}},halls,CATEGORIES).camera,camera);
+  assert.equal(sanitizeCampusState({...state,artwork:'old'},halls,CATEGORIES),null);
+  for(const stored of ['{bad',null,'[]']){
+    const store=createCampusStateStore(halls,CATEGORIES,()=>({getItem:()=>stored,setItem:()=>{throw Error('denied');}}));
+    assert.equal(store.read(),null);store.write(state);assert.deepEqual(store.read(),state);
+  }
+  const denied=createCampusStateStore(halls,CATEGORIES,()=>{throw Error('denied');});
+  assert.equal(denied.read(),null);denied.write(state);assert.deepEqual(denied.read(),state);
+  console.log('PASS inventory, all 76 building anchors, legacy bindings, bilingual aliases/numerals, filters and safe state persistence');
+})().catch(error=>{console.error(error);process.exitCode=1;});
