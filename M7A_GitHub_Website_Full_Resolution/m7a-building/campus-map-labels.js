@@ -39,15 +39,18 @@ export function addCampusArtworkLabels(map, corners, halls) {
     const ring = footprints[hall.id].map(([x,y]) => point(x,y)); ring.push(ring[0]);
     return {type:'Feature',properties:{},geometry:{type:'Polygon',coordinates:[ring]}};
   });
-  // A4's artwork footprint is irregular; use a focused beacon at its surveyed center.
-  if(halls.some(hall => hall.id==='a4' && hall.tour)){
-    features.push({type:'Feature',properties:{kind:'a4-beacon'},geometry:{type:'Point',coordinates:point(558,716)}});
-  }
+  // Irregular artwork footprints use focused beacons at their exact label centres.
+  const beacons={a4:[558,716],c4:[555,1708]};
+  Object.entries(beacons).forEach(([hallId,[x,y]])=>{
+    if(halls.some(hall=>hall.id===hallId&&hall.tour)){
+      features.push({type:'Feature',properties:{kind:'tour-beacon'},geometry:{type:'Point',coordinates:point(x,y)}});
+    }
+  });
   map.on('load', () => {
     map.addSource('available-tours', {type:'geojson',data:{type:'FeatureCollection',features}});
     map.addLayer({id:'tour-building-glow',type:'line',source:'available-tours',paint:{'line-color':'#23ffe0','line-width':14,'line-blur':9,'line-opacity':0.9}});
     map.addLayer({id:'tour-building-outline',type:'line',source:'available-tours',paint:{'line-color':'#b9fff0','line-width':2.5}});
-    map.addLayer({id:'a4-building-glow',type:'circle',source:'available-tours',filter:['==',['get','kind'],'a4-beacon'],paint:{'circle-radius':28,'circle-color':'#23ffe0','circle-opacity':0.24,'circle-blur':0.85}});
-    map.addLayer({id:'a4-building-beacon',type:'circle',source:'available-tours',filter:['==',['get','kind'],'a4-beacon'],paint:{'circle-radius':8,'circle-color':'#087f82','circle-stroke-color':'#eafff7','circle-stroke-width':2,'circle-opacity':0.98}});
+    map.addLayer({id:'tour-building-beacon-glow',type:'circle',source:'available-tours',filter:['==',['get','kind'],'tour-beacon'],paint:{'circle-radius':28,'circle-color':'#23ffe0','circle-opacity':0.24,'circle-blur':0.85}});
+    map.addLayer({id:'tour-building-beacon',type:'circle',source:'available-tours',filter:['==',['get','kind'],'tour-beacon'],paint:{'circle-radius':8,'circle-color':'#087f82','circle-stroke-color':'#eafff7','circle-stroke-width':2,'circle-opacity':0.98}});
   });
 }

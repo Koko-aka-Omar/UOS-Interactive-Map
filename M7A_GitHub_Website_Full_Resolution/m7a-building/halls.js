@@ -2,6 +2,31 @@
 // A tour can open an existing scene or a separately hosted hall tour.
 export const HALLS = [
   {
+    id: 'c4', code: 'C4',
+    name: { en: 'C4', ar: 'C4' },
+    // Exact C4 centre on the unchanged 2026 campus artwork.
+    mapCoordinates: [55.47892269052845, 25.279957223150287],
+    thumbnail: './panoramas-mobile/c4-001.jpg',
+    tour: { scene: 'c4-001' },
+    rooms: [
+      { id: 'c4-001', name: { en: 'C4 Entrance', ar: 'مدخل C4' }, floor: { en: 'C4', ar: 'C4' }, tour: { scene: 'c4-001' } },
+      { id: 'c4-002', name: { en: 'Entry Corridor', ar: 'ممر المدخل' }, floor: { en: 'C4', ar: 'C4' }, tour: { scene: 'c4-002' } },
+      { id: 'c4-003', name: { en: 'Collaboration Corridor', ar: 'ممر مساحات التعاون' }, floor: { en: 'C4', ar: 'C4' }, tour: { scene: 'c4-003' } },
+      { id: 'c4-004', name: { en: 'Café Corridor', ar: 'ممر المقهى' }, floor: { en: 'C4', ar: 'C4' }, tour: { scene: 'c4-004' } },
+      { id: 'c4-005', name: { en: 'Café Lounge', ar: 'استراحة المقهى' }, floor: { en: 'C4', ar: 'C4' }, tour: { scene: 'c4-005' } },
+      { id: 'c4-006', name: { en: 'Study Booths', ar: 'مقصورات الدراسة' }, floor: { en: 'C4', ar: 'C4' }, tour: { scene: 'c4-006' } },
+      { id: 'c4-007', name: { en: 'Breakfast Counter', ar: 'منطقة الإفطار' }, floor: { en: 'C4', ar: 'C4' }, tour: { scene: 'c4-007' } },
+      { id: 'c4-008', name: { en: 'Main Lounge', ar: 'الاستراحة الرئيسية' }, floor: { en: 'C4', ar: 'C4' }, tour: { scene: 'c4-008' } },
+      { id: 'c4-009', name: { en: 'Recreation Corridor', ar: 'ممر الترفيه' }, floor: { en: 'C4', ar: 'C4' }, tour: { scene: 'c4-009' } },
+      { id: 'c4-010', name: { en: 'Games Area', ar: 'منطقة الألعاب' }, floor: { en: 'C4', ar: 'C4' }, tour: { scene: 'c4-010' } },
+      { id: 'c4-011', name: { en: 'Tiered Seating', ar: 'الجلسات المتدرجة' }, floor: { en: 'C4', ar: 'C4' }, tour: { scene: 'c4-011' } },
+      { id: 'c4-012', name: { en: 'Dining Hall', ar: 'قاعة الطعام' }, floor: { en: 'C4', ar: 'C4' }, tour: { scene: 'c4-012' } },
+      { id: 'c4-013', name: { en: 'Food Court Corridor', ar: 'ممر المطاعم' }, floor: { en: 'C4', ar: 'C4' }, tour: { scene: 'c4-013' } },
+      { id: 'c4-014', name: { en: 'Food Counter', ar: 'منطقة المطاعم' }, floor: { en: 'C4', ar: 'C4' }, tour: { scene: 'c4-014' } },
+      { id: 'c4-015', name: { en: 'Dining Area', ar: 'منطقة الطعام' }, floor: { en: 'C4', ar: 'C4' }, tour: { scene: 'c4-015' } }
+    ]
+  },
+  {
     id: 'a4', code: 'A4',
     name: { en: "Men's Hall", ar: 'قاعة الطلاب' },
     // A4 centre on the unchanged 2026 campus artwork.

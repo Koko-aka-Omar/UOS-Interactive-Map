@@ -3,12 +3,14 @@ import * as M7A from './routes/m7a.js';
 import * as THEATER from './routes/theater.js';
 import * as LIBRARY from './routes/library.js';
 import * as MENS_HALL from './routes/mens-hall.js';
+import * as C4 from './routes/c4.js';
 
 const AREA_SOURCES=[
   {hallId:'m7',module:M7A},
   {hallId:'e2',module:THEATER},
   {hallId:'e3',module:LIBRARY},
-  {hallId:'a4',module:MENS_HALL}
+  {hallId:'a4',module:MENS_HALL},
+  {hallId:'c4',module:C4}
 ];
 
 let sceneOffset=0;

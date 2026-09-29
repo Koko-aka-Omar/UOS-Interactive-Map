@@ -1,6 +1,6 @@
 globalThis.UOS_TOUR_ASSETS=Object.freeze({
   "schema": 1,
-  "buildId": "a1cb276c7bcf",
+  "buildId": "b6f0e924c4a1",
   "coreAssets": [
     "./apple-touch-icon.png",
     "./campus-directory.js",
@@ -11,6 +11,7 @@ globalThis.UOS_TOUR_ASSETS=Object.freeze({
     "./halls.js",
     "./index.html",
     "./manifest.webmanifest",
+    "./routes/c4.js",
     "./routes/library.js",
     "./routes/m7a.js",
     "./routes/mens-hall.js",
@@ -29,7 +30,8 @@ globalThis.UOS_TOUR_ASSETS=Object.freeze({
     "./routes/m7a.js",
     "./routes/theater.js",
     "./routes/library.js",
-    "./routes/mens-hall.js"
+    "./routes/mens-hall.js",
+    "./routes/c4.js"
   ],
   "panoramaFiles": [
     "ground-entrance.glb",
@@ -89,7 +91,22 @@ globalThis.UOS_TOUR_ASSETS=Object.freeze({
     "mens-hall-085.glb",
     "mens-hall-086.glb",
     "mens-hall-087.glb",
-    "mens-hall-088.glb"
+    "mens-hall-088.glb",
+    "c4-001.glb",
+    "c4-002.glb",
+    "c4-003.glb",
+    "c4-004.glb",
+    "c4-005.glb",
+    "c4-006.glb",
+    "c4-007.glb",
+    "c4-008.glb",
+    "c4-009.glb",
+    "c4-010.glb",
+    "c4-011.glb",
+    "c4-012.glb",
+    "c4-013.glb",
+    "c4-014.glb",
+    "c4-015.glb"
   ],
   "panoramaRevisions": {
     "desktop": {
@@ -150,7 +167,22 @@ globalThis.UOS_TOUR_ASSETS=Object.freeze({
       "mens-hall-085.glb": "0a8675ea5ef0",
       "mens-hall-086.glb": "fcfad5a59e64",
       "mens-hall-087.glb": "1c75aed36e24",
-      "mens-hall-088.glb": "aef4ae406d3c"
+      "mens-hall-088.glb": "aef4ae406d3c",
+      "c4-001.glb": "db392522f136",
+      "c4-002.glb": "ff38e286bde2",
+      "c4-003.glb": "327caec2cda0",
+      "c4-004.glb": "1ba477fdb682",
+      "c4-005.glb": "fc0671ee3b3a",
+      "c4-006.glb": "9f7e6bd7d1ba",
+      "c4-007.glb": "7aa1b3625248",
+      "c4-008.glb": "7cbb795e426e",
+      "c4-009.glb": "18b286f946c4",
+      "c4-010.glb": "259ba328ccc9",
+      "c4-011.glb": "7d905a524f31",
+      "c4-012.glb": "ccdb1092bf50",
+      "c4-013.glb": "1b65aa2daee7",
+      "c4-014.glb": "971f19dab181",
+      "c4-015.glb": "2dd344bf55ac"
     },
     "mobile": {
       "ground-entrance.glb": "6766d4be8599",
@@ -210,7 +242,22 @@ globalThis.UOS_TOUR_ASSETS=Object.freeze({
       "mens-hall-085.glb": "004db9e91373",
       "mens-hall-086.glb": "1a3f9d1d32a6",
       "mens-hall-087.glb": "1529d563189e",
-      "mens-hall-088.glb": "da9cff5193ef"
+      "mens-hall-088.glb": "da9cff5193ef",
+      "c4-001.glb": "db392522f136",
+      "c4-002.glb": "ff38e286bde2",
+      "c4-003.glb": "327caec2cda0",
+      "c4-004.glb": "1ba477fdb682",
+      "c4-005.glb": "fc0671ee3b3a",
+      "c4-006.glb": "9f7e6bd7d1ba",
+      "c4-007.glb": "7aa1b3625248",
+      "c4-008.glb": "7cbb795e426e",
+      "c4-009.glb": "18b286f946c4",
+      "c4-010.glb": "259ba328ccc9",
+      "c4-011.glb": "7d905a524f31",
+      "c4-012.glb": "ccdb1092bf50",
+      "c4-013.glb": "1b65aa2daee7",
+      "c4-014.glb": "971f19dab181",
+      "c4-015.glb": "2dd344bf55ac"
     }
   }
 });
