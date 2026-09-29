@@ -1,6 +1,6 @@
 globalThis.UOS_TOUR_ASSETS=Object.freeze({
   "schema": 1,
-  "buildId": "55564446aefb",
+  "buildId": "e33ca63f8ae2",
   "coreAssets": [
     "./apple-touch-icon.png",
     "./campus-directory.js",
@@ -11,6 +11,7 @@ globalThis.UOS_TOUR_ASSETS=Object.freeze({
     "./halls.js",
     "./index.html",
     "./manifest.webmanifest",
+    "./routes/al-zahra.js",
     "./routes/c4.js",
     "./routes/library.js",
     "./routes/m7a.js",
@@ -31,7 +32,8 @@ globalThis.UOS_TOUR_ASSETS=Object.freeze({
     "./routes/theater.js",
     "./routes/library.js",
     "./routes/mens-hall.js",
-    "./routes/c4.js"
+    "./routes/c4.js",
+    "./routes/al-zahra.js"
   ],
   "panoramaFiles": [
     "ground-entrance.glb",
@@ -106,7 +108,15 @@ globalThis.UOS_TOUR_ASSETS=Object.freeze({
     "c4-012.glb",
     "c4-013.glb",
     "c4-014.glb",
-    "c4-015.glb"
+    "c4-015.glb",
+    "al-zahra-001.glb",
+    "al-zahra-002.glb",
+    "al-zahra-003.glb",
+    "al-zahra-004.glb",
+    "al-zahra-005.glb",
+    "al-zahra-006.glb",
+    "al-zahra-007.glb",
+    "al-zahra-008.glb"
   ],
   "panoramaRevisions": {
     "desktop": {
@@ -182,7 +192,15 @@ globalThis.UOS_TOUR_ASSETS=Object.freeze({
       "c4-012.glb": "fb81d386b2d9",
       "c4-013.glb": "a6ac2596d0e0",
       "c4-014.glb": "fe91c02650ad",
-      "c4-015.glb": "3be00dcd575b"
+      "c4-015.glb": "3be00dcd575b",
+      "al-zahra-001.glb": "83ab7dd7d9be",
+      "al-zahra-002.glb": "0afac9966e95",
+      "al-zahra-003.glb": "73cec185202c",
+      "al-zahra-004.glb": "3400eef6f834",
+      "al-zahra-005.glb": "87e9bf6e1668",
+      "al-zahra-006.glb": "452ec36f0517",
+      "al-zahra-007.glb": "d177760cf666",
+      "al-zahra-008.glb": "4dbf1dafdf6e"
     },
     "mobile": {
       "ground-entrance.glb": "f84780998f7f",
@@ -257,7 +275,15 @@ globalThis.UOS_TOUR_ASSETS=Object.freeze({
       "c4-012.glb": "14871701c722",
       "c4-013.glb": "719b3b1816e1",
       "c4-014.glb": "8b1ff86010d4",
-      "c4-015.glb": "c33ab53a928c"
+      "c4-015.glb": "c33ab53a928c",
+      "al-zahra-001.glb": "83ab7dd7d9be",
+      "al-zahra-002.glb": "0afac9966e95",
+      "al-zahra-003.glb": "73cec185202c",
+      "al-zahra-004.glb": "3400eef6f834",
+      "al-zahra-005.glb": "87e9bf6e1668",
+      "al-zahra-006.glb": "452ec36f0517",
+      "al-zahra-007.glb": "d177760cf666",
+      "al-zahra-008.glb": "4dbf1dafdf6e"
     }
   }
 });

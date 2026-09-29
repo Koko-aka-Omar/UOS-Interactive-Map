@@ -40,7 +40,7 @@ export function addCampusArtworkLabels(map, corners, halls) {
     return {type:'Feature',properties:{},geometry:{type:'Polygon',coordinates:[ring]}};
   });
   // Irregular artwork footprints use focused beacons at their exact label centres.
-  const beacons={a4:[558,716],c4:[555,1708]};
+  const beacons={a4:[558,716],c4:[555,1708],'al-zahra':[535,1990]};
   Object.entries(beacons).forEach(([hallId,[x,y]])=>{
     if(halls.some(hall=>hall.id===hallId&&hall.tour)){
       features.push({type:'Feature',properties:{kind:'tour-beacon'},geometry:{type:'Point',coordinates:point(x,y)}});

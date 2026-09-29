@@ -2,6 +2,23 @@
 // A tour can open an existing scene or a separately hosted hall tour.
 export const HALLS = [
   {
+    id: 'al-zahra', code: 'C2',
+    name: { en: 'Al Zahra Hall', ar: 'قاعة الزهراء' },
+    // Exact C2 centre on the unchanged 2026 campus artwork.
+    mapCoordinates: [55.47735608256855, 25.280057692934516],
+    tour: { scene: 'al-zahra-001' },
+    rooms: [
+      { id: 'al-zahra-001', name: { en: 'Al Zahra Entrance', ar: 'مدخل قاعة الزهراء' }, floor: { en: 'Al Zahra Hall', ar: 'قاعة الزهراء' }, tour: { scene: 'al-zahra-001' } },
+      { id: 'al-zahra-002', name: { en: 'Entrance Hall', ar: 'بهو المدخل' }, floor: { en: 'Al Zahra Hall', ar: 'قاعة الزهراء' }, tour: { scene: 'al-zahra-002' } },
+      { id: 'al-zahra-003', name: { en: 'Theater Door', ar: 'باب المسرح' }, floor: { en: 'Al Zahra Hall', ar: 'قاعة الزهراء' }, tour: { scene: 'al-zahra-003' } },
+      { id: 'al-zahra-004', name: { en: 'Theater Entrance', ar: 'مدخل المسرح' }, floor: { en: 'Al Zahra Hall', ar: 'قاعة الزهراء' }, tour: { scene: 'al-zahra-004' } },
+      { id: 'al-zahra-005', name: { en: 'Theater Right Side', ar: 'الجانب الأيمن للمسرح' }, floor: { en: 'Al Zahra Hall', ar: 'قاعة الزهراء' }, tour: { scene: 'al-zahra-005' } },
+      { id: 'al-zahra-006', name: { en: 'Lower Seating', ar: 'منطقة الجلوس السفلية' }, floor: { en: 'Al Zahra Hall', ar: 'قاعة الزهراء' }, tour: { scene: 'al-zahra-006' } },
+      { id: 'al-zahra-007', name: { en: 'Upper Theater', ar: 'داخل المسرح' }, floor: { en: 'Al Zahra Hall', ar: 'قاعة الزهراء' }, tour: { scene: 'al-zahra-007' } },
+      { id: 'al-zahra-008', name: { en: 'Stage Front', ar: 'أمام المنصة' }, floor: { en: 'Al Zahra Hall', ar: 'قاعة الزهراء' }, tour: { scene: 'al-zahra-008' } }
+    ]
+  },
+  {
     id: 'c4', code: 'C4',
     name: { en: 'C4', ar: 'C4' },
     // Exact C4 centre on the unchanged 2026 campus artwork.
