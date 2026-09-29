@@ -1093,7 +1093,7 @@ el.addEventListener('pointerdown',e=>{
   checkHotspotHover(e.clientX,e.clientY);
   if(hoverHotspot?.userData?.route)queueRoutePreload(hoverHotspot.userData.route.to);
   gesture={id:e.pointerId,x:e.clientX,y:e.clientY,yaw,pitch,hit:hoverHotspot,moved:false};dragging=true;
-  if(coarsePointer)document.body.classList.add('mobile-looking');
+
 });
 el.addEventListener('pointermove',e=>{
   if(transitioning)return;
