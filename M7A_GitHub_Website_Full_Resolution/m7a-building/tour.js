@@ -678,17 +678,19 @@ function updateHotspotVisuals(now=0){
     const e=coarsePointer?0:u.emphasis,quiet=dragging?0.62:1;
     const pulse=(reducedMotion||coarsePointer)?0:(0.5+0.5*Math.sin(now*0.0028))*0.045;
     const hotspotScale=u.route?getHotspotStyle(current,u.route)[1]:.64;
-    hs.scale.setScalar(hotspotScale*(1+0.05*e+pulse));
     const stairBoost=u.route?.kind==='stairs'?0.06:0;
     const polished=current>=12&&current<=16;
     const guided=directionsNext!==null&&u.route?.to===directionsNext;
+    const routeEmphasis=(directionsNext!==null&&!guided)?0.4:1;
+    const guidedPulse=(guided&&!reducedMotion)?(0.5+0.5*Math.sin(now*0.004))*0.06:0;
+    hs.scale.setScalar(hotspotScale*(1+0.05*e+pulse+guidedPulse)*(guided?1.08:routeEmphasis===1?1:.94));
     u.inner.material.color.setHex(guided?0xffcf5c:polished?0x00a979:0x00c389);
     u.ring.material.color.setHex(guided?0xffe49a:0x7ee8c8);
     u.arrow.material.color.setHex(guided?0xfff5c4:polished?0xf0fffa:0x063f43);
-    u.inner.material.opacity=((polished?0.48:0.16)+0.15*e+stairBoost)*quiet;
-    u.ring.material.opacity=(0.40+0.30*e+pulse)*quiet;
-    u.arrow.material.opacity=((polished?0.88:0.70)+(polished?0.12:0.20)*e)*quiet;
-    if(guided){hs.scale.multiplyScalar(1.2);u.inner.material.opacity=.5;u.ring.material.opacity=1;u.arrow.material.opacity=1;}
+    u.inner.material.opacity=((polished?0.48:0.16)+0.15*e+stairBoost)*quiet*routeEmphasis;
+    u.ring.material.opacity=(0.40+0.30*e+pulse)*quiet*routeEmphasis;
+    u.arrow.material.opacity=((polished?0.88:0.70)+(polished?0.12:0.20)*e)*quiet*routeEmphasis;
+    if(guided){u.inner.material.opacity=.5+guidedPulse;u.ring.material.opacity=.88+guidedPulse;u.arrow.material.opacity=1;}
   }
 }
 
