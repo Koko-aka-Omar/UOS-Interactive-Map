@@ -14,7 +14,7 @@ const locations=routeFiles.flatMap(file=>loadExports(path.join(root,'routes',fil
 const byId=id=>locations.findIndex(item=>item.id===id);
 (async()=>{
   const {findPath}=await import('data:text/javascript;base64,'+fs.readFileSync(path.join(root,'directions.js')).toString('base64'));
-  assert.equal(locations.length,58,'all 58 current checkpoints loaded');
+  assert.equal(locations.length,73,'all 73 current checkpoints loaded');
   const unseen=new Set(locations.map((_,i)=>i)),components=[];
   while(unseen.size){
     const start=unseen.values().next().value,queue=[start],component=[];
