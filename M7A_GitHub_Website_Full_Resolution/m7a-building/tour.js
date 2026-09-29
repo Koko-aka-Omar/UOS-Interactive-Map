@@ -368,6 +368,7 @@ function initCampusMap(){
     zoom:17.4,
     bearing:0,
     pitch:0,
+    ...(directory.initialCamera()||{}),
     maxPitch:0,
     dragRotate:false,
     pitchWithRotate:false,
@@ -378,12 +379,12 @@ function initCampusMap(){
   campusMap.keyboard.disableRotation();
   campusMap.addControl(new maplibregl.AttributionControl({compact:true,customAttribution:'University of Sharjah · Campus Map 2026'}),'bottom-right');
   campusMap.addControl(new maplibregl.NavigationControl({showCompass:false,showZoom:true,visualizePitch:false}),'top-right');
-  campusMap.fitBounds([CAMPUS_MAP_CORNERS[2],CAMPUS_MAP_CORNERS[0]], {padding:{top:100,bottom:220,left:35,right:70},duration:0});
   const artwork=addCampusArtworkLabels(campusMap,CAMPUS_MAP_CORNERS,CAMPUS_BUILDINGS,members=>directory.selectGroup(members));
   directory.attach(campusMap,artwork);
 }
 function updateCampusMap(){
   document.getElementById('campus-overview').setAttribute('aria-label',currentLanguage==='ar'?'نظرة عامة على الحرم الجامعي':'Campus overview');
+  document.getElementById('campus-overview').textContent=currentLanguage==='ar'?'نظرة عامة':'Campus overview';
   document.getElementById('campus-filters').setAttribute('aria-label',currentLanguage==='ar'?'تصفية المباني':'Building filters');
   document.getElementById('campus-current-location').textContent=object?locationLabel():t('tourMap');
   directory.update();
@@ -391,7 +392,12 @@ function updateCampusMap(){
 }
 function closePanels(){
   if(mapPanel.classList.contains('open'))directory.leave();
-  if(!object)return;
+  if(!object){
+    for(const [panel,button] of [[infoPanel,infoToggle],[searchPanel,searchToggle]]){
+      panel.classList.remove('open');panel.setAttribute('aria-hidden','true');panel.inert=true;button.setAttribute('aria-pressed','false');
+    }
+    return;
+  }
   for(const [panel,button] of [[mapPanel,mapToggle],[infoPanel,infoToggle],[searchPanel,searchToggle]]){
     panel.classList.remove('open');panel.setAttribute('aria-hidden','true');button.setAttribute('aria-pressed','false');
     panel.inert=true;
@@ -419,7 +425,18 @@ function showCampusHome(writeHistory=false){
 }
 mapToggle.onclick=()=>{setMoreMenuOpen(false);togglePanel(mapPanel,mapToggle);};
 infoToggle.onclick=()=>{setMoreMenuOpen(false);togglePanel(infoPanel,infoToggle);};
-document.querySelectorAll('[data-close-panel]').forEach(btn=>btn.addEventListener('click',()=>{const opener=btn.closest('aside')===mapPanel?mapToggle:infoToggle;closePanels();opener.focus();updateRouteLabel();}));
+document.getElementById('campus-about').onclick=()=>{
+  infoPanel.inert=false;infoPanel.classList.add('open');infoPanel.setAttribute('aria-hidden','false');
+  infoToggle.setAttribute('aria-pressed','true');
+  infoPanel.querySelector('[data-close-panel]').focus({preventScroll:true});
+};
+document.querySelectorAll('[data-close-panel]').forEach(btn=>btn.addEventListener('click',()=>{
+  if(btn.closest('aside')===infoPanel&&mapPanel.classList.contains('open')){
+    infoPanel.classList.remove('open');infoPanel.setAttribute('aria-hidden','true');infoPanel.inert=true;infoToggle.setAttribute('aria-pressed','false');
+    document.getElementById('campus-about').focus({preventScroll:true});return;
+  }
+  const opener=btn.closest('aside')===mapPanel?mapToggle:infoToggle;closePanels();opener.focus();updateRouteLabel();
+}));
 mapPanel.inert=true;infoPanel.inert=true;searchPanel.inert=true;
 function setMapFloor(floor){
   document.querySelectorAll('[data-floor-view]').forEach(el=>el.classList.toggle('active',el.dataset.floorView===floor));
@@ -847,14 +864,9 @@ function applyLanguage(persist=true){
   }
   document.getElementById('more-view-label').textContent=t('moreView');
   document.getElementById('more-tour-label').textContent=t('moreTour');
-  document.getElementById('campus-home-area-count').textContent=String(TOUR_AREAS.length);
-  document.getElementById('campus-home-view-count').textContent=String(LOCATIONS.length);
-  document.getElementById('campus-home-kicker').textContent=t('university');
-  document.getElementById('campus-home-title').textContent=t('homeTitle');
-  document.getElementById('campus-home-copy').textContent=t('homeCopy');
-  document.getElementById('campus-home-areas').textContent=t('homeAreas');
-  document.getElementById('campus-home-views').textContent=t('homeViews');
-  document.getElementById('campus-home-action').textContent=t('homeAction');
+  document.getElementById('campus-area-count').textContent=String(TOUR_AREAS.length);
+  document.getElementById('campus-view-count').textContent=String(LOCATIONS.length);
+  document.getElementById('campus-about').setAttribute('aria-label',t('aboutTitle'));
   cp.textContent=locationLabel();
   updateControls();updateRouteLabel();
   if(!loading.classList.contains('done'))setInitialProgress(lastInitialProgress);

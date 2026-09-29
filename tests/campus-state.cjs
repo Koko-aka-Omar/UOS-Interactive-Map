@@ -7,7 +7,14 @@ const load=file=>import(pathToFileURL(path.join(__dirname,'../M7A_GitHub_Website
   const {CATEGORIES,SOURCES,BUILDING_RECORDS,SUPPLEMENTAL_PLACES}=await load('campus-inventory.js');
   const {ARTWORK_VERSION,artworkPoint,CAMPUS_CORNERS}=await load('campus-geometry.js');
   const {matchesFilters,sanitizeCampusState,createCampusStateStore}=await load('campus-state.js');
-  const {searchHalls}=await load('campus-directory.js');
+  const {searchHalls,filterCampus,sourceCaption}=await load('campus-directory.js');
+  assert.equal(sourceCaption('LIBRARY','en'),'Library website');
+  assert.equal(sourceCaption('LIBRARY-LOCATIONS','ar'),'مواقع المكتبات');
+  assert.notEqual(sourceCaption('LIBRARY','en'),sourceCaption('LIBRARY-LOCATIONS','en'));
+  for(const [id,source]of Object.entries(SOURCES))if(source.kind==='official-web'){
+    assert(!/https:|user-supplied|repository|UOS news:/i.test(sourceCaption(id,'en')));
+    assert(/[\u0600-\u06ff]/.test(sourceCaption(id,'ar')));
+  }
   assert.equal(BUILDING_RECORDS.length,76);assert.equal(SUPPLEMENTAL_PLACES.length,10);
   assert.equal(new Set(halls.map(hall=>hall.id)).size,86);
   for(const hall of halls){
@@ -34,7 +41,26 @@ const load=file=>import(pathToFileURL(path.join(__dirname,'../M7A_GitHub_Website
   assert.equal(searchHalls(halls,'Al Zahra','en')[0].hall.code,'C2');
   const camera={center:[55.47,25.28],zoom:16.237,bearing:0,pitch:0,padding:{top:3,right:4,bottom:5,left:6}};
   const state={version:1,artwork:ARTWORK_VERSION,camera,selectedId:'building-a11',roomId:'m7a-002',activeCategory:'libraries',toursOnly:true,query:'002',collapsed:true,sheetExpanded:true,scroll:47};
-  assert.deepEqual(sanitizeCampusState(state,halls,CATEGORIES),state);
+  const migrated=sanitizeCampusState(state,halls,CATEGORIES);
+  assert.equal(migrated.version,2);assert.equal(migrated.snap,'peek');assert.equal(migrated.mode,'details');
+  assert.equal(migrated.detailScroll,47);assert.equal(migrated.resultsScroll,0);assert.deepEqual(migrated.camera,camera);
+  assert.deepEqual(sanitizeCampusState(migrated,halls,CATEGORIES),migrated);
+  assert.equal(sanitizeCampusState({...state,collapsed:false},halls,CATEGORIES).snap,'expanded');
+  assert.equal(sanitizeCampusState({...state,collapsed:false,sheetExpanded:false},halls,CATEGORIES).snap,'half');
+  assert.equal(sanitizeCampusState({...migrated,snap:'garbage',mode:'bad'},halls,CATEGORIES).snap,'peek');
+  const complete={...migrated,snap:'expanded',mode:'results',resultsScroll:345,detailScroll:89,sections:{'building-a11':{inside:true,sources:true}}};
+  assert.deepEqual(sanitizeCampusState(complete,halls,CATEGORIES),complete);
+  assert.equal(new Set(filterCampus(halls,'C4','dining',true).map(item=>item.hall.id)).size,1);
+  assert.equal(filterCampus(halls,'E4','dining',true).length,0);
+  assert.equal(filterCampus(halls,'E٤','libraries',true,'ar')[0].hall.code,'E4');
+  for(const hall of halls){
+    const prose=hall.description.en+' '+hall.description.ar+' '+(hall.publicNotice?.en||'');
+    assert(!/HallV3|repository|map lists|supplied map|source says|listed for|identified in Zone|تدرج الخريطة|الخريطة المرفقة/i.test(prose),hall.id+' has institutional copy');
+  }
+  assert(halls.find(h=>h.code==='A1').publicNotice.en.includes('confirm'));
+  assert(halls.find(h=>h.code==='A12').publicNotice.en.includes('confirm'));
+  assert(halls.find(h=>h.code==='B2').publicNotice.en.includes('B1-A'));
+  assert.equal(halls.find(h=>h.code==='E10').description.en,'Building E10 · Zone E');
   const stale=sanitizeCampusState({...state,roomId:'missing',activeCategory:'missing'},halls,CATEGORIES);
   assert.deepEqual(stale.camera,camera);assert.equal(stale.roomId,null);assert.equal(stale.activeCategory,null);
   assert.equal(sanitizeCampusState({...state,selectedId:'missing'},halls,CATEGORIES).selectedId,null);
@@ -42,9 +68,9 @@ const load=file=>import(pathToFileURL(path.join(__dirname,'../M7A_GitHub_Website
   assert.equal(sanitizeCampusState({...state,artwork:'old'},halls,CATEGORIES),null);
   for(const stored of ['{bad',null,'[]']){
     const store=createCampusStateStore(halls,CATEGORIES,()=>({getItem:()=>stored,setItem:()=>{throw Error('denied');}}));
-    assert.equal(store.read(),null);store.write(state);assert.deepEqual(store.read(),state);
+    assert.equal(store.read(),null);store.write(state);assert.deepEqual(store.read(),migrated);
   }
   const denied=createCampusStateStore(halls,CATEGORIES,()=>{throw Error('denied');});
-  assert.equal(denied.read(),null);denied.write(state);assert.deepEqual(denied.read(),state);
+  assert.equal(denied.read(),null);denied.write(complete);assert.deepEqual(denied.read(),complete);
   console.log('PASS inventory, all 76 building anchors, legacy bindings, bilingual aliases/numerals, filters and safe state persistence');
 })().catch(error=>{console.error(error);process.exitCode=1;});
