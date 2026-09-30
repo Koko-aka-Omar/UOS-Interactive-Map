@@ -23,7 +23,10 @@ const load=file=>import(pathToFileURL(path.join(__dirname,'../M7A_GitHub_Website
   }
   assert(BUILDING_RECORDS.every(hall=>hall.code&&!/^E1[2-5]$/.test(hall.code)));
   assert.equal(halls.filter(hall=>hall.code&&!hall.anchor).length,0);
-  assert.equal(halls.filter(hall=>hall.tour).length,6);
+  assert.equal(halls.filter(hall=>hall.tour).length,7);
+  assert.equal(buildingForLegacyHall('student-forums').code,'A6');
+  assert.equal(halls.find(hall=>hall.code==='A6').tour.scene,'student-forums-071');
+  assert(!halls.find(hall=>hall.code==='C6').tour);
   assert.equal(buildingForLegacyHall('e3').code,'E4');
   assert(!halls.find(hall=>hall.code==='E3').tour);
   assert(halls.find(hall=>hall.code==='A9').description.en.includes('Business'));

@@ -34,9 +34,9 @@ async function dragMouse(page,delta){const box=await page.locator('#directory-sh
       page.on('pageerror',error=>errors.push(error.message));
       await page.goto('http://127.0.0.1:'+server.address().port);await page.waitForFunction(()=>window.ready);
       assert.equal(await snap(page),'peek');assert(await page.locator('#directory-body').isHidden());assert.equal(await page.locator('#campus-home-intro').count(),0);
-      assert.equal(await page.locator('.campus-building-target').count(),79);assert.equal(await page.locator('.campus-availability').count(),6);
+      assert.equal(await page.locator('.campus-building-target').count(),79);assert.equal(await page.locator('.campus-availability').count(),7);
       const sourceBefore=await page.evaluate(()=>map.getStyle().sources['campus-tour-footprints'].data);
-      assert.equal(sourceBefore.features.length,6);
+      assert.equal(sourceBefore.features.length,7);
       assert.equal(await page.evaluate(()=>map.getStyle().layers.filter(layer=>layer.id.startsWith('campus-tour-')).length),5);
       assert.deepEqual(await page.evaluate(()=>window.mapErrors),[]);
       const initial=await camera(page);
@@ -96,7 +96,8 @@ async function dragMouse(page,delta){const box=await page.locator('#directory-sh
       await page.locator('#directory-collapse').click();await settled(page);assert.equal(await snap(page),'half');
       // Exposed map dragging works independently of sheet gestures.
       await page.locator('#directory-sheet-handle').press('Home');await settled(page);const beforeMapDrag=await camera(page);
-      await page.mouse.move(200,440);await page.mouse.down();await page.mouse.move(250,470,{steps:8});await page.mouse.up();await page.waitForTimeout(400);
+      const mapY=Math.max(100,(await page.locator('.campus-map-card').boundingBox()).y/2);
+      await page.mouse.move(200,mapY);await page.mouse.down();await page.mouse.move(250,mapY+30,{steps:8});await page.mouse.up();await page.waitForTimeout(400);
       assert.notDeepEqual((await camera(page)).center,beforeMapDrag.center,'Exposed map still pans');
       await page.evaluate(value=>map.jumpTo(value),noDragCamera);
       // Simulated visual viewport shrink follows keyboard geometry, without camera changes.

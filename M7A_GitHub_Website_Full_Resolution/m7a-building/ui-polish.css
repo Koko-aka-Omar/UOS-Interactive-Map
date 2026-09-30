@@ -568,7 +568,61 @@ html[data-theme] .brand .lang-toggle{position:static;inset:auto;transform:none;g
 html[dir=rtl] :is(.topbar,.brand-row,.tools,.nav,.panel-head,.share-head){direction:rtl}
 html[data-theme] :is(button,summary,a,select,input):focus-visible{outline:2px solid var(--ui-focus);outline-offset:3px}
 .about-section{margin-block:12px;border-block-start:1px solid var(--ui-border);padding-block-start:8px}.about-section summary{font-size:14px;font-weight:650;cursor:pointer}.about-section p{font-size:14px;line-height:1.7}
-.campus-map-card{border-block-start:3px solid var(--zone-accent,var(--ui-accent))}
+/* Softer campus glass cards; geometry and sheet gestures stay unchanged. */
+.campus-navigator{--card-glass:rgba(248,255,254,.90);--card-edge:rgba(95,164,156,.28);--card-inner:rgba(255,255,255,.72);--card-shadow:0 16px 38px rgba(23,66,65,.14),inset 0 1px 0 rgba(255,255,255,.85)}
+html[data-theme=dark] .campus-navigator{--card-glass:rgba(25,44,41,.92);--card-edge:rgba(137,199,179,.28);--card-inner:rgba(47,72,65,.72);--card-shadow:0 16px 38px rgba(0,0,0,.28),inset 0 1px 0 rgba(177,225,204,.12)}
+.campus-navigator .campus-map-card{position:relative;inset:auto;width:100%;max-width:none;margin:0;border:1px solid var(--card-edge);border-radius:26px;box-shadow:var(--card-shadow)}
+.campus-navigator .campus-controls{flex:none;margin:0;padding:16px 16px 12px;border:0;border-radius:0;background:transparent;box-shadow:none}
+.campus-navigator .campus-header{display:flex;flex-direction:column;gap:10px;align-items:stretch}
+.campus-navigator .campus-identity-lockup{flex-direction:column;gap:6px;text-align:center}
+.campus-navigator .campus-identity-lockup .uos-badge{width:88px;border-radius:12px}
+.campus-navigator .campus-identity-lockup>div{display:block}
+.campus-navigator #campus-identity{font-size:18px;line-height:1.25}
+.campus-navigator #campus-descriptor{margin-top:3px}
+.campus-navigator .campus-persistent-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:6px}
+.campus-navigator .campus-persistent-actions button{min-width:36px;min-height:34px;padding:6px 10px;border-radius:12px;font-size:12px}
+.campus-navigator #directory-header{padding-inline:16px;border-top:1px solid var(--card-edge);padding-top:10px}
+@supports ((backdrop-filter:blur(16px)) or (-webkit-backdrop-filter:blur(16px))){
+  .campus-navigator .campus-map-card{background:var(--card-glass);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+}
+.campus-navigator :is(#hall-search,.hall-result,.room-choice){border-radius:16px;border-color:var(--card-edge);background:var(--card-inner)}
+.campus-navigator .hall-result{box-shadow:0 2px 8px rgba(23,66,65,.04)}
+.campus-navigator :is(.hall-result:hover,.hall-result.is-selected,.hall-result.is-active,.room-choice[aria-pressed=true]){background:var(--ui-selected);border-color:var(--ui-accent)}
+.campus-navigator :is(.campus-filter,.campus-filter-more summary){border-radius:12px}
+.campus-navigator #directory-collapse{border-radius:50%}
+.campus-navigator #directory-actions{background:transparent;border-color:var(--card-edge)}
+.campus-navigator .campus-popup-button{border-radius:16px}
+.campus-navigator .directory-sheet-handle span{background:var(--ui-muted);opacity:.55;border-radius:99px}
+.campus-navigator .directory-sheet-handle{flex:none}
+.campus-navigator .directory-sheet-handle:focus-visible{outline:0}
+.campus-navigator .directory-sheet-handle:focus-visible span{outline:2px solid var(--ui-focus);outline-offset:4px;opacity:1}
+.campus-focus .campus-navigator .campus-map-card{display:flex;height:auto!important}
+.campus-focus .campus-navigator :is(#directory-header,#directory-body,#directory-actions,.directory-sheet-handle){display:none}
+@media(max-width:640px) and (orientation:portrait){
+  .campus-navigator .campus-map-card{position:fixed;inset-inline:10px;top:auto;bottom:calc(var(--sheet-bottom,0px) + 34px);width:auto;border-radius:26px}
+  .campus-navigator .campus-controls{padding:10px 14px}
+  .campus-navigator .campus-header{gap:6px}
+  .campus-navigator .campus-identity-lockup{flex-direction:row;justify-content:center;text-align:start}
+  .campus-navigator .campus-identity-lockup .uos-badge{width:64px}
+  .campus-navigator #campus-identity{font-size:16px}
+  #campus-map .maplibregl-ctrl-top-right{top:58px}
+}
+@media(orientation:landscape) and (max-height:500px){
+  .campus-navigator .campus-controls{padding:8px 12px}
+  .campus-navigator{width:600px;max-width:calc(100vw - 100px)}
+  .campus-navigator .campus-map-card{display:grid;grid-template-columns:260px minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto 20px}
+  .campus-navigator .campus-controls{grid-column:1;grid-row:1/span 3;align-self:start}
+  .campus-navigator #directory-header{grid-column:2;grid-row:1;align-self:start;margin-bottom:0;border-top:0;border-inline-start:1px solid var(--card-edge)}
+  .campus-navigator #directory-body{grid-column:2;grid-row:2;border-inline-start:1px solid var(--card-edge)}
+  .campus-navigator #directory-actions{grid-column:2;grid-row:3;border-inline-start:1px solid var(--card-edge)}
+  .campus-navigator .directory-sheet-handle{grid-column:1/-1;grid-row:4}
+  .campus-focus .campus-navigator .campus-map-card{display:flex}
+  .campus-navigator .campus-header{flex-direction:row;align-items:center;gap:6px}
+  .campus-navigator .campus-identity-lockup .uos-badge{width:48px}
+  .campus-navigator .campus-identity-lockup>div{display:none}
+  .campus-navigator .campus-persistent-actions{gap:4px;justify-content:flex-end}
+  .campus-navigator .campus-persistent-actions button{min-height:28px;padding:4px 6px;font-size:11px}
+}
 .campus-selected-name{display:none;position:absolute;top:calc(100% + 27px);left:50%;transform:translateX(-50%);max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:5px 7px;border:1px solid var(--ui-accent);border-radius:7px;background:var(--ui-surface);color:var(--ui-text);font:600 12px/1.4 system-ui;box-shadow:var(--ui-shadow);pointer-events:none}
 .campus-building-target.is-selected .campus-selected-name{display:block}.campus-overview-scale .campus-selected-name{display:none!important}
 @media(min-width:641px),(orientation:landscape){.sheet-gesture-hint{display:none}}

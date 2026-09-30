@@ -233,7 +233,7 @@ export function createDirectory({ halls, root, language, isReady, openTour, star
       if(occluded||point.x<25||point.x>container.clientWidth-25||point.y<25||point.y>container.clientHeight-25) {
         const phone=matchMedia('(max-width:640px) and (orientation:portrait)').matches;
         const rtl=document.documentElement.dir==='rtl';
-        const free=phone?{left:25,right:container.clientWidth-25,top:controls.bottom+15,bottom:card.top-15}
+        const free=phone?{left:25,right:container.clientWidth-25,top:$('.campus-map-card').contains($('#campus-controls'))?65:controls.bottom+15,bottom:card.top-15}
           :{left:rtl?25:card.right+20,right:rtl?card.left-20:container.clientWidth-25,top:controls.top+55,bottom:container.clientHeight-35};
         map.easeTo({center:hall.mapCoordinates,offset:[(free.left+free.right)/2-container.clientWidth/2,(free.top+free.bottom)/2-container.clientHeight/2],duration:reduced()?0:280});
       }
@@ -386,8 +386,9 @@ export function createDirectory({ halls, root, language, isReady, openTour, star
   function overviewPadding() {
     const phone=matchMedia('(max-width:640px) and (orientation:portrait)').matches,rtl=document.documentElement.dir==='rtl';
     const controls=$('#campus-controls').getBoundingClientRect();
-    return phone?{top:controls.bottom+15,bottom:150,left:20,right:20}
-      :{top:85,bottom:45,left:rtl?35:controls.right+22,right:rtl?innerWidth-controls.left+22:35};
+    const surface=$('.campus-map-card').contains($('#campus-controls'))?$('.campus-map-card').getBoundingClientRect():controls;
+    return phone?($('.campus-map-card').contains($('#campus-controls'))?{top:65,bottom:sheet.peekHeight+44,left:20,right:20}:{top:controls.bottom+15,bottom:150,left:20,right:20})
+      :{top:85,bottom:45,left:rtl?35:surface.right+22,right:rtl?innerWidth-surface.left+22:35};
   }
   function cameraPolicy() {
     const container=map?.getContainer()||$('#campus-map');

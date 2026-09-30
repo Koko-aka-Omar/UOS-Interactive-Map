@@ -26,19 +26,23 @@ export function createCampusSheet({ card, handle, controls, header, body, action
     const viewport = window.visualViewport;
     const visibleBottom = (viewport?.offsetTop || 0) + (viewport?.height || innerHeight);
     // One handle, two physical anchors. Moving it preserves listeners and state.
-    const phone = mobile(), parent = phone ? header : card;
-    if (handle.parentElement !== parent) {
-      if (phone) header.prepend(handle); else card.append(handle);
+    const phone = mobile(), unified = card.contains(controls), parent = phone ? (unified ? card : header) : card;
+    if (handle.parentElement !== parent || (phone ? parent.firstElementChild !== handle : card.lastElementChild !== handle)) {
+      if (phone) parent.prepend(handle); else card.append(handle);
     }
     handle.setAttribute('aria-label', phone
       ? (document.documentElement.lang === 'ar' ? 'تغيير ارتفاع التفاصيل' : 'Adjust details sheet')
       : (document.documentElement.lang === 'ar' ? 'تغيير حجم بطاقة التفاصيل' : 'Resize details card'));
     hint.hidden=!phone||hintDone;hint.textContent=document.documentElement.lang==='ar'?'اسحب للأعلى لعرض التفاصيل':'Drag to expand';
     card.closest('#map-panel').classList.toggle('campus-keyboard',Boolean(viewport&&mobile()&&viewport.height<innerHeight*.72));
-    const top = mobile() ? controls.getBoundingClientRect().bottom + 10 : card.getBoundingClientRect().top;
+    const top = phone ? (unified ? (viewport?.offsetTop || 0) + 58 : controls.getBoundingClientRect().bottom + 10) : card.getBoundingClientRect().top;
     // Keyboard geometry changes the sheet, not the map's geographic camera.
     card.style.setProperty('--sheet-bottom', mobile() ? Math.max(0, innerHeight - visibleBottom) + 'px' : 'auto');
-    heights = sheetHeights(visibleBottom - top - (phone ? 0 : 18), header.offsetHeight + (phone ? 0 : handle.offsetHeight), actions.hidden ? 0 : actions.offsetHeight);
+    const actionHeight = actions.hidden ? 0 : actions.offsetHeight;
+    const sideBySide = unified && matchMedia('(orientation:landscape) and (max-height:500px)').matches;
+    const headerHeight = sideBySide ? Math.max(controls.offsetHeight, header.offsetHeight + actionHeight) + handle.offsetHeight : header.offsetHeight + (unified ? controls.offsetHeight + handle.offsetHeight : phone ? 0 : handle.offsetHeight);
+    heights = sheetHeights(visibleBottom - top - (phone ? (unified ? 34 : 0) : 18), headerHeight, sideBySide ? 0 : actionHeight);
+    if (unified) heights.half = Math.round((heights.peek + heights.expanded) / 2);
   }
   function access() {
     const peek = snap === 'peek';
@@ -106,5 +110,5 @@ export function createCampusSheet({ card, handle, controls, header, body, action
   window.addEventListener('resize', resize, { signal });
   window.visualViewport?.addEventListener('resize', resize, { signal });
   window.visualViewport?.addEventListener('scroll', resize, { signal });
-  return { set, refresh: resize, get snap() { return snap; }, destroy() { listeners.abort(); stopAnimation(); if (drag) end({ pointerId: drag.id }, true); } };
+  return { set, refresh: resize, get snap() { return snap; }, get peekHeight() { return heights?.peek || 120; }, destroy() { listeners.abort(); stopAnimation(); if (drag) end({ pointerId: drag.id }, true); } };
 }
