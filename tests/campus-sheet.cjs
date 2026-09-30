@@ -13,5 +13,9 @@ const path=require('node:path');
     assert.equal(settleSheet(-1000,0,heights),'peek');
   }
   assert.equal(sheetHeights(700,126,58).peek,184,'Long titles and sticky action fit Peek');
+  const detail=sheetHeights(636,145,58,460);
+  assert.equal(detail.peek,203,'Photo space must not inflate the collapsed card');
+  assert.equal(detail.half,460,'Details leave room for a photo below the complete header');
+  assert.equal(sheetHeights(240,145,58,460).half,204,'Keyboard-sized viewports cap the preferred detail height');
   console.log('PASS semantic sheet heights, small/keyboard viewports, header/action sizing and velocity settling');
 })().catch(error=>{console.error(error);process.exitCode=1;});

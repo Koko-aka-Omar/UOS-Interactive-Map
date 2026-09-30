@@ -34,6 +34,19 @@ export const VISUAL_CALIBRATION=AREA_SOURCES.flatMap(({module})=>module.VISUAL_C
 export const LOCATIONS=AREA_SOURCES.flatMap(({module})=>module.LOCATIONS);
 export const LOCATION_AR=AREA_SOURCES.flatMap(({module})=>module.LOCATION_AR);
 
+// Travel uses the destination's calibrated frame, not the source panorama's
+// stitched orientation. Keep a small look offset without arriving turned around
+// or still staring at the floor after tapping a nearby arrow.
+export function arrivalView({from,to,route,yaw,pitch,fov,fromMap=false}){
+  const destination=LOCATIONS[to],back=destination?.routes?.find(item=>item.to===from);
+  const wrap=value=>Math.atan2(Math.sin(value),Math.cos(value));
+  const departure=route.departureAngle??route.angle;
+  const arrival=route.arrivalAngle??(back?(back.departureAngle??back.arrowAngle??back.angle)+Math.PI:destination?.view??0);
+  const offset=route.preserveView===false?0:Math.max(-Math.PI/6,Math.min(Math.PI/6,wrap(-yaw-departure)));
+  return {yaw:fromMap?-(destination?.view??0):-(arrival+offset),
+    pitch:destination?.viewPitch??(fromMap?0:Math.max(-.12,Math.min(.12,pitch))),fov};
+}
+
 // Never infer a media filename from a semantic scene ID (branches may be remapped).
 export function mediaForScene(sceneId){
   const index=LOCATIONS.findIndex(scene=>scene.id===sceneId),file=PANORAMA_FILES[index];

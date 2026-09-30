@@ -150,6 +150,7 @@ export function createDirectory({ halls, root, language, isReady, openTour, star
   let saved=store.read(), map=null, artwork=null, initialized=false, restoring=false;
   let selected=null, room=null, group=null, mode='results', activeCategory=null, toursOnly=false;
   let resultsScroll=0, detailScroll=0, sections={}, detailKey='', listKey='', scrollTimer=null, contentAnimation=null;
+  let cardViewState=null;
   const text=key=>copy[language()][key], label=hall=>(hall.code?'\u2066'+hall.code+'\u2069 · ':'')+localized(hall.name,language());
   const node=(tag, className='', value='')=>{const el=document.createElement(tag);el.className=className;el.textContent=value;return el;};
   const button=(className, caption, onclick)=>{const el=node('button',className,caption);el.type='button';el.onclick=onclick;return el;};
@@ -161,10 +162,10 @@ export function createDirectory({ halls, root, language, isReady, openTour, star
 
   function snapshot() {
     if(restoring||!initialized||!map||!root.classList.contains('open')||!map.getContainer().clientWidth||!map.getContainer().clientHeight)return;
-    if(!body.hidden)currentScroll();
+    if(!body.hidden&&!cardViewState)currentScroll();
     const center=map.getCenter();
     saved=store.write({version:2,artwork:ARTWORK_VERSION,camera:{center:[center.lng,center.lat],zoom:map.getZoom(),bearing:map.getBearing(),pitch:map.getPitch(),padding:map.getPadding()},
-      selectedId:selected?.id||null,roomId:room?.id||null,mode,snap:sheet.snap,activeCategory,toursOnly,query:search.value,resultsScroll,detailScroll,sections});
+      selectedId:selected?.id||null,roomId:room?.id||null,mode,snap:cardViewState?.snap||sheet.snap,activeCategory,toursOnly,query:search.value,resultsScroll,detailScroll,sections});
   }
   const sheet=createCampusSheet({card:$('.campus-map-card'),handle,controls:$('#campus-controls'),header:$('#directory-header'),body,actions,onSettle:(_,reason)=>{updateHeader();if(reason?.gesture&&mode==='details'&&!root.classList.contains('campus-focus'))ensureSelectedVisible();snapshot();}});
   let focusSnapshot=null;
@@ -240,13 +241,10 @@ export function createDirectory({ halls, root, language, isReady, openTour, star
   function ensureSelectedVisible(){
     if(map&&selected?.mapCoordinates) {
       const point=map.project(selected.mapCoordinates),container=map.getContainer(),card=$('.campus-map-card').getBoundingClientRect(),controls=$('#campus-controls').getBoundingClientRect();
+      const padding=overviewPadding();
       const occluded=[card,controls].some(rect=>point.x>=rect.left&&point.x<=rect.right&&point.y>=rect.top&&point.y<=rect.bottom);
-      if(occluded||point.x<25||point.x>container.clientWidth-25||point.y<25||point.y>container.clientHeight-25) {
-        const phone=matchMedia('(max-width:640px) and (orientation:portrait)').matches;
-        const rtl=document.documentElement.dir==='rtl';
-        const free=phone?{left:25,right:container.clientWidth-25,top:$('.campus-map-card').contains($('#campus-controls'))?65:controls.bottom+15,bottom:card.top-15}
-          :{left:rtl?25:card.right+20,right:rtl?card.left-20:container.clientWidth-25,top:controls.top+55,bottom:container.clientHeight-35};
-        map.easeTo({center:selected.mapCoordinates,offset:[(free.left+free.right)/2-container.clientWidth/2,(free.top+free.bottom)/2-container.clientHeight/2],duration:reduced()?0:280});
+      if(occluded||point.x<padding.left||point.x>container.clientWidth-padding.right||point.y<padding.top||point.y>container.clientHeight-padding.bottom) {
+        map.easeTo({center:selected.mapCoordinates,padding,duration:reduced()?0:280});
       }
     }
   }
@@ -421,8 +419,16 @@ export function createDirectory({ halls, root, language, isReady, openTour, star
     const controls=$('#campus-controls').getBoundingClientRect();
     const surface=$('.campus-map-card').contains($('#campus-controls'))?$('.campus-map-card').getBoundingClientRect():controls;
     if(matchMedia('(orientation:landscape) and (max-height:500px)').matches&&surface.bottom<innerHeight*.55){const tools=$('.campus-map-actions').getBoundingClientRect();return{top:Math.max(surface.bottom,tools.bottom)+12,bottom:35,left:20,right:20};}
-    return phone?($('.campus-map-card').contains($('#campus-controls'))?{top:65,bottom:sheet.peekHeight+44,left:20,right:20}:{top:controls.bottom+15,bottom:150,left:20,right:20})
-      :{top:85,bottom:45,left:rtl?35:surface.right+22,right:rtl?innerWidth-surface.left+22:35};
+    const tools=$('.campus-map-actions').getBoundingClientRect();
+    if(phone){
+      const height=root.classList.contains('campus-focus')?controls.height:parseFloat($('.campus-map-card').style.height)||sheet.peekHeight;
+      return {top:tools.bottom+14,bottom:Math.min(height+24,innerHeight-tools.bottom-100),left:20,right:20};
+    }
+    const beside={top:Math.max(72,tools.bottom+16),bottom:45,left:rtl?24:surface.right+20,right:rtl?innerWidth-surface.left+20:24};
+    const below={top:Math.max(surface.bottom,tools.bottom)+20,bottom:45,left:24,right:24};
+    // A wide campus can use the full width beneath a compact card. Choose the
+    // unobstructed rectangle that actually fits more artwork at this viewport.
+    return campusCameraPolicy(innerWidth,innerHeight,below).minZoom>campusCameraPolicy(innerWidth,innerHeight,beside).minZoom?below:beside;
   }
   function cameraPolicy() {
     const container=map?.getContainer()||$('#campus-map');
@@ -434,12 +440,20 @@ export function createDirectory({ halls, root, language, isReady, openTour, star
   }
   window.addEventListener('resize',applyCameraPolicy,{signal});
   function overview(instant) {
-    map?.fitBounds([CAMPUS_CORNERS[2],CAMPUS_CORNERS[0]],{padding:overviewPadding(),duration:instant||reduced()?0:280});
+    const padding=overviewPadding(),container=map?.getContainer();
+    if(!container)return;
+    const policy=campusCameraPolicy(container.clientWidth,container.clientHeight,padding);
+    map.easeTo({center:[(CAMPUS_CORNERS[2][0]+CAMPUS_CORNERS[0][0])/2,(CAMPUS_CORNERS[2][1]+CAMPUS_CORNERS[0][1])/2],
+      zoom:policy.minZoom+.04,padding,bearing:0,pitch:0,duration:instant||reduced()?0:280});
   }
   detail.addEventListener('keydown',event=>{if(event.key==='Escape'&&!event.defaultPrevented){event.preventDefault();event.stopPropagation();browse.onclick();handle.focus();}},{signal});
   return {
+    setCardView(open) {
+      if(open&&!cardViewState){rememberScroll();cardViewState={snap:sheet.snap,scroll:body.scrollTop,focused:root.classList.contains('campus-focus')};root.classList.remove('campus-focus');sheet.set('half',{notify:false});updateHeader();}
+      else if(!open&&cardViewState){const previous=cardViewState;cardViewState=null;root.classList.toggle('campus-focus',previous.focused);sheet.set(previous.snap,{notify:false});body.scrollTop=previous.scroll;updateHeader();snapshot();}
+    },
     cameraPolicy,
-    initialCamera(){return saved?.camera?clampCampusCamera(saved.camera,cameraPolicy()):null;},
+    initialCamera(){return saved?.camera?clampCampusCamera({...saved.camera,padding:overviewPadding()},cameraPolicy()):null;},
     attach(nextMap,nextArtwork){map=nextMap;artwork=nextArtwork;applyCameraPolicy();map.on('moveend',snapshot);render();},
     selectGroup(members) {
       if(members.length===1){select(members[0]);handle.focus({preventScroll:true});return;}
@@ -463,7 +477,7 @@ export function createDirectory({ halls, root, language, isReady, openTour, star
       sheet.set(!initialized&&initialTarget&&!state?'half':state?.snap||'peek',{instant:true,notify:false});
       body.scrollTop=mode==='details'?detailScroll:resultsScroll;
       applyCameraPolicy();
-      if(state?.camera)map.jumpTo(clampCampusCamera(state.camera,cameraPolicy()));else if(!initialized)overview(true);
+      if(state?.camera)map.jumpTo(clampCampusCamera({...state.camera,padding:overviewPadding()},cameraPolicy()));else if(!initialized)overview(true);
       initialized=true;restoring=false;
     },
     update(){const scroll=body.scrollTop;render();sheet.refresh();body.scrollTop=scroll;snapshot();},

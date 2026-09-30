@@ -32,9 +32,17 @@ photographs. 071 targets the middle doorway; 072 branches around the tree;
 foreground clear floor, with independently directed tips. 076 points beside
 the glass passage support; 077 returns along the passage.
 
-**Manual review remains: 075↔076.** Seats obstruct the straight approach.
-The owner confirmed the connection but not a walkable left/right detour.
-Keep the link and foreground floor marker; do not invent a path through seats.
+The owner confirmed on 2026-10-01 that **075↔076 goes through the middle**.
+Keep the central passage bearing and clear foreground marker; no side detour
+or additional checkpoint is needed.
+
+The 073/074 onward arrows now face the floor gaps between the seating and
+display stands (3.18 / 3.10 radians), instead of the chairs. Their opening
+views and arrivals from 072 use these same aisle bearings. At 075 the two
+return arrows retain separate placement and tip directions. Their departure
+reference now matches the marker visitors tap, preventing an unintended 30°
+arrival turn caused by the marker's offset. Small deliberate look offsets
+are still preserved.
 
 Actual local Chrome desktop and emulated touch-phone clicks exercised:
 071 → 072 → 073 → 075 → 074 → 072 → 074 → 075 → 076 → 077 → 076 → 075 →
@@ -42,7 +50,7 @@ Actual local Chrome desktop and emulated touch-phone clicks exercised:
 Additional modest off-axis branch travel checked calibrated arrival yaw and
 preserved pitch. Direct 077 entry, Arabic search, browser Back/Forward and exact
 map/card restoration passed. This does not establish a physical-phone/Safari
-test or resolve the seating detour.
+test. The central seating approach is now owner-confirmed as noted above.
 
 ## Focused reproduction
 

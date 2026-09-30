@@ -73,7 +73,8 @@ export const LOCATIONS=[
     area: "Main Hall",
     name: "Entrance",
     back: null,
-    view: 1.25,
+    // Open toward the walkable corridor and the first floor arrow.
+    view: 2.1,
     routes: [
       {
         to: 1,
