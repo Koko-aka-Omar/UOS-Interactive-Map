@@ -23,7 +23,7 @@ function dimensions(data){
  throw Error('No JPEG dimensions');
 }
 (async()=>{
- const {LOCATIONS,PANORAMA_FILES,TOUR_AREAS}=await load('tour-routes.js'),{findPath}=await load('directions.js');
+ const {LOCATIONS,PANORAMA_FILES,TOUR_AREAS,mediaForScene}=await load('tour-routes.js'),{findPath}=await load('directions.js');
  const {HALLS}=await load('halls.js'),{CAMPUS_BUILDINGS,buildingForLegacyHall}=await load('campus-buildings.js');
  const {artworkPoint,BUILDING_ANCHORS}=await load('campus-geometry.js'),{searchHalls}=await load('campus-directory.js');
  const forum=await load('routes/student-forums.js'),area=TOUR_AREAS.find(a=>a.hallId==='student-forums');
@@ -33,7 +33,9 @@ function dimensions(data){
  const manifestBox={globalThis:{}};vm.runInNewContext(fs.readFileSync(path.join(root,'tour-assets.generated.js'),'utf8'),manifestBox);const manifest=manifestBox.globalThis.UOS_TOUR_ASSETS;
  for(let i=0;i<7;i++){
   const stem='student-forums-'+String(71+i).padStart(3,'0'),scene=forum.LOCATIONS[i];
-  assert.equal(scene.id,stem);assert.equal(scene.checkpoint,i+1);assert.equal(PANORAMA_FILES[81+i],stem+'.glb');assert(forum.LOCATION_AR[i].name);
+  const file='student-forums-'+String([71,72,74,73,75,76,77][i]).padStart(3,'0')+'.glb';
+  assert.equal(scene.id,stem);assert.equal(scene.checkpoint,i+1);assert.equal(PANORAMA_FILES[LOCATIONS.findIndex(scene=>scene.id===stem)],file);assert(forum.LOCATION_AR[i].name);
+  assert.deepEqual(mediaForScene(stem),{file,desktop:'./assets/'+file,mobile:'./assets-mobile/'+file,jpeg:'./panoramas-mobile/'+file.replace('.glb','.jpg')});
   for(const r of scene.routes){for(const key of ['angle','arrowAngle','departureAngle','arrivalAngle','hotspotAngle','hotspotDistance'])assert(Number.isFinite(r[key]),`${stem} ${key}`);assert(r.preserveView);assert(r.to>=81&&r.to<=87);}
   const full=jpegFromGlb(path.join(root,'assets',stem+'.glb'));
   assert.equal(crypto.createHash('sha256').update(full).digest('hex'),hashes[i],'Original JPEG bytes preserved');assert.deepEqual(dimensions(full),[11904,5952]);
@@ -65,7 +67,7 @@ function dimensions(data){
   const tracked='M7A_GitHub_Website_Full_Resolution/m7a-building/panoramas-mobile/'+prefix+'-'+String(n).padStart(3,'0')+'.jpg';
   assert.equal(execFileSync(git,['rev-parse',':'+tracked],{encoding:'utf8'}).trim(),execFileSync(git,['rev-parse',baseline+':'+tracked],{encoding:'utf8'}).trim(),'Existing staged mobile image preserved: '+tracked);
  }
- for(const rel of ['routes/m7a.js','routes/theater.js','routes/library.js','routes/mens-hall.js','routes/c4.js','routes/al-zahra.js','tour.js','tour-renderer.js']){
+ for(const rel of ['routes/m7a.js','routes/theater.js','routes/library.js','routes/mens-hall.js','routes/c4.js','routes/al-zahra.js','tour-renderer.js']){
   const tracked='M7A_GitHub_Website_Full_Resolution/m7a-building/'+rel;
   const before=execFileSync(git,['rev-parse',baseline+':'+tracked],{encoding:'utf8'}).trim(),after=execFileSync(git,['hash-object',path.join(root,rel)],{encoding:'utf8'}).trim();assert.equal(after,before,rel+' unchanged');
  }

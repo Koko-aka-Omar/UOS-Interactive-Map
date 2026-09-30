@@ -34,6 +34,12 @@ export const VISUAL_CALIBRATION=AREA_SOURCES.flatMap(({module})=>module.VISUAL_C
 export const LOCATIONS=AREA_SOURCES.flatMap(({module})=>module.LOCATIONS);
 export const LOCATION_AR=AREA_SOURCES.flatMap(({module})=>module.LOCATION_AR);
 
+// Never infer a media filename from a semantic scene ID (branches may be remapped).
+export function mediaForScene(sceneId){
+  const index=LOCATIONS.findIndex(scene=>scene.id===sceneId),file=PANORAMA_FILES[index];
+  return file?{file,desktop:'./assets/'+file,mobile:'./assets-mobile/'+file,jpeg:'./panoramas-mobile/'+file.replace(/\.glb$/,'.jpg')}:null;
+}
+
 export function getHotspotStyle(sceneIndex,route){
   const from=LOCATIONS[sceneIndex]?.id;
   const to=LOCATIONS[route.to]?.id;

@@ -4,6 +4,8 @@ const ASSET_MANIFEST=self.UOS_TOUR_ASSETS;
 const CACHE_PREFIX='uos-tour:'+self.registration.scope+':';
 const SHELL_CACHE=CACHE_PREFIX+'shell-'+ASSET_MANIFEST.buildId;
 const PANORAMA_CACHE=CACHE_PREFIX+'panoramas-v8';
+const PREVIEW_CACHE=CACHE_PREFIX+'previews-v1';
+let previewWrites=Promise.resolve();
 const LEGACY_CACHES=['m7a-tour-v7','m7a-tour:'+self.registration.scope+':panoramas-v3',CACHE_PREFIX+'panoramas-v3',CACHE_PREFIX+'panoramas-v4',CACHE_PREFIX+'panoramas-v5',CACHE_PREFIX+'panoramas-v6',CACHE_PREFIX+'panoramas-v7'];
 
 const CORE_ASSETS=['./',...ASSET_MANIFEST.coreAssets];
@@ -74,7 +76,7 @@ self.addEventListener('activate',event=>{
       }
       await Promise.all(keys.filter(key=>
         (key.startsWith('m7a-tour:')||key.startsWith(CACHE_PREFIX))&&
-        key!==SHELL_CACHE&&key!==PANORAMA_CACHE
+        key!==SHELL_CACHE&&key!==PANORAMA_CACHE&&key!==PREVIEW_CACHE
       ).map(key=>caches.delete(key)));
     }catch(error){console.warn('Tour cache maintenance unavailable.',error);}
     await self.clients.claim();
@@ -101,6 +103,12 @@ async function shellAsset(request,writes){
   }
   return refresh;
 }
+async function previewAsset(request,writes){
+  const hit=await cached(PREVIEW_CACHE,request);if(hit)return hit;
+  const response=await fetch(request);
+  if(response.ok){const copy=response.clone();previewWrites=previewWrites.catch(()=>{}).then(async()=>{await save(PREVIEW_CACHE,request,copy);const cache=await caches.open(PREVIEW_CACHE),keys=await cache.keys();for(const old of keys.slice(0,Math.max(0,keys.length-24)))await cache.delete(old);});writes.push(previewWrites);}
+  return response;
+}
 
 self.addEventListener('fetch',event=>{
   const request=event.request;
@@ -113,6 +121,7 @@ self.addEventListener('fetch',event=>{
   const writes=[];
   const response=(async()=>{
     if(sameOrigin&&PANORAMAS.has(url.href))return panorama(request,writes);
+    if(sameOrigin&&/\/previews\/[^/]+\.jpg$/.test(url.pathname))return previewAsset(request,writes);
 
     if(sameOrigin&&request.mode==='navigate'){
       try{

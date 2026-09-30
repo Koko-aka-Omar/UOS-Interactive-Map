@@ -3,7 +3,7 @@ import { SHEET_SNAPS } from './campus-state.js';
 export function sheetHeights(available, header = 96, action = 0) {
   const max = Math.max(80, available);
   const peek = Math.min(max, Math.max(120, header + action));
-  const expanded = Math.max(peek, Math.min(max, Math.round(max * .9)));
+  const expanded = Math.max(peek, Math.min(max, Math.round(max * .85)));
   return { peek, half: Math.max(peek, Math.min(expanded, Math.round(max * .5))), expanded };
 }
 
@@ -17,9 +17,6 @@ export function createCampusSheet({ card, handle, controls, header, body, action
   const listeners = new AbortController(), signal = listeners.signal;
   const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
   const mobile = () => matchMedia('(max-width: 640px) and (orientation: portrait)').matches;
-  const hint=document.createElement('small');hint.className='sheet-gesture-hint';
-  let hintDone=false;try{hintDone=localStorage.getItem('hallv3.sheet-gesture.v1')==='done';}catch{}
-  if(!hintDone)header.append(hint);
   const currentHeight = () => card.getBoundingClientRect().height;
   const stopAnimation = () => { const height = currentHeight(); ++token; animation?.cancel(); animation = null; card.style.height = height + 'px'; return height; };
   function measure() {
@@ -33,7 +30,6 @@ export function createCampusSheet({ card, handle, controls, header, body, action
     handle.setAttribute('aria-label', phone
       ? (document.documentElement.lang === 'ar' ? 'تغيير ارتفاع التفاصيل' : 'Adjust details sheet')
       : (document.documentElement.lang === 'ar' ? 'تغيير حجم بطاقة التفاصيل' : 'Resize details card'));
-    hint.hidden=!phone||hintDone;hint.textContent=document.documentElement.lang==='ar'?'اسحب للأعلى لعرض التفاصيل':'Drag to expand';
     card.closest('#map-panel').classList.toggle('campus-keyboard',Boolean(viewport&&mobile()&&viewport.height<innerHeight*.72));
     const top = phone ? (unified ? (viewport?.offsetTop || 0) + 58 : controls.getBoundingClientRect().bottom + 10) : card.getBoundingClientRect().top;
     // Keyboard geometry changes the sheet, not the map's geographic camera.
@@ -41,8 +37,14 @@ export function createCampusSheet({ card, handle, controls, header, body, action
     const actionHeight = actions.hidden ? 0 : actions.offsetHeight;
     const sideBySide = unified && matchMedia('(orientation:landscape) and (max-height:500px)').matches;
     const headerHeight = sideBySide ? Math.max(controls.offsetHeight, header.offsetHeight + actionHeight) + handle.offsetHeight : header.offsetHeight + (unified ? controls.offsetHeight + handle.offsetHeight : phone ? 0 : handle.offsetHeight);
-    heights = sheetHeights(visibleBottom - top - (phone ? (unified ? 34 : 0) : 18), headerHeight, sideBySide ? 0 : actionHeight);
-    if (unified) heights.half = Math.round((heights.peek + heights.expanded) / 2);
+    const available=visibleBottom-top-(phone?12:18);
+    // Measure the compact state, not the expanded controls/content stack.
+    const previous=card.dataset.snap;card.dataset.snap='peek';
+    const absolute=getComputedStyle(header).position==='absolute';
+    controls.querySelector('.campus-header').style.minHeight=absolute?Math.max(44,header.offsetHeight)+'px':'';
+    const compact=(absolute?0:header.offsetHeight)+controls.offsetHeight+handle.offsetHeight;
+    card.dataset.snap=previous;
+    heights = sheetHeights(available,sideBySide?headerHeight:compact,sideBySide?0:actionHeight);
   }
   function access() {
     const peek = snap === 'peek';
@@ -69,8 +71,8 @@ export function createCampusSheet({ card, handle, controls, header, body, action
     card.classList.remove('is-dragging'); suppressClick = finished.moved;
     if (handle.hasPointerCapture(finished.id)) handle.releasePointerCapture(finished.id);
     const velocity = performance.now() - finished.time < 110 ? finished.velocity : 0;
-    if(!cancelled&&finished.moved&&mobile()){hintDone=true;hint.remove();try{localStorage.setItem('hallv3.sheet-gesture.v1','done');}catch{}}
     set(cancelled ? finished.snap : finished.moved ? settleSheet(currentHeight(), velocity, heights) : snap);
+    if(finished.moved&&!cancelled){const mine=token;Promise.resolve(animation?.finished).then(()=>{if(mine===token)onSettle?.(snap,{gesture:true});}).catch(()=>{});}
   }
   handle.addEventListener('pointerdown', event => {
     if (!event.isPrimary || event.button !== 0 || drag) return;

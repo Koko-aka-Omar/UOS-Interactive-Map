@@ -63,23 +63,15 @@
       <section class="campus-map-card" data-snap="peek" aria-label="Campus directory">
       <section id="campus-controls" class="campus-controls" aria-label="Campus navigator">
         <div class="campus-header">
+          <button id="campus-settings" class="campus-icon-button" type="button" aria-label="Settings" aria-controls="campus-settings-panel" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m10 3-.6 2.4-2 .9L5 5.6 3 9l1.8 1.6v2.8L3 15l2 3.4 2.4-.7 2 .9L10 21h4l.6-2.4 2-.9 2.4.7 2-3.4-1.8-1.6v-2.8L21 9l-2-3.4-2.4.7-2-.9L14 3Z"/><circle cx="12" cy="12" r="3"/></svg></button>
           <div class="campus-identity-lockup"><svg class="uos-badge" viewBox="520 525 3120 2410" role="img" aria-label="University of Sharjah · جامعة الشارقة"><image href="./uos-badge.png" width="4159" height="3452"/></svg><div><strong id="campus-identity">Campus Navigator</strong><small id="campus-descriptor">Interactive Campus Map</small></div></div>
-          <div class="campus-persistent-actions">
-            <button class="campus-map-language" id="campus-language-toggle" type="button" aria-label="Switch to Arabic">العربية</button>
-            <button type="button" data-theme-toggle aria-label="Switch to dark mode" aria-pressed="false">☾ Dark</button>
-            <button id="campus-about" type="button" aria-label="About the navigator">i</button>
-            <button id="campus-focus" type="button">Focus map</button>
-          </div>
         </div>
-        <div class="campus-search"><input id="hall-search" type="search" placeholder="Search buildings or rooms" aria-label="Search buildings or rooms" autocomplete="off"><button id="campus-clear-search" type="button" aria-label="Clear search" hidden>×</button></div>
-        <div id="campus-filters" role="group" aria-label="Building filters"></div>
-        <div class="campus-filter-tools"><small id="directory-count" role="status" aria-live="polite"></small><button id="campus-clear-filters" type="button" hidden>Clear filters</button><button id="campus-reset" type="button" hidden>Reset all</button></div>
-        <small id="campus-legend">Select any building · 360° = tour available</small>
+        <div class="campus-search-row"><div class="campus-search"><input id="hall-search" type="search" placeholder="Search buildings or rooms" aria-label="Search buildings or rooms" autocomplete="off"><button id="campus-clear-search" type="button" aria-label="Clear search" hidden>×</button></div><button id="campus-filter-toggle" type="button" aria-controls="campus-filter-panel" aria-expanded="false">Filters</button></div>
       </section>
       <div id="directory-header">
         <button id="directory-sheet-handle" class="directory-sheet-handle" type="button" aria-controls="directory-body" aria-expanded="false" aria-label="Expand map details"><span aria-hidden="true"></span></button>
         <div class="directory-heading"><strong id="directory-title">Browse campus</strong><button id="directory-collapse" type="button" aria-controls="directory-body" aria-expanded="false" aria-label="Expand details">+</button></div>
-        <small id="directory-status"></small>
+        <small id="directory-status"></small><small id="directory-count" role="status" aria-live="polite"></small>
         <div class="directory-mode-actions"><button id="directory-browse" type="button" hidden>Back to results</button><button id="directory-return" type="button" hidden>Selected building</button></div>
       </div>
       <div id="directory-body">
@@ -91,10 +83,17 @@
     </div>
     <div class="campus-map-actions">
       <details id="campus-map-more"><summary aria-label="Map controls">⋯</summary><div><button id="campus-zoom-in" type="button" aria-label="Zoom in">+</button><button id="campus-zoom-out" type="button" aria-label="Zoom out">−</button></div></details>
+      <select id="campus-zone" aria-label="Go to zone"><option value="">Go to zone</option></select>
       <button id="campus-overview" type="button">Campus overview</button>
+      <button id="campus-focus" type="button">Focus map</button>
       <button class="campus-map-close" data-close-panel type="button" aria-label="Close map" data-i18n-aria="closeMap">×</button>
     </div>
   </div>
+  <section id="campus-settings-panel" class="campus-popover" role="dialog" aria-labelledby="campus-settings-title" hidden>
+    <strong id="campus-settings-title">Settings</strong><fieldset><legend data-settings-label="language">Language</legend><button type="button" data-language-choice="en" lang="en">English</button><button type="button" data-language-choice="ar" lang="ar">العربية</button></fieldset>
+    <fieldset><legend data-settings-label="appearance">Appearance</legend><button type="button" data-theme-choice="light">Light</button><button type="button" data-theme-choice="dark">Dark</button><button type="button" data-theme-choice="system">System</button></fieldset><button id="campus-about" type="button">About Campus Navigator</button>
+  </section>
+  <section id="campus-filter-panel" class="campus-popover" role="dialog" aria-labelledby="campus-filter-title" hidden><strong id="campus-filter-title">Filters</strong><div id="campus-filters" role="group" aria-label="Building filters"></div><div class="campus-filter-tools"><button id="campus-clear-filters" type="button" hidden>Clear filters</button><button id="campus-reset" type="button" hidden>Reset all</button></div></section>
   <div class="campus-map-location">
     <span class="location-dot" aria-hidden="true"></span>
     <div><small data-i18n="currentCheckpoint">Current checkpoint</small><strong id="campus-current-location" aria-live="polite">Main Hall · Entrance</strong></div>
@@ -176,7 +175,6 @@
     <div class="location-chip" aria-live="polite"><span class="location-dot" aria-hidden="true"></span><span id="route-label">Main Hall · Entrance</span></div>
   </nav>
 </div>
-<footer class="site-footer"><span>Last edited on: <time datetime="2026-09-27">27 September 2026</time></span><span data-i18n="developmentCredit">Developed by part-time students for the University of Sharjah under the guidance of Dr. Afra Saif Altunaiji.</span></footer>
 <div id="loading"><div class="loading-card"><span class="eyebrow" data-i18n="university">University of Sharjah</span><div class="loader-title">Preparing 360° view</div><span class="loader-location" id="loader-location"></span><div class="spinner"></div><div class="progress-track" role="progressbar" aria-label="Loading 360° view" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="load-progress-bar"></span></div><p id="load-progress-text">Loading 360° view · 0%</p></div></div>
 <script src="./tour-assets.generated.js"></script>
 <script src="./tour-boot.js"></script>
