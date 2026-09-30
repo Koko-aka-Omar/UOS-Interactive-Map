@@ -22,8 +22,10 @@ arrows or shortcuts are added. Left/right directions at 72 and 75 are roughly
 90 degrees apart; bearings in other images follow their own landmarks.
 
 Desktop GLBs contain the byte-identical original 11904×5952 JPEGs. Only this
-batch has mobile derivatives (3072×1536, existing mobile size). No per-scene
-colour correction is applied. Reproduce packaging with:
+batch has mobile GLBs (3072×1536) and standalone mobile JPEGs (2048×1024),
+matching the existing GitHub generation workflows. No per-scene colour
+correction is applied. The packager prepares this batch; GitHub's existing
+glTF/Sharp jobs finalize its mobile encoding. Reproduce initial packaging with:
 
 ```sh
 python scripts/package-student-forums.py "path/to/supplied/folder"

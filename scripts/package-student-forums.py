@@ -59,10 +59,13 @@ def main():
             mobile = image.resize((3072, 1536), Image.Resampling.LANCZOS)
             stream = io.BytesIO()
             mobile.save(stream, format='JPEG', quality=90, optimize=True)
+            fallback = image.resize((2048, 1024), Image.Resampling.LANCZOS)
+            fallback_stream = io.BytesIO()
+            fallback.save(fallback_stream, format='JPEG', quality=82, optimize=True, progressive=True)
         stem = f'student-forums-{number:03}'
         targets = [(app / 'assets' / (stem + '.glb'), glb(original)),
                    (app / 'assets-mobile' / (stem + '.glb'), glb(stream.getvalue())),
-                   (app / 'panoramas-mobile' / (stem + '.jpg'), stream.getvalue())]
+                   (app / 'panoramas-mobile' / (stem + '.jpg'), fallback_stream.getvalue())]
         for target, data in targets:
             if target.exists():
                 if target.read_bytes() != data:

@@ -313,13 +313,13 @@ globalThis.UOS_TOUR_ASSETS=Object.freeze({
       "al-zahra-006.glb": "78dc91139f0c",
       "al-zahra-007.glb": "3f5d82117617",
       "al-zahra-008.glb": "33564d1d5a3d",
-      "student-forums-071.glb": "d341a92591c3",
-      "student-forums-072.glb": "f748c2757fd5",
-      "student-forums-073.glb": "97073d4aed20",
-      "student-forums-074.glb": "426d252ad146",
-      "student-forums-075.glb": "3e17e4f021d4",
-      "student-forums-076.glb": "e745c2fa4018",
-      "student-forums-077.glb": "50dce88f13d0"
+      "student-forums-071.glb": "0f9c03261055",
+      "student-forums-072.glb": "ce697ace37a0",
+      "student-forums-073.glb": "c0ce4f10629f",
+      "student-forums-074.glb": "529b76605b0e",
+      "student-forums-075.glb": "7eb897313d59",
+      "student-forums-076.glb": "fd5d9a933192",
+      "student-forums-077.glb": "6624eaf66056"
     }
   }
 });
