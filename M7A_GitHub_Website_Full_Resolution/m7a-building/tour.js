@@ -5,7 +5,7 @@ import { HALLS } from './halls.js';
 import { addCampusArtworkLabels } from './campus-map-labels.js';
 import { createDirectory, searchHalls, localized } from './campus-directory.js';
 import { CAMPUS_BUILDINGS, buildingForLegacyHall } from './campus-buildings.js';
-import { CAMPUS_CORNERS } from './campus-geometry.js';
+import { CAMPUS_CORNERS, clampCampusCamera } from './campus-geometry.js';
 import { findPath } from './directions.js';
 import { PANORAMA_FILES, VISUAL_CALIBRATION, LOCATIONS, LOCATION_AR, TOUR_AREAS, areaForScene, getHotspotStyle } from './tour-routes.js';
 import { I18N } from './tour-i18n.js';
@@ -39,33 +39,55 @@ const {scene,camera,renderer,el,postUniforms,renderQuality,syncPostTargetSize,re
 
 const loader=new GLTFLoader();
 
-// Two levels of caching:
-// 1) on desktop, connected GLBs are fetched into the browser HTTP cache;
-// 2) on desktop, a likely destination stays decoded/prepared in memory.
-// Desktop keeps one full-resolution destination prepared.
-// Phones use separate 3072×1536 files and keep one likely destination prepared for instant travel.
+// One fetch/parse path for demand and preload; at most one likely neighbor and
+// one recent view. The budget includes decoded RGBA plus GPU storage/mipmaps.
 const preloadCache=new Map();
 const networkPrefetches=new Map();
 const recentScenes=new Map();
 const DECODED_PRELOAD_LIMIT=1;
-const RECENT_SCENE_LIMIT=coarsePointer?0:1;
+const RECENT_SCENE_LIMIT=1;
+const SCENE_MEMORY_BUDGET=(coarsePointer?112:1024)*1024*1024;
+const sceneLoadingTimings=new Map(),sceneMemory=new Map();
+let preloadIdle=null,preparingTarget=null;
+function estimatedSceneBytes(root){
+  const textures=new Set();root?.traverse(mesh=>{for(const m of(Array.isArray(mesh.material)?mesh.material:[mesh.material]))if(m?.map)textures.add(m.map);});
+  return [...textures].reduce((sum,texture)=>sum+(texture.image?.width||0)*(texture.image?.height||0)*4*(texture.generateMipmaps?1+4/3:2),0);
+}
+function residentSceneBytes(){
+  return estimatedSceneBytes(object)+[...recentScenes.values()].reduce((sum,root)=>sum+estimatedSceneBytes(root),0)
+    +[...preloadCache.keys()].reduce((sum,i)=>sum+(sceneMemory.get(i)||0),0);
+}
+function trimSceneMemory(keep=null){
+  while(residentSceneBytes()>SCENE_MEMORY_BUDGET&&recentScenes.size){const key=recentScenes.keys().next().value;dispose(recentScenes.get(key));recentScenes.delete(key);}
+  while(residentSceneBytes()>SCENE_MEMORY_BUDGET&&preloadCache.size){const key=[...preloadCache.keys()].find(i=>i!==keep&&i!==preparingTarget);if(key==null)break;evictDecodedPreload(key);}
+}
+function cancelStalePreloads(keep=null){
+  if(preloadIdle!==null){if('cancelIdleCallback' in window)cancelIdleCallback(preloadIdle);else clearTimeout(preloadIdle);preloadIdle=null;}
+  clearTimeout(hoverPreloadTimer);
+  for(const i of preloadCache.keys())if(i!==keep)evictDecodedPreload(i);
+  for(const [i,record]of networkPrefetches)if(i!==keep&&!record.foreground)record.controller.abort();
+}
 
-function prefetchNetwork(i){
-  if(i<0 || i>=DATA.length || i===current || networkPrefetches.has(i))return networkPrefetches.get(i);
-  const task=fetch(DATA[i],{cache:'force-cache'})
-    .then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.arrayBuffer();})
-    .catch(err=>{console.warn('Network prefetch failed for checkpoint',i+1,err);return null;})
-    .finally(()=>networkPrefetches.delete(i));
-  networkPrefetches.set(i,task);
-  return task;
+function prefetchNetwork(i,foreground=false){
+  if(i<0||i>=DATA.length)return null;
+  const existing=networkPrefetches.get(i);
+  if(existing){existing.foreground ||= foreground;return existing.task;}
+  const controller=new AbortController(),start=performance.now(),record={controller,foreground,task:null};
+  record.task=fetch(DATA[i],{cache:'force-cache',signal:controller.signal}).then(async response=>{
+    if(!response.ok)throw new Error('HTTP '+response.status);
+    const data=await response.arrayBuffer();
+    sceneLoadingTimings.set(i,{networkMs:performance.now()-start,transferBytes:data.byteLength});return data;
+  }).finally(()=>{if(networkPrefetches.get(i)===record)networkPrefetches.delete(i);});
+  networkPrefetches.set(i,record);return record.task;
 }
 
 function evictDecodedPreload(i){
   const task=preloadCache.get(i);
   preloadCache.delete(i);
   if(task)task.then(gltf=>{
-    if(gltf && i!==current && !recentScenes.has(i))dispose(gltf.scene);
+    if(gltf && i!==current && i!==preparingTarget && !recentScenes.has(i))dispose(gltf.scene);
   }).catch(()=>{});
+  const record=networkPrefetches.get(i);if(record&&!record.foreground)record.controller.abort();
 }
 
 function trimDecodedPreloads(keep=null){
@@ -78,20 +100,24 @@ function trimDecodedPreloads(keep=null){
 
 function preloadCheckpoint(i,warmTexture=false){
   if(i<0 || i>=DATA.length || i===current || recentScenes.has(i))return null;
-  prefetchNetwork(i);
   if(preloadCache.has(i)){
     const task=preloadCache.get(i);
     preloadCache.delete(i);preloadCache.set(i,task);
-    if(warmTexture)task.then(gltf=>{if(gltf)prepareCheckpointScene(gltf,i,true);});
     return task;
   }
-  const networkWarm=coarsePointer?(networkPrefetches.get(i)??prefetchNetwork(i)):null;
-  const task=(networkWarm??Promise.resolve()).then(()=>loader.loadAsync(DATA[i])).then(gltf=>{
-    prepareCheckpointScene(gltf,i,warmTexture);
+  // A known oversized neighbor can warm HTTP cache without retaining another
+  // huge decoded/GPU texture. Demand loads may briefly exceed the cache budget.
+  if(sceneMemory.has(i)&&estimatedSceneBytes(object)+sceneMemory.get(i)>SCENE_MEMORY_BUDGET){prefetchNetwork(i)?.catch(()=>{});return null;}
+  const task=loadGLTF(i).then(async gltf=>{
+    if(preloadCache.get(i)!==task&&preparingTarget!==i){dispose(gltf.scene);return null;}
+    prepareCheckpointScene(gltf,i,false);
+    sceneMemory.set(i,estimatedSceneBytes(gltf.scene));trimSceneMemory(i);
+    if(preparingTarget!==i&&residentSceneBytes()>SCENE_MEMORY_BUDGET){preloadCache.delete(i);dispose(gltf.scene);return null;}
+    if(warmTexture)await warmCheckpointScene(gltf.scene,i);
     return gltf;
   }).catch(err=>{
     preloadCache.delete(i);
-    console.warn('Preload failed for checkpoint',i+1,err);
+    if(err.name!=='AbortError')console.warn('Preload failed for checkpoint',i+1,err);
     return null;
   });
   preloadCache.set(i,task);
@@ -104,6 +130,7 @@ function connectedTargets(){
 }
 
 function scheduleLikelyPreload(){
+  cancelStalePreloads();
   const routes=LOCATIONS[current]?.routes??[];
   const targets=connectedTargets();
   const prioritized=[
@@ -111,44 +138,19 @@ function scheduleLikelyPreload(){
     ...routes.filter(r=>r.back).map(r=>r.to)
   ].filter((v,i,a)=>v!=null && a.indexOf(v)===i && !recentScenes.has(v));
 
-  // Mobile panoramas are small enough to keep one likely destination decoded and
-  // GPU-ready. This makes the common forward tap a scene swap instead of a decode.
-  if(coarsePointer){
-    const likely=prioritized[0];
-    if(likely!=null){
-      prefetchNetwork(likely);
-      const run=()=>preloadCheckpoint(likely,true);
-      if('requestIdleCallback' in window)requestIdleCallback(run,{timeout:700});
-      else setTimeout(run,120);
-    }
-    return;
-  }
-
-  // Desktop can warm every connected file because it has a larger memory/network budget.
-  targets.forEach(prefetchNetwork);
-
-  // Fully decode the most likely destinations on desktop only.
-
+  const source=current;
   const run=()=>{
-    prioritized.slice(0,DECODED_PRELOAD_LIMIT).forEach((target,index)=>{
-      const load=()=>preloadCheckpoint(target,!coarsePointer&&index===0);
-      if(index===0)load();else setTimeout(load,180*index);
-    });
+    preloadIdle=null;if(current!==source||transitioning||mapPanel.classList.contains('open')||document.hidden)return;
+    if(prioritized[0]!=null)preloadCheckpoint(prioritized[0],true);
   };
-  if('requestIdleCallback' in window)requestIdleCallback(run,{timeout:450});else setTimeout(run,90);
+  if('requestIdleCallback' in window)preloadIdle=requestIdleCallback(run,{timeout:450});else preloadIdle=setTimeout(run,90);
 }
 
 let hoverPreloadTimer=null;
 function queueRoutePreload(target){
-  if(target==null || target===current || recentScenes.has(target))return;
-  prefetchNetwork(target);
-  if(coarsePointer){
-    // Reuse the same in-flight decode if the visitor taps before the idle preload finished.
-    preloadCheckpoint(target,true);
-    return;
-  }
+  if(transitioning||target==null || target===current || recentScenes.has(target))return;
   clearTimeout(hoverPreloadTimer);
-  hoverPreloadTimer=setTimeout(()=>preloadCheckpoint(target,!coarsePointer),55);
+  hoverPreloadTimer=setTimeout(()=>{cancelStalePreloads(target);preloadCheckpoint(target,true);},55);
 }
 const raycaster=new THREE.Raycaster();
 const pointer=new THREE.Vector2();
@@ -194,16 +196,25 @@ const requestedSceneIndex=LOCATIONS.findIndex(loc=>loc.id===requestedScene);
 const INITIAL_SCENE=requestedSceneIndex>=0?requestedSceneIndex:0;
 let loadingScene=INITIAL_SCENE;
 let historyTraversal=false;
+let navigationGeneration=0,queuedHistory=null,historyRunning=false,preparing=false;
+const sceneParameters=['scene','hall','building','room','checkpoint','yaw','pitch','fov'];
 function sceneUrl(i){
-  const url=new URL(location.href);url.search='';url.hash='';
+  const url=new URL(location.href);for(const key of sceneParameters)url.searchParams.delete(key);
   url.searchParams.set('scene',LOCATIONS[i].id);return url;
 }
 function campusUrl(){
-  const url=new URL(location.href);url.search='';url.hash='';return url;
+  const url=new URL(location.href);for(const key of sceneParameters)url.searchParams.delete(key);return url;
+}
+const currentView=()=>({yaw,pitch,fov:camera.fov});
+function validView(view){return view&&['yaw','pitch','fov'].every(key=>Number.isFinite(view[key]))?{yaw:view.yaw,pitch:THREE.MathUtils.clamp(view.pitch,-1.35,1.35),fov:THREE.MathUtils.clamp(view.fov,35,95)}:null;}
+function viewFromUrl(){const params=new URL(location.href).searchParams;return ['yaw','pitch','fov'].every(key=>params.has(key))?validView(Object.fromEntries(['yaw','pitch','fov'].map(key=>[key,Number(params.get(key))]))):null;}
+function rememberHistoryView(){
+  if(object&&!mapPanel.classList.contains('open')&&sceneIndexFromUrl()===current)
+    history.replaceState({...history.state,view:currentView()},'',location.href);
 }
 function writeSceneHistory(i,replace=false){
   const url=sceneUrl(i);
-  history[replace?'replaceState':'pushState']({scene:LOCATIONS[i].id},'',url);
+  history[replace?'replaceState':'pushState']({scene:LOCATIONS[i].id,view:currentView()},'',url);
 }
 function writeCampusHistory(replace=false){
   history[replace?'replaceState':'pushState']({scene:null},'',campusUrl());
@@ -295,7 +306,7 @@ function positionTourPanels(){
 }
 new ResizeObserver(positionTourPanels).observe(document.querySelector('.topbar'));
 addEventListener('resize',positionTourPanels);positionTourPanels();
-let campusMap=null;
+let campusMap=null,campusAttribution=null,attributionLanguage=null;
 let directionsTarget=null,directionsNext=null,arrivalTimer=null;
 const directionsPanel=document.createElement('section');
 directionsPanel.id='directions-panel';directionsPanel.hidden=true;
@@ -369,6 +380,14 @@ function initCampusMap(){
     bearing:0,
     pitch:0,
     ...(directory.initialCamera()||{}),
+    ...directory.cameraPolicy(),
+    renderWorldCopies:false,
+    // Constrain the camera centre, not the entire wide-raster viewport. Native
+    // extent fitting otherwise crops the campus on narrow/tall overview screens.
+    transformConstrain:(center,zoom)=>{
+      const constrained=clampCampusCamera({center,zoom},directory.cameraPolicy());
+      return {center:new maplibregl.LngLat(...constrained.center),zoom:constrained.zoom};
+    },
     maxPitch:0,
     dragRotate:false,
     pitchWithRotate:false,
@@ -377,12 +396,16 @@ function initCampusMap(){
   });
   campusMap.touchZoomRotate.disableRotation();
   campusMap.keyboard.disableRotation();
-  campusMap.addControl(new maplibregl.AttributionControl({compact:true,customAttribution:'University of Sharjah · Campus Map 2026'}),'bottom-right');
+  campusAttribution=new maplibregl.AttributionControl({compact:true,customAttribution:t('mapOwnership')});
+  attributionLanguage=currentLanguage;campusMap.addControl(campusAttribution,'bottom-right');
   campusMap.addControl(new maplibregl.NavigationControl({showCompass:false,showZoom:true,visualizePitch:false}),'top-right');
+  document.getElementById('campus-zoom-in').onclick=()=>campusMap.zoomIn({duration:reducedMotion?0:180});
+  document.getElementById('campus-zoom-out').onclick=()=>campusMap.zoomOut({duration:reducedMotion?0:180});
   const artwork=addCampusArtworkLabels(campusMap,CAMPUS_MAP_CORNERS,CAMPUS_BUILDINGS,members=>directory.selectGroup(members));
   directory.attach(campusMap,artwork);
 }
 function updateCampusMap(){
+  if(campusMap&&attributionLanguage!==currentLanguage){campusMap.removeControl(campusAttribution);campusAttribution=new maplibregl.AttributionControl({compact:true,customAttribution:t('mapOwnership')});campusMap.addControl(campusAttribution,'bottom-right');attributionLanguage=currentLanguage;}
   document.getElementById('campus-overview').setAttribute('aria-label',currentLanguage==='ar'?'نظرة عامة على الحرم الجامعي':'Campus overview');
   document.getElementById('campus-overview').textContent=currentLanguage==='ar'?'نظرة عامة':'Campus overview';
   document.getElementById('campus-filters').setAttribute('aria-label',currentLanguage==='ar'?'تصفية المباني':'Building filters');
@@ -402,19 +425,25 @@ function closePanels(){
     panel.classList.remove('open');panel.setAttribute('aria-hidden','true');button.setAttribute('aria-pressed','false');
     panel.inert=true;
   }
+  document.body.classList.remove('campus-only');
   if(ready)updateRouteLabel();
 }
 function togglePanel(panel,button){
   if(panel===mapPanel&&document.documentElement.dataset.mapEnabled==='false')return;
   const open=!panel.classList.contains('open');
+  if(panel===mapPanel&&open){rememberHistoryView();if(!historyTraversal)writeCampusHistory();cancelStalePreloads();}
   closePanels();
   if(open){
     panel.inert=false;panel.classList.add('open');panel.setAttribute('aria-hidden','false');button.setAttribute('aria-pressed','true');
     if(panel===mapPanel){initCampusMap();requestAnimationFrame(()=>{directory.restore();updateCampusMap();});}
   }
+  if(panel===mapPanel&&!open&&object&&!historyTraversal){writeSceneHistory(current);scheduleLikelyPreload();}
+  updateControls();
   updateRouteLabel();
 }
-function showCampusHome(writeHistory=false){
+function showCampusHome(writeHistory=true){
+  if(writeHistory)rememberHistoryView();
+  cancelStalePreloads();
   setMoreMenuOpen(false);
   document.body.classList.add('campus-only');
   closePanels();
@@ -422,6 +451,7 @@ function showCampusHome(writeHistory=false){
   initCampusMap();
   requestAnimationFrame(()=>{directory.restore();updateCampusMap();});
   if(writeHistory&&!historyTraversal)writeCampusHistory(false);
+  updateControls();
 }
 mapToggle.onclick=()=>{setMoreMenuOpen(false);togglePanel(mapPanel,mapToggle);};
 infoToggle.onclick=()=>{setMoreMenuOpen(false);togglePanel(infoPanel,infoToggle);};
@@ -436,6 +466,7 @@ document.querySelectorAll('[data-close-panel]').forEach(btn=>btn.addEventListene
     document.getElementById('campus-about').focus({preventScroll:true});return;
   }
   const opener=btn.closest('aside')===mapPanel?mapToggle:infoToggle;closePanels();opener.focus();updateRouteLabel();
+  if(opener===mapToggle&&object&&!historyTraversal){document.body.classList.remove('campus-only');writeSceneHistory(current);updateControls();scheduleLikelyPreload();}
 }));
 mapPanel.inert=true;infoPanel.inert=true;searchPanel.inert=true;
 function setMapFloor(floor){
@@ -471,28 +502,38 @@ async function navigateFromMap(target){
   closePanels();mapToggle.focus({preventScroll:true});
   return transitionTo(target,null,true);
 }
-async function openPanoramaFromCampus(target){
+async function openPanoramaFromCampus(target,activation={}){
   if(transitioning||!Number.isInteger(target)||!LOCATIONS[target])return;
+  const generation=activation.generation??++navigationGeneration,writeHistory=activation.history??!historyTraversal;
+  if(writeHistory)rememberHistoryView();
   directory.leave();
-  if(object&&target===current){closePanels();mapToggle.focus({preventScroll:true});return;}
-  transitioning=true;loadingScene=target;app.setAttribute('aria-busy','true');
-  loading.style.display='grid';loading.classList.remove('done');setInitialProgress(0);directory.update();
+  if(object&&target===current){
+    document.body.classList.remove('campus-only');const view=validView(activation.view);
+    if(view){yaw=view.yaw;pitch=view.pitch;camera.fov=view.fov;camera.updateProjectionMatrix();camera.rotation.set(pitch,yaw,0);}
+    closePanels();if(writeHistory)writeSceneHistory(target,false);updateControls();mapToggle.focus({preventScroll:true});return true;
+  }
+  transitioning=true;preparing=true;preparingTarget=target;loadingScene=target;app.setAttribute('aria-busy','true');
+  cancelStalePreloads(target);
+  const status=document.getElementById('status');status.textContent=t('loadingLocation',locationLabel(target),null);
+  if(!object||mapPanel.classList.contains('open')){loading.style.display='grid';loading.classList.remove('done');setInitialProgress(0);}
+  directory.update();
   try{
     await new Promise(resolve=>requestAnimationFrame(resolve));
     const prepared=takeRecentScene(target) ?? await (preloadCache.get(target) ?? Promise.resolve(null));
     preloadCache.delete(target);
-    await loadCheckpoint(target,prepared,p=>setInitialProgress(p));
+    await loadCheckpoint(target,prepared,p=>setInitialProgress(p),{...activation,generation,history:writeHistory});
     renderPanoramaFrame();closePanels();mapToggle.focus({preventScroll:true});
-    if(!historyTraversal)writeSceneHistory(target,false);
-    scheduleLikelyPreload();
+    return true;
   }catch(error){
+    if(error.name==='AbortError')return false;
     loading.classList.add('done');loading.style.display='none';
     const message=document.querySelector('#hall-detail .hall-status');
     if(message){message.textContent=t('loadLocationError');message.setAttribute('role','alert');}
     showTravelError(target,{kind:'campus',target});
     console.error(error);
   }finally{
-    transitioning=false;app.setAttribute('aria-busy','false');updateControls();
+    transitioning=false;preparing=false;preparingTarget=null;status.textContent='';app.setAttribute('aria-busy','false');updateControls();
+    if(queuedHistory)drainBrowserHistory();else scheduleLikelyPreload();
   }
 }
 document.querySelectorAll('.map-node[data-location]').forEach(node=>{
@@ -825,23 +866,33 @@ function floorLabel(i=current){
   if(!isM7Scene(i))return '360°';
   return LOCATIONS[i]?.area==='Top Floor'?t('topFloorBadge'):t('groundFloorBadge');
 }
-function sceneLink(i=current){return sceneUrl(i).href;}
+function sceneLink(i=current){const url=sceneUrl(i);if(i===current&&object)for(const [key,value]of Object.entries(currentView()))url.searchParams.set(key,String(Number(value.toFixed(5))));return url.href;}
 function updateSceneShare(){
-  const url=sceneLink();
-  shareLocation.textContent=locationLabel();sceneLinkElement.href=url;sceneLinkElement.textContent=url;
+  const campus=!object||mapPanel.classList.contains('open'),url=campus?campusUrl().href:sceneLink();
+  document.querySelector('#info-panel .share-card').hidden=campus;
+  shareLocation.textContent=campus?t('campusNavigator'):locationLabel();sceneLinkElement.href=url;sceneLinkElement.textContent=url;
+}
+function updateInformationContext(){
+  const campus=!object||mapPanel.classList.contains('open');
+  const building=campus?null:buildingForLegacyHall(hallIdForScene(current));
+  document.querySelector('#info-panel [data-i18n="aboutTitle"]').textContent=campus?t('campusNavigator'):t('aboutPlace')+' · '+tourAreaTitle();
+  document.getElementById('info-subtitle').textContent=campus?t('university'):locationLabel();
+  document.getElementById('info-intro').textContent=campus?t('campusAboutCopy'):localized(building?.description,currentLanguage)||t('aboutCopy');
+  infoPanel.setAttribute('aria-label',campus?t('campusNavigator'):t('aboutPlace')+' · '+tourAreaTitle());
 }
 function updateControls(){
   updateTourSearch();
   updateDirections();
   previous.disabled=!ready || transitioning || backTarget()==null;
   document.getElementById('route-label').textContent=locationLabel();
-  document.title=object?tourAreaTitle()+' — 360° Tour | University of Sharjah':'Campus 360° Tours | University of Sharjah';
+  document.title=object&&!mapPanel.classList.contains('open')?tourAreaTitle()+' — 360° Tour | University of Sharjah':'Campus 360° Tours | University of Sharjah';
   floorBadge.textContent=floorLabel();
   document.querySelector('.brand-row [data-i18n="building"]').textContent=tourAreaTitle();
   document.getElementById('info-subtitle').textContent=t('university')+' · '+tourAreaTitle();
   updateMap();
   updateGuidance();
   updateSceneShare();
+  updateInformationContext();
 }
 function applyLanguage(persist=true){
   document.documentElement.lang=currentLanguage;
@@ -850,10 +901,10 @@ function applyLanguage(persist=true){
   document.querySelectorAll('[data-i18n]').forEach(node=>{node.textContent=t(node.dataset.i18n);});
   document.querySelectorAll('[data-i18n-aria]').forEach(node=>{node.setAttribute('aria-label',t(node.dataset.i18nAria));});
   document.querySelectorAll('[data-i18n-title]').forEach(node=>{node.title=t(node.dataset.i18nTitle);});
-  languageToggle.textContent=currentLanguage==='ar'?'EN':'ع';
+  languageToggle.textContent=currentLanguage==='ar'?'English':'العربية';
   languageToggle.setAttribute('aria-label',t('switchLanguage'));
   languageToggle.title=currentLanguage==='ar'?'English':'العربية';
-  campusLanguageToggle.textContent=currentLanguage==='ar'?'EN':'ع';
+  campusLanguageToggle.textContent=currentLanguage==='ar'?'English':'العربية';
   campusLanguageToggle.setAttribute('aria-label',t('switchLanguage'));
   campusLanguageToggle.title=currentLanguage==='ar'?'English':'العربية';
   motion.setAttribute('aria-label',t(motionEnabled?'motionDisable':'motionEnable'));
@@ -867,6 +918,9 @@ function applyLanguage(persist=true){
   document.getElementById('campus-area-count').textContent=String(TOUR_AREAS.length);
   document.getElementById('campus-view-count').textContent=String(LOCATIONS.length);
   document.getElementById('campus-about').setAttribute('aria-label',t('aboutTitle'));
+  document.querySelector('#campus-map-more summary').setAttribute('aria-label',currentLanguage==='ar'?'أدوات الخريطة':'Map controls');
+  document.getElementById('campus-zoom-in').setAttribute('aria-label',currentLanguage==='ar'?'تكبير الخريطة':'Zoom in');
+  document.getElementById('campus-zoom-out').setAttribute('aria-label',currentLanguage==='ar'?'تصغير الخريطة':'Zoom out');
   cp.textContent=locationLabel();
   updateControls();updateRouteLabel();
   if(!loading.classList.contains('done'))setInitialProgress(lastInitialProgress);
@@ -907,6 +961,7 @@ function dispose(root){
   geometries.forEach(geometry=>geometry.dispose());
 }
 function prepareCheckpointScene(gltf,i,warmTexture=false){
+  const start=performance.now();
   const replacement=gltf.scene;
   if(!replacement.userData.panoramaPrepared){
     prep(replacement,i);
@@ -919,15 +974,28 @@ function prepareCheckpointScene(gltf,i,warmTexture=false){
     });
     replacement.userData.panoramaPrepared=true;
   }
-  if(warmTexture && renderer.initTexture){
-    replacement.traverse(mesh=>{
-      if(!mesh.isMesh)return;
-      for(const m of (Array.isArray(mesh.material)?mesh.material:[mesh.material])){
-        if(m?.map){try{renderer.initTexture(m.map);}catch{}}
-      }
-    });
-  }
+  const timings=sceneLoadingTimings.get(i)||{};
+  timings.prepareMs=performance.now()-start;sceneLoadingTimings.set(i,timings);
   return replacement;
+}
+async function warmCheckpointScene(root,i){
+  if(root.userData.panoramaWarmed)return;
+  const timings=sceneLoadingTimings.get(i)||{},start=performance.now();
+  root.traverse(mesh=>{
+    for(const m of(Array.isArray(mesh.material)?mesh.material:[mesh.material]))if(m?.map){
+      if(Math.max(m.map.image?.width||0,m.map.image?.height||0)>renderer.capabilities.maxTextureSize)
+        throw new Error('Panorama exceeds this device’s full-quality texture limit.');
+      renderer.initTexture?.(m.map);
+    }
+  });
+  timings.uploadMs=performance.now()-start;
+  const shaderStart=performance.now();
+  // Available in pinned Three r180; keep the synchronous compatibility fallback.
+  if(typeof renderer.compileAsync==='function')await renderer.compileAsync(root,camera,scene);
+  else renderer.compile(root,camera,scene);
+  timings.compileMs=performance.now()-shaderStart;
+  timings.estimatedBytes=estimatedSceneBytes(root);sceneLoadingTimings.set(i,timings);
+  root.userData.panoramaWarmed=true;
 }
 function cacheRecentScene(i,root){
   if(!root || i==null)return;
@@ -943,6 +1011,7 @@ function cacheRecentScene(i,root){
     recentScenes.delete(victim);
     if(stale)dispose(stale);
   }
+  trimSceneMemory();
 }
 function takeRecentScene(i){
   const root=recentScenes.get(i)??null;
@@ -950,12 +1019,11 @@ function takeRecentScene(i){
   return root;
 }
 function loadGLTF(i,onProgress=null){
-  return new Promise((resolve,reject)=>{
-    loader.load(DATA[i],resolve,xhr=>{
-      if(!onProgress)return;
-      if(xhr.total>0)onProgress(THREE.MathUtils.clamp(xhr.loaded/xhr.total,0,1));
-      else onProgress(null);
-    },reject);
+  onProgress?.(null);
+  return prefetchNetwork(i,i===preparingTarget||i===INITIAL_SCENE&&!object).then(async data=>{
+    onProgress?.(1);const start=performance.now();
+    const gltf=await loader.parseAsync(data,new URL('.',new URL(DATA[i],location.href)).href);
+    const timings=sceneLoadingTimings.get(i)||{};timings.parseDecodeMs=performance.now()-start;sceneLoadingTimings.set(i,timings);return gltf;
   });
 }
 let lastInitialProgress=0;
@@ -975,111 +1043,88 @@ function setInitialProgress(value){
   progressTrack.setAttribute('aria-valuenow',String(pct));
   loadProgressText.textContent=pct===100?t('preparingLocation',destination):t('loadingLocation',destination,pct);
 }
-async function loadCheckpoint(i, prepared=null, onProgress=null){
+async function loadCheckpoint(i, prepared=null, onProgress=null, activation={}){
   let replacement;
   if(prepared?.isObject3D)replacement=prepared;
   else{
     const gltf=prepared ?? await loadGLTF(i,onProgress);
     replacement=prepareCheckpointScene(gltf,i,false);
   }
-  if(object){
-    const oldIndex=current;
-    scene.remove(object);
-    cacheRecentScene(oldIndex,object);
+  sceneMemory.set(i,estimatedSceneBytes(replacement));
+  try{await warmCheckpointScene(replacement,i);}catch(error){dispose(replacement);throw error;}
+  if(activation.generation!=null&&activation.generation!==navigationGeneration){
+    dispose(replacement);throw new DOMException('Superseded navigation','AbortError');
   }
-  object=replacement;current=i;renderQuality(!isM7Scene(i));syncPostTargetSize();scene.add(object);document.body.classList.remove('campus-only');setSceneGrade(i);
+  const view=typeof activation.view==='function'?activation.view():activation.view;
+  const outgoing=object,oldIndex=current;
+  if(outgoing)scene.remove(outgoing);
+  object=replacement;current=i;
+  // Assign current before pruning, so cache eviction never disposes the new view.
+  if(outgoing)cacheRecentScene(oldIndex,outgoing);
+  renderQuality(!isM7Scene(i));syncPostTargetSize();scene.add(object);document.body.classList.remove('campus-only');setSceneGrade(i);
   camera.position.set(0,CAMERA_HEIGHT,0);resetView();
+  if(view){yaw=view.yaw;pitch=THREE.MathUtils.clamp(view.pitch,-1.35,1.35);camera.fov=THREE.MathUtils.clamp(view.fov,35,95);camera.updateProjectionMatrix();camera.rotation.set(pitch,yaw,0);}
   cp.textContent=locationLabel(i);
-  hoverHotspot=null;placeHotspots();ready=true;loading.classList.add('done');setTimeout(()=>{if(loading.classList.contains('done'))loading.style.display='none';},460);updateControls();
+  hoverHotspot=null;placeHotspots();ready=true;
+  if(activation.history!==false)writeSceneHistory(i,activation.replace===true);
+  loading.classList.add('done');setTimeout(()=>{if(loading.classList.contains('done'))loading.style.display='none';},460);updateControls();
+  updateHotspotVisuals(performance.now());renderPanoramaFrame();trimSceneMemory();
 }
 
 const travelFrame=document.getElementById('travel-frame');
 const travelContext=travelFrame.getContext('2d');
 function routeFromTo(from,to){return LOCATIONS[from]?.routes?.find(r=>r.to===to) ?? null;}
 function wrapAngle(a){return THREE.MathUtils.euclideanModulo(a+Math.PI,Math.PI*2)-Math.PI;}
-async function transitionTo(i,selectedRoute=null,fromMap=false){
+async function transitionTo(i,selectedRoute=null,fromMap=false,activation={}){
   // Map jumps reuse the existing load, rollback and fade; arrow travel stays connected.
   const route=selectedRoute ?? routeFromTo(current,i) ?? (fromMap?{to:i,angle:-yaw}:null);
   if(!ready || transitioning || i<0 || i>=DATA.length || i===current || !route)return;
-  const from=current,oldYaw=yaw,oldPitch=pitch,oldFov=camera.fov;
+  const from=current,generation=activation.generation??++navigationGeneration,writeHistory=activation.history??!historyTraversal;
+  if(writeHistory)rememberHistoryView();
   const bearing=route.angle;
-  // Panorama source bearings differ, so preserve the visitor's direction relative to the route.
-  // The A4 entrance handoff still uses its calibrated wall-facing arrival view.
-  const preserveRouteView=route.preserveView !== false;
-  const departureBearing=route.departureAngle ?? bearing;
-  const relativeView=wrapAngle(-oldYaw-departureBearing);
-  const returnRoute=routeFromTo(i,from);
-  const arrivalBearing=route.arrivalAngle ?? (returnRoute ? returnRoute.angle+Math.PI : (LOCATIONS[i]?.view ?? 0));
-  const arrivalYaw=fromMap?-(LOCATIONS[i]?.view??0):preserveRouteView?-(arrivalBearing+relativeView):-arrivalBearing;
-  const facingTravel=Math.cos(oldYaw+bearing);
   const transitionKind=fromMap?'map':route.kind==='stairs'?'stairs':route.back?'back':'forward';
   const stairSign=route.stairDirection==='down'?1:-1;
-  transitioning=true;el.title='';dragging=false;gesture=null;touches.clear();pinchDistance=null;hoverHotspot=null;routeTip.classList.remove('show');routeTip.setAttribute('aria-hidden','true');updateControls();
-  document.body.classList.add('moving');app.setAttribute('aria-busy','true');el.style.cursor='progress';
+  transitioning=true;preparing=true;preparingTarget=i;cancelStalePreloads(i);updateControls();app.setAttribute('aria-busy','true');
   const status=document.getElementById('status');status.textContent='';
-
-  // Capture the current view immediately so a tap always gets visual feedback while the next panorama decodes.
-  hotspotGroup.visible=false;renderPanoramaFrame();
-  const snapScale=coarsePointer?0.50:0.84;
-  travelFrame.width=Math.max(1,Math.round(el.width*snapScale));
-  travelFrame.height=Math.max(1,Math.round(el.height*snapScale));
-  travelContext.drawImage(el,0,0,travelFrame.width,travelFrame.height);
-  const anchor=new THREE.Vector3(Math.sin(bearing),0.03,-Math.cos(bearing));
-  camera.updateMatrixWorld();anchor.project(camera);
-  const ox=THREE.MathUtils.clamp((anchor.x+1)*50,15,85);
-  const oy=THREE.MathUtils.clamp((1-anchor.y)*50,20,80);
-  travelFrame.style.transformOrigin=ox+'% '+oy+'%';
-  const initialTravelTransform=transitionKind==='back'?'scale(.992)':transitionKind==='stairs'?`translateY(${stairSign*4}px) scale(1.008)`:'scale(1.008)';
-  travelFrame.style.transform=initialTravelTransform;travelFrame.style.opacity='1';travelFrame.style.filter='none';travelFrame.style.display='block';
-
   const destination=locationLabel(i);loadingScene=i;
-  const slowLoad=setTimeout(()=>{if(!status.textContent)status.textContent=t('loadingLocation',destination,null);},650);
+  const slowLoad=setTimeout(()=>{if(preparing)status.textContent=t('loadingLocation',destination,null);},250);
   try{
-    // Let the snapshot paint first.
-    await new Promise(resolve=>requestAnimationFrame(resolve));
-
-    // On phones, release the outgoing 8K texture before decoding the incoming panorama.
-    // The captured travel frame is already covering the WebGL canvas, so there is no visual flash.
-    // This avoids having two full-resolution panoramas resident during the heaviest part of the switch.
-    if(coarsePointer && object){
-      const outgoing=object;
-      scene.remove(outgoing);
-      object=null;
-      dispose(outgoing);
-      if(renderer.renderLists?.dispose)renderer.renderLists.dispose();
-      try{renderer.getContext().flush();}catch{}
-      await new Promise(resolve=>requestAnimationFrame(resolve));
-    }
-
     let prepared=takeRecentScene(i);
-    if(prepared){
-      const redundant=preloadCache.get(i);
-      if(redundant){
-        preloadCache.delete(i);
-        redundant.then(gltf=>{if(gltf)dispose(gltf.scene);}).catch(()=>{});
-      }
-    }else{
-      const cached=preloadCache.get(i);
-      // If a mobile network prefetch is still finishing, reuse it instead of racing
-      // another request for the same 6–8 MB GLB.
-      const warming=networkPrefetches.get(i);
-      if(coarsePointer && warming)await warming;
-      const gltf=cached?await cached:await loadGLTF(i,p=>{
+    if(!prepared){
+      let gltf=await (preloadCache.get(i)??Promise.resolve(null));
+      if(!gltf)gltf=await loadGLTF(i,p=>{
         status.textContent=p==null?t('loadingLocation',destination,null):p>=1?t('preparingLocation',destination):t('loadingLocation',destination,Math.min(99,Math.round(p*100)));
       });
       preloadCache.delete(i);
-      if(!gltf)throw new Error('Checkpoint preload failed');
-      prepared=gltf;
+      prepared=prepareCheckpointScene(gltf,i,false);
     }
+    try{await warmCheckpointScene(prepared,i);}catch(error){dispose(prepared);throw error;}
+    if(generation!==navigationGeneration){dispose(prepared);throw new DOMException('Superseded navigation','AbortError');}
     clearTimeout(slowLoad);status.textContent='';
-    await loadCheckpoint(i,prepared);
-    yaw=arrivalYaw;pitch=fromMap?(LOCATIONS[i]?.viewPitch ?? 0):oldPitch;camera.fov=oldFov;camera.updateProjectionMatrix();camera.rotation.set(pitch,yaw,0);
-    if(coarsePointer){updateHotspotVisuals(performance.now());renderPanoramaFrame();}
+    // Only now lock input for the short visual travel. Any legitimate look/zoom
+    // accepted during preparation is captured here, never at the earlier tap.
+    const oldYaw=yaw,oldPitch=pitch,oldFov=camera.fov;
+    const departure=route.departureAngle??bearing,relative=wrapAngle(-oldYaw-departure);
+    const back=routeFromTo(i,from),arrival=route.arrivalAngle??(back?(back.departureAngle??back.arrowAngle??back.angle)+Math.PI:LOCATIONS[i]?.view??0);
+    const view=validView(activation.view)||{yaw:fromMap?-(LOCATIONS[i]?.view??0):-(arrival+(route.preserveView===false?0:relative)),pitch:fromMap?(LOCATIONS[i]?.viewPitch??0):oldPitch,fov:oldFov};
+    const facingTravel=Math.cos(oldYaw+departure);
+    preparing=false;dragging=false;gesture=null;touches.clear();pinchDistance=null;hoverHotspot=null;el.title='';
+    document.body.classList.add('moving');el.style.cursor='progress';routeTip.classList.remove('show');
+    hotspotGroup.visible=false;renderPanoramaFrame();
+    // Preserve the existing transition snapshot size; final rendering is unchanged.
+    const snapScale=coarsePointer?.50:.84;
+    travelFrame.width=Math.max(1,Math.round(el.width*snapScale));travelFrame.height=Math.max(1,Math.round(el.height*snapScale));
+    travelContext.drawImage(el,0,0,travelFrame.width,travelFrame.height);
+    const anchor=new THREE.Vector3(Math.sin(departure),FLOOR_Y,-Math.cos(departure));camera.updateMatrixWorld();anchor.project(camera);
+    travelFrame.style.transformOrigin=THREE.MathUtils.clamp((anchor.x+1)*50,15,85)+'% '+THREE.MathUtils.clamp((1-anchor.y)*50,20,80)+'%';
+    travelFrame.style.transform='scale(1)';travelFrame.style.opacity='1';travelFrame.style.filter='none';travelFrame.style.display='block';
+    await loadCheckpoint(i,prepared,null,{...activation,generation,view,history:writeHistory});
     // Settle the decoded destination beneath the departing frame instead of exposing a hard replacement.
     const settleScale=transitionKind==='map'?1.003:1.009;
     const settleBlur=transitionKind==='map'?.45:.28;
     if(!reducedMotion)setCanvasFx(settleScale,settleBlur,.96);
     await tween(reducedMotion?100:(coarsePointer?300:360),(e,t)=>{
+      if(generation!==navigationGeneration)return;
       if(!reducedMotion){
         let transform='scale(1)';
         let blur=.72;
@@ -1104,30 +1149,23 @@ async function transitionTo(i,selectedRoute=null,fromMap=false){
       travelFrame.style.opacity=String(1-THREE.MathUtils.smoothstep(t,reducedMotion?0:.06,1));
     });
     setCanvasFx(1,0,1);
-    if(!historyTraversal)writeSceneHistory(i,false);
     completeGuidance();return true;
   }catch(err){
+    if(err.name==='AbortError')return false;
     console.error(err);
     status.textContent='';
-    // Mobile may have released the previous panorama to stay within Safari's GPU budget.
-    // Restore it from cache if the destination failed to load.
-    if(coarsePointer && !object){
-      try{
-        await loadCheckpoint(from);
-        yaw=oldYaw;pitch=oldPitch;camera.fov=oldFov;camera.updateProjectionMatrix();camera.rotation.set(pitch,yaw,0);
-      }catch(restoreError){console.warn('Could not restore previous view',restoreError);}
-    }
     showTravelError(i,{kind:'transition',target:i,route,fromMap});
   }finally{
     clearTimeout(slowLoad);travelFrame.style.display='none';travelFrame.style.filter='none';travelFrame.style.transform='';travelContext.clearRect(0,0,travelFrame.width,travelFrame.height);
     camera.position.set(0,CAMERA_HEIGHT,0);hotspotGroup.visible=true;
-    document.body.classList.remove('moving');app.setAttribute('aria-busy','false');transitioning=false;el.style.cursor='grab';updateControls();scheduleLikelyPreload();
+    document.body.classList.remove('moving');app.setAttribute('aria-busy','false');transitioning=false;preparing=false;preparingTarget=null;el.style.cursor='grab';updateControls();
+    if(queuedHistory)drainBrowserHistory();else scheduleLikelyPreload();
   }
 }
 const touches=new Map();let gesture=null, pinchDistance=null;
 el.addEventListener('pointerdown',e=>{
   if(document.body.classList.contains('more-open'))setMoreMenuOpen(false);
-  if(!ready || transitioning || e.button!==0)return;
+  if(!ready || (transitioning&&!preparing) || e.button!==0)return;
   touches.set(e.pointerId,{x:e.clientX,y:e.clientY});el.setPointerCapture(e.pointerId);
   if(touches.size>1){gesture=null;dragging=false;pinchDistance=null;return;}
   checkHotspotHover(e.clientX,e.clientY);
@@ -1136,7 +1174,7 @@ el.addEventListener('pointerdown',e=>{
 
 });
 el.addEventListener('pointermove',e=>{
-  if(transitioning)return;
+  if(transitioning&&!preparing)return;
   if(touches.has(e.pointerId))touches.set(e.pointerId,{x:e.clientX,y:e.clientY});
   if(touches.size===2){const [a,b]=[...touches.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);if(pinchDistance!==null)zoom((pinchDistance-d)*0.12);pinchDistance=d;return;}
   if(gesture && gesture.id===e.pointerId){
@@ -1181,7 +1219,7 @@ function deviceQuaternion(e){
   return sensorQuat;
 }
 addEventListener('deviceorientation',e=>{
-  if(!motionEnabled || dragging || transitioning)return;
+  if(!motionEnabled || dragging || (transitioning&&!preparing))return;
   const q=deviceQuaternion(e);if(!q)return;
   if(motionNeedsCalibrate){guidanceOrientation.copy(camera.quaternion);motionReference.copy(camera.quaternion).multiply(q.clone().invert());motionNeedsCalibrate=false;}
   camera.quaternion.copy(motionReference).multiply(q);
@@ -1209,7 +1247,7 @@ motion.onclick=async()=>{
   }catch(err){status.textContent=t('motionDenied');}
 };
 
-function zoom(delta){if(!ready || transitioning)return;camera.fov=THREE.MathUtils.clamp(camera.fov+delta,35,95);camera.updateProjectionMatrix();}
+function zoom(delta){if(!ready || (transitioning&&!preparing))return;camera.fov=THREE.MathUtils.clamp(camera.fov+delta,35,95);camera.updateProjectionMatrix();}
 el.addEventListener('wheel',e=>{e.preventDefault();zoom(e.deltaY*0.03);},{passive:false});
 previous.onclick=()=>{const back=backTarget();if(back!=null)transitionTo(back);};
 document.getElementById('reset').onclick=()=>{setMoreMenuOpen(false);if(ready&&!transitioning)resetView();};
@@ -1217,7 +1255,7 @@ const fullscreen=document.getElementById('fullscreen');
 fullscreen.hidden=!document.fullscreenEnabled;
 fullscreen.onclick=async()=>{setMoreMenuOpen(false);try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch{document.getElementById('status').textContent=t('fullscreenUnavailable');}};
 document.addEventListener('fullscreenchange',()=>fullscreen.setAttribute('aria-label',t(document.fullscreenElement?'exitFullScreen':'fullScreen')));
-addEventListener('keydown',e=>{if(e.key==='Escape'&&document.body.classList.contains('more-open')){e.preventDefault();setMoreMenuOpen(false);moreToggle?.focus();return;}if(e.key==='Escape'&&(mapPanel.classList.contains('open')||infoPanel.classList.contains('open')||searchPanel.classList.contains('open'))){e.preventDefault();const opener=mapPanel.classList.contains('open')?mapToggle:searchPanel.classList.contains('open')?searchToggle:infoToggle;closePanels();opener.focus();return;}if(e.target.closest('button,input,textarea,select,[role="button"]')||e.altKey||e.ctrlKey||e.metaKey)return;if(e.key==='Backspace'||e.key==='Escape'){const back=backTarget();if(back!=null){e.preventDefault();routeTip.classList.remove('show');routeTip.setAttribute('aria-hidden','true');transitionTo(back);}}
+addEventListener('keydown',e=>{if(e.key==='Escape'&&document.body.classList.contains('more-open')){e.preventDefault();setMoreMenuOpen(false);moreToggle?.focus();return;}if(e.key==='Escape'&&(mapPanel.classList.contains('open')||infoPanel.classList.contains('open')||searchPanel.classList.contains('open'))){e.preventDefault();const opener=mapPanel.classList.contains('open')?mapToggle:searchPanel.classList.contains('open')?searchToggle:infoToggle;closePanels();if(opener===mapToggle&&object&&!historyTraversal)writeSceneHistory(current);updateControls();opener.focus();return;}if(e.target.closest('button,input,textarea,select,[role="button"]')||e.altKey||e.ctrlKey||e.metaKey)return;if(e.key==='Backspace'||e.key==='Escape'){const back=backTarget();if(back!=null){e.preventDefault();routeTip.classList.remove('show');routeTip.setAttribute('aria-hidden','true');transitionTo(back);}}
   if(e.key==='Home' && ready && !transitioning){e.preventDefault();resetView();}
   if(e.key==='+' || e.key==='='){e.preventDefault();zoom(-8);}
   if(e.key==='-'){e.preventDefault();zoom(8);}
@@ -1232,10 +1270,10 @@ addEventListener('resize', ()=>{
 let lastMobileFrame='';
 function animate(now=0){
   requestAnimationFrame(animate);
-  if(document.hidden||!ready)return;
+  if(document.hidden||!ready||mapPanel.classList.contains('open'))return;
   if(coarsePointer){
     // The snapshot covers transitions; redraw a still view only when it changes.
-    if(transitioning){lastMobileFrame='';return;}
+    if(transitioning&&!preparing){lastMobileFrame='';return;}
     const q=camera.quaternion;
     const frame=[q.x,q.y,q.z,q.w,camera.fov,innerWidth,innerHeight,current,dragging].join(',');
     if(frame===lastMobileFrame)return;
@@ -1253,17 +1291,21 @@ if(requestedSceneIndex<0){
   writeCampusHistory(true);
   loading.classList.add('done');loading.style.display='none';showCampusHome(false);
 }
-async function followBrowserHistory(){
-  if(transitioning){setTimeout(followBrowserHistory,80);return;}
-  const target=sceneIndexFromUrl();
-  historyTraversal=true;
+async function drainBrowserHistory(){
+  if(transitioning||historyRunning||!queuedHistory)return;
+  const request=queuedHistory;queuedHistory=null;historyRunning=true;historyTraversal=true;
   try{
-    if(target<0){showCampusHome(false);return;}
-    document.body.classList.remove('campus-only');
-    if(object&&target===current){closePanels();updateControls();return;}
-    if(object)await transitionTo(target,null,true);
-    else await openPanoramaFromCampus(target);
-  }finally{historyTraversal=false;}
+    if(request.target<0){showCampusHome(false);updateControls();return;}
+    const activation={generation:request.generation,history:false,view:request.view};
+    const result=object&&request.target!==current?await transitionTo(request.target,null,true,activation):await openPanoramaFromCampus(request.target,activation);
+    if(result===false&&request.generation===navigationGeneration&&object)writeSceneHistory(current,true);
+  }finally{historyTraversal=false;historyRunning=false;if(queuedHistory)drainBrowserHistory();}
+}
+function followBrowserHistory(){
+  queuedHistory={target:sceneIndexFromUrl(),view:validView(history.state?.view)||viewFromUrl(),generation:++navigationGeneration};
+  // Drain only the latest history intent. Obsolete loads cannot commit scene/URL.
+  networkPrefetches.get(preparingTarget)?.controller.abort();cancelStalePreloads(preparingTarget);
+  drainBrowserHistory();
 }
 addEventListener('popstate',followBrowserHistory);
 
@@ -1272,15 +1314,16 @@ const tourWorker='serviceWorker' in navigator
       .then(()=>navigator.serviceWorker.ready)
       .catch(err=>{console.warn('Offline cache unavailable',err);return null;})
   : Promise.resolve(null);
-if(requestedSceneIndex>=0)loadCheckpoint(INITIAL_SCENE,null,p=>setInitialProgress(p)).then(()=>{
-  writeSceneHistory(INITIAL_SCENE,true);
+if(requestedSceneIndex>=0){transitioning=true;preparing=true;preparingTarget=INITIAL_SCENE;
+loadCheckpoint(INITIAL_SCENE,null,p=>setInitialProgress(p),{generation:navigationGeneration,replace:true,view:viewFromUrl()}).then(()=>{
   setInitialProgress(1);scheduleLikelyPreload();
   // Backfill the first panorama from HTTP cache if it loaded before worker activation.
   tourWorker.then(registration=>registration?.active?.postMessage({
     type:'CACHE_VIEWED_PANORAMA',url:new URL(DATA[INITIAL_SCENE],location.href).href
   })).catch(err=>console.warn('Initial panorama cache unavailable',err));
 }).catch(err=>{
+  if(err.name==='AbortError')return;
   loading.classList.add('done');loading.style.display='none';
   showTravelError(INITIAL_SCENE,{kind:'reload',target:INITIAL_SCENE});
   console.error(err);
-});
+}).finally(()=>{transitioning=false;preparing=false;preparingTarget=null;updateControls();if(queuedHistory)drainBrowserHistory();else scheduleLikelyPreload();});}

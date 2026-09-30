@@ -1,6 +1,24 @@
 // Synthetic artwork coordinates, never GPS. The source is 900 × 4118.
 export const ARTWORK_VERSION = 'campus-2026-horizontal-1';
 export const CAMPUS_CORNERS = [[55.48841122384587,25.282745259662605],[55.48841122384587,25.27822411937236],[55.465534303353394,25.27822411937236],[55.465534303353394,25.282745259662605]];
+// Central camera policy. The 4118px landscape raster remains useful up to 2 CSS
+// pixels per artwork pixel. Overview fits the unobstructed viewport, not a preset zoom.
+export function campusCameraPolicy(width,height,padding={}) {
+  const west=CAMPUS_CORNERS[2][0],east=CAMPUS_CORNERS[0][0],south=CAMPUS_CORNERS[2][1],north=CAMPUS_CORNERS[0][1];
+  const mercatorY=lat=>(1-Math.log(Math.tan(Math.PI/4+lat*Math.PI/360))/Math.PI)/2;
+  const dx=(east-west)/360,dy=mercatorY(south)-mercatorY(north);
+  const freeWidth=Math.max(80,width-(padding.left||0)-(padding.right||0));
+  const freeHeight=Math.max(80,height-(padding.top||0)-(padding.bottom||0));
+  return {minZoom:Math.log2(Math.min(freeWidth/dx,freeHeight/dy)/512)-.04,
+    maxZoom:Math.log2(4118*2/(512*dx)),
+    maxBounds:[[west-(east-west)*.04,south-(north-south)*.04],[east+(east-west)*.04,north+(north-south)*.04]]};
+}
+export function clampCampusCamera(camera,policy) {
+  const center=Array.isArray(camera.center)?camera.center:[camera.center.lng,camera.center.lat];
+  const clamp=(n,min,max)=>Math.min(max,Math.max(min,n));
+  return {...camera,center:[clamp(center[0],policy.maxBounds[0][0],policy.maxBounds[1][0]),clamp(center[1],policy.maxBounds[0][1],policy.maxBounds[1][1])],
+    zoom:clamp(camera.zoom,policy.minZoom,policy.maxZoom),bearing:0,pitch:0};
+}
 export function artworkPoint(x,y,corners=CAMPUS_CORNERS) {
   return [corners[0][0]+(corners[3][0]-corners[0][0])*y/4118,
     corners[0][1]+(corners[1][1]-corners[0][1])*x/900];

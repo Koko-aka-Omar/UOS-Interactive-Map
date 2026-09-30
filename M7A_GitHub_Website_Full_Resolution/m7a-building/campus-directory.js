@@ -1,7 +1,8 @@
 import { CATEGORIES, SOURCES } from './campus-inventory.js';
-import { ARTWORK_VERSION, CAMPUS_CORNERS } from './campus-geometry.js';
+import { ARTWORK_VERSION, CAMPUS_CORNERS, campusCameraPolicy, clampCampusCamera } from './campus-geometry.js';
 import { createCampusStateStore, matchesFilters } from './campus-state.js';
 import { createCampusSheet } from './campus-sheet.js';
+import { ZONE_COLORS } from './campus-map-labels.js';
 
 export function localized(value, language) {
   return typeof value === 'string' ? value : value?.[language] || value?.en || '';
@@ -61,21 +62,72 @@ export function groupNearby(halls, project, radius = 64) {
   return groups;
 }
 
-export function searchHalls(halls, query, language) {
-  const normalize = value => value.normalize('NFKC').toLocaleLowerCase().replace(/[٠-٩۰-۹]/g, digit => String('٠١٢٣٤٥٦٧٨٩'.includes(digit)?'٠١٢٣٤٥٦٧٨٩'.indexOf(digit):'۰۱۲۳۴۵۶۷۸۹'.indexOf(digit))).replace(/[\s\-–_]/g, '');
-  const needle = normalize(query.trim());
-  return halls.flatMap(hall => {
-    const label = `${hall.code ? hall.code+' · ' : ''}${localized(hall.name, language)}`;
-    const matches = value => normalize(value).includes(needle);
-    const results = matches(`${hall.code||''} ${localized(hall.name, 'en')} ${localized(hall.name, 'ar')} ${(hall.aliases||[]).map(alias=>localized(alias,language)).join(' ')}`)
-      ? [{ hall, room: null, label }] : [];
-    if (needle) for (const room of hall.rooms || []) {
-      if (matches(`${room.id} ${localized(room.name, 'en')} ${localized(room.name, 'ar')}`)) {
-        results.push({ hall, room, label: `${localized(room.name, language)} · ${hall.code}` });
-      }
+export function normalizeSearch(value = '') {
+  return value.normalize('NFKC').toLocaleLowerCase()
+    .replace(/[٠-٩۰-۹]/g, d => String('٠١٢٣٤٥٦٧٨٩'.includes(d) ? '٠١٢٣٤٥٦٧٨٩'.indexOf(d) : '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
+    .replace(/[\u0610-\u061a\u064b-\u065f\u0670\u06d6-\u06edـ]/g, '')
+    .replace(/[أإآٱ]/g, 'ا').replace(/ى/g, 'ي')
+    .replace(/[\s\-–—_·/]+/g, ' ').trim();
+}
+const bilingual = value => typeof value === 'string' ? [value] : [value?.en || '', value?.ar || ''];
+const everyday = {
+  dining:['food','cafeteria','restaurant','cafe','طعام','اكل','مطعم','كافتيريا','مقهى'],
+  libraries:['books','library','كتاب','كتب','مكتبة'],
+  sports:['sport','gym','رياضة','رياضي'],
+  housing:['dorm','dormitory','سكن'],
+  events:['theater','theatre','auditorium','مسرح'],
+  'student-services':['student services','خدمات الطلاب','خدمات الطالبات']
+};
+const compact = value => normalizeSearch(value).replace(/ /g, '');
+function searchRank(query, codes, names, extra) {
+  const needle = normalizeSearch(query), code = compact(query);
+  if (!needle) return 0;
+  if (codes.some(value => compact(value) === code)) return 0;
+  const normalized = names.map(normalizeSearch).filter(Boolean);
+  if (normalized.includes(needle)) return 1;
+  if ([...codes.map(normalizeSearch), ...normalized].some(value => value.startsWith(needle))) return 2;
+  const fields = [...normalized, ...codes.map(normalizeSearch), ...extra.map(normalizeSearch)];
+  return needle.split(' ').every(token => fields.some(value => value.includes(token) || compact(value).includes(compact(token)))) ? 3 : Infinity;
+}
+export function searchHalls(halls, query, language = 'en') {
+  const items = [];
+  for (const hall of halls) {
+    const names = [...bilingual(hall.name), ...(hall.aliases || []).flatMap(bilingual)];
+    const extra = (hall.categories || []).flatMap(id => [...bilingual(CATEGORIES[id]), ...(everyday[id] || [])]);
+    const rank = searchRank(query, [hall.code || ''], names, extra);
+    if (Number.isFinite(rank)) items.push({hall, room:null, label:`${hall.code ? hall.code+' · ' : ''}${localized(hall.name,language)}`, rank});
+    if (normalizeSearch(query)) for (const room of hall.rooms || []) {
+      const rank = searchRank(query, [room.id], [...bilingual(room.name), ...(room.aliases || []).flatMap(bilingual)], []);
+      if (Number.isFinite(rank)) items.push({hall, room, label:`${localized(room.name,language)} · ${hall.code}`, rank});
     }
-    return results;
+  }
+  const seen = new Set();
+  return items.sort((a,b)=>a.rank-b.rank).filter(item => {
+    const id=item.hall.id+':'+(item.room?.id || '');
+    if (seen.has(id)) return false; seen.add(id); return true;
   });
+}
+export function searchSuggestions(halls, query) {
+  const needle=normalizeSearch(query);
+  // Never correct an identifier, or silently select a guessed destination.
+  if (needle.length < 4 || /\d/.test(needle) || searchHalls(halls,query).length) return [];
+  const words=[...new Set([...Object.values(everyday).flat(), ...halls.flatMap(h=>[...bilingual(h.name),...(h.aliases||[]).flatMap(bilingual)])].map(normalizeSearch))];
+  const distance=(a,b)=>{
+    let row=Array.from({length:b.length+1},(_,i)=>i);
+    for(let i=0;i<a.length;i++){const next=[i+1];for(let j=0;j<b.length;j++)next.push(Math.min(next[j]+1,row[j+1]+1,row[j]+(a[i]===b[j]?0:1)));row=next;}
+    return row[b.length];
+  };
+  return words.filter(word=>Math.abs(word.length-needle.length)<=2).map(word=>({word,d:distance(needle,word)}))
+    .filter(item=>item.d <= (needle.length>=7?2:1)).sort((a,b)=>a.d-b.d||a.word.localeCompare(b.word)).slice(0,3).map(item=>item.word);
+}
+export function appendSearchHighlight(element, value, query) {
+  // Preserve display spelling and diacritics; map normalized characters back to text.
+  const needle=compact(query), chars=[], offsets=[];
+  for(let i=0;i<value.length;i++)for(const c of compact(value[i])){chars.push(c);offsets.push(i);}
+  const at=needle?chars.join('').indexOf(needle):-1;
+  if(at<0){element.textContent=value;return;}
+  const start=offsets[at],end=offsets[at+needle.length-1]+1,mark=document.createElement('mark');mark.textContent=value.slice(start,end);
+  element.append(document.createTextNode(value.slice(0,start)),mark,document.createTextNode(value.slice(end)));
 }
 
 // List, count and map emphasis use this same composed query.
@@ -85,8 +137,8 @@ export function filterCampus(halls, query, category, toursOnly, language = 'en')
 
 export function createDirectory({ halls, root, language, isReady, openTour, startDirections, canGuide, initialTarget }) {
   const copy = {
-    en: { identity:'UOS · Campus Navigator', search:'Search buildings or rooms', clearSearch:'Clear search', all:'All categories', tours:'360° only', more:'More categories', clear:'Clear filters', reset:'Reset all', legend:'Select any building · 360° = tour available', browse:'Browse campus', back:'Back to results', return:'Selected building', available:'360° tour available', information:'Building information', enter:'Explore in 360°', loading:'Preparing 360° view…', expand:'Expand details', collapse:'Collapse details', expanded:'Expand fully', empty:'No matching buildings or rooms.', group:'Nearby buildings', groupHint:'Choose a building here, or search the whole campus.', zone:'Zone', outside:'Outside current filter', sources:'Details & sources', official:'University website', map:'Campus map 2026', inside:'Inside this building', checkpoints:'Tour checkpoints', entrance:'Entrance', show:'Show selected building', directions:'Show me the way', buildings:n=>n+(n===1?' building':' buildings'), results:n=>n+(n===1?' result':' results') },
-    ar: { identity:'UOS · دليل الحرم الجامعي', search:'ابحث عن مبنى أو قاعة', clearSearch:'مسح البحث', all:'جميع الفئات', tours:'جولات 360° فقط', more:'المزيد من الفئات', clear:'مسح التصفية', reset:'إعادة ضبط الكل', legend:'اختر أي مبنى · 360° = جولة متاحة', browse:'تصفح الحرم الجامعي', back:'العودة إلى النتائج', return:'المبنى المحدد', available:'تتوفر جولة بزاوية 360°', information:'معلومات المبنى', enter:'استكشف بزاوية 360°', loading:'جارٍ تجهيز العرض بزاوية 360°…', expand:'عرض التفاصيل', collapse:'طي التفاصيل', expanded:'عرض كامل', empty:'لا توجد مبانٍ أو قاعات مطابقة.', group:'مبانٍ متقاربة', groupHint:'اختر مبنى من هنا أو ابحث في الحرم الجامعي كله.', zone:'المنطقة', outside:'خارج التصفية الحالية', sources:'التفاصيل والمصادر', official:'موقع الجامعة', map:'خريطة الحرم الجامعي 2026', inside:'داخل هذا المبنى', checkpoints:'نقاط الجولة', entrance:'المدخل', show:'عرض المبنى المحدد', directions:'أرشدني إلى القاعة', buildings:n=>n+' مبانٍ', results:n=>n+' نتائج' }
+    en: { identity:'Campus Navigator', search:'Search buildings or rooms', clearSearch:'Clear search', all:'All categories', tours:'360° only', more:'More categories', clear:'Clear filters', reset:'Reset all', legend:'Select any building · 360° = tour available', browse:'Browse campus', back:'Back to results', return:'Selected building', available:'360° tour available', information:'Building information', enter:'Explore in 360°', loading:'Preparing 360° view…', expand:'Expand details', collapse:'Collapse details', expanded:'Expand fully', empty:'No matching buildings or rooms.', group:'Nearby buildings', groupHint:'Choose a building here, or search the whole campus.', zone:'Zone', outside:'Outside current filter', sources:'Details & sources', official:'University website', map:'Campus map 2026', inside:'Inside this building', checkpoints:'Tour checkpoints', entrance:'Entrance', show:'Show selected building', directions:'Show me the way', buildings:n=>n+(n===1?' building':' buildings'), results:n=>n+(n===1?' result':' results') },
+    ar: { identity:'دليل الحرم الجامعي', search:'ابحث عن مبنى أو قاعة', clearSearch:'مسح البحث', all:'جميع الفئات', tours:'جولات 360° فقط', more:'المزيد من الفئات', clear:'مسح التصفية', reset:'إعادة ضبط الكل', legend:'اختر أي مبنى · 360° = جولة متاحة', browse:'تصفح الحرم الجامعي', back:'العودة إلى النتائج', return:'المبنى المحدد', available:'تتوفر جولة بزاوية 360°', information:'معلومات المبنى', enter:'استكشف بزاوية 360°', loading:'جارٍ تجهيز العرض بزاوية 360°…', expand:'عرض التفاصيل', collapse:'طي التفاصيل', expanded:'عرض كامل', empty:'لا توجد مبانٍ أو قاعات مطابقة.', group:'مبانٍ متقاربة', groupHint:'اختر مبنى من هنا أو ابحث في الحرم الجامعي كله.', zone:'المنطقة', outside:'خارج التصفية الحالية', sources:'التفاصيل والمصادر', official:'موقع الجامعة', map:'خريطة الحرم الجامعي 2026', inside:'داخل هذا المبنى', checkpoints:'نقاط الجولة', entrance:'المدخل', show:'عرض المبنى المحدد', directions:'أرشدني إلى القاعة', buildings:n=>n+' مبانٍ', results:n=>n+' نتائج' }
   };
   const $ = selector => root.querySelector(selector);
   const title=$('#directory-title'), status=$('#directory-status'), body=$('#directory-body'), search=$('#hall-search');
@@ -113,6 +165,14 @@ export function createDirectory({ halls, root, language, isReady, openTour, star
       selectedId:selected?.id||null,roomId:room?.id||null,mode,snap:sheet.snap,activeCategory,toursOnly,query:search.value,resultsScroll,detailScroll,sections});
   }
   const sheet=createCampusSheet({card:$('.campus-map-card'),handle,controls:$('#campus-controls'),header:$('#directory-header'),body,actions,onSettle:()=>{updateHeader();snapshot();}});
+  let focusSnapshot=null;
+  $('#campus-focus')?.addEventListener('click',()=>{
+    const focused=root.classList.contains('campus-focus');
+    if(!focused){rememberScroll();focusSnapshot={snap:sheet.snap,scroll:body.scrollTop};snapshot();}
+    root.classList.toggle('campus-focus',!focused);
+    if(focused){sheet.set(focusSnapshot?.snap||sheet.snap,{instant:true,notify:false});body.scrollTop=focusSnapshot?.scroll||0;focusSnapshot=null;}
+    updateHeader();
+  },{signal});
   function refreshMarkers() {
     artwork?.update({selectedId:selected?.id,matchingIds:activeMatches(),filtered:Boolean(activeCategory||toursOnly||search.value.trim()),language:language()});
   }
@@ -158,6 +218,7 @@ export function createDirectory({ halls, root, language, isReady, openTour, star
     $('#campus-reset').hidden=!activeCategory&&!toursOnly&&!search.value;$('#campus-reset').textContent=text('reset');
     $('#campus-clear-search').hidden=!search.value;$('#campus-clear-search').setAttribute('aria-label',text('clearSearch'));
     $('#campus-identity').textContent=text('identity');$('#campus-legend').textContent=text('legend');
+    if($('#campus-descriptor'))$('#campus-descriptor').textContent=language()==='ar'?'خريطة الحرم الجامعي التفاعلية':'Interactive Campus Map';
     search.placeholder=text('search');search.setAttribute('aria-label',text('search'));
   }
   function select(hall, selectedRoom=null) {
@@ -166,36 +227,50 @@ export function createDirectory({ halls, root, language, isReady, openTour, star
     selected=hall;room=selectedRoom;group=null;mode='details';
     if(changed)detailScroll=0;
     render();sheet.set(sheet.snap==='expanded'?'expanded':'half');body.scrollTop=detailScroll;
-    if(map&&hall.mapCoordinates) {
+    if(changed&&map&&hall.mapCoordinates) {
       const point=map.project(hall.mapCoordinates),container=map.getContainer(),card=$('.campus-map-card').getBoundingClientRect(),controls=$('#campus-controls').getBoundingClientRect();
       const occluded=[card,controls].some(rect=>point.x>=rect.left&&point.x<=rect.right&&point.y>=rect.top&&point.y<=rect.bottom);
       if(occluded||point.x<25||point.x>container.clientWidth-25||point.y<25||point.y>container.clientHeight-25) {
         const phone=matchMedia('(max-width:640px) and (orientation:portrait)').matches;
-        map.easeTo({center:hall.mapCoordinates,offset:phone?[0,-card.height/2]:[document.documentElement.dir==='rtl'?-200:200,0],duration:reduced()?0:280});
+        const rtl=document.documentElement.dir==='rtl';
+        const free=phone?{left:25,right:container.clientWidth-25,top:controls.bottom+15,bottom:card.top-15}
+          :{left:rtl?25:card.right+20,right:rtl?card.left-20:container.clientWidth-25,top:controls.top+55,bottom:container.clientHeight-35};
+        map.easeTo({center:hall.mapCoordinates,offset:[(free.left+free.right)/2-container.clientWidth/2,(free.top+free.bottom)/2-container.clientHeight/2],duration:reduced()?0:280});
       }
     }
     snapshot();
   }
   function renderList() {
     const pool=group||halls;
-    // Nearby choices are explicit, never silently constrained by global filters.
-    const items=group?searchHalls(pool,'',language()):filterCampus(pool,search.value,activeCategory,toursOnly,language());
-    const count=items.some(item=>item.room)?copy[language()].results(items.length):copy[language()].buildings(new Set(items.map(item=>item.hall.id)).size);
-    $('#directory-count').textContent=count;
+    const composed=filterCampus(halls,search.value,activeCategory,toursOnly,language());
+    const items=group?composed.filter(item=>pool.includes(item.hall)):composed;
+    const count=composed.some(item=>item.room)?copy[language()].results(composed.length):copy[language()].buildings(new Set(composed.map(item=>item.hall.id)).size);
+    $('#directory-count').textContent=(activeCategory?localized(CATEGORIES[activeCategory],language())+' · ':'')+count;
     const key=JSON.stringify([group?.map(h=>h.id),search.value,activeCategory,toursOnly,language()]);
     if(key!==listKey) {
       results.replaceChildren();listKey=key;
       if(!items.length) {
         results.append(node('p','directory-empty',text('empty')));
+        if(toursOnly&&filterCampus(pool,search.value,activeCategory,false,language()).length)
+          results.append(button('campus-filter',language()==='ar'?'عرض المباني دون جولة 360°':'Include buildings without a 360° tour',()=>{toursOnly=false;revealResults();}));
+        for(const suggestion of searchSuggestions(pool,search.value))
+          results.append(button('campus-filter',(language()==='ar'?'هل تقصد: ':'Did you mean: ')+suggestion,()=>{search.value=suggestion;revealResults();search.focus();}));
         if(search.value)results.append(button('campus-filter',text('clearSearch'),()=>{search.value='';revealResults();search.focus();}));
         if(activeCategory||toursOnly)results.append(button('campus-filter',text('clear'),()=>{activeCategory=null;toursOnly=false;revealResults();}));
       }
       for(const item of items) {
         const el=button('hall-result','',()=>{select(item.hall,item.room);handle.focus({preventScroll:true});});
         el.dataset.buildingId=item.hall.id;
-        el.append(node('strong','',item.label),node('small','',((item.room?item.room.tour:item.hall.tour)?text('available'):text('information'))+(item.hall.zone?' · '+text('zone')+' '+item.hall.zone:'')));
+        el.dataset.roomId=item.room?.id||'';el.id='campus-result-'+item.hall.id+'-'+(item.room?.id||'building');
+        el.classList.toggle('is-match',Boolean(search.value||activeCategory||toursOnly));
+        const caption=node('strong');appendSearchHighlight(caption,item.label,search.value);
+        el.append(caption,node('small','',((item.room?item.room.tour:item.hall.tour)?text('available'):text('information'))+(item.hall.zone?' · '+text('zone')+' '+item.hall.zone:'')));
         results.append(el);
       }
+    }
+    for(const row of results.querySelectorAll('.hall-result')){
+      const chosen=row.dataset.buildingId===selected?.id&&row.dataset.roomId===(room?.id||'');
+      row.classList.toggle('is-selected',chosen);row.setAttribute('aria-pressed',String(chosen));
     }
     results.hidden=mode!=='results';
     return count;
@@ -276,17 +351,30 @@ export function createDirectory({ halls, root, language, isReady, openTour, star
     }else existing?.remove();
   }
   function updateHeader(count=$('#directory-count').textContent) {
+    const focused=root.classList.contains('campus-focus'),focus=$('#campus-focus');
+    if(focus){focus.textContent=language()==='ar'?(focused?'عرض البطاقة':'التركيز على الخريطة'):(focused?'Show panel':'Focus map');focus.setAttribute('aria-pressed',String(focused));}
+    $('.campus-map-card').style.setProperty('--zone-accent',ZONE_COLORS[selected?.zone]||'var(--ui-accent)');
     title.textContent=mode==='details'&&selected?label(selected):group?text('group'):text('browse');
     status.textContent=mode==='details'&&selected?(selected.zone?text('zone')+' '+selected.zone+' · ':'')+(target()?text('available'):text('information'))+(room?' · '+localized(room.name,language()):''):group?text('groupHint'):count;
     collapse.textContent=sheet.snap==='peek'?'+':sheet.snap==='half'?'↟':'−';
     collapse.setAttribute('aria-label',text(sheet.snap==='peek'?'expand':sheet.snap==='half'?'expanded':'collapse'));
     collapse.setAttribute('aria-expanded',String(sheet.snap!=='peek'));
-    handle.setAttribute('aria-label',text(sheet.snap==='expanded'?'collapse':'expand'));
-    browse.hidden=mode!=='details'&&!group;browse.textContent=text('back');
+    browse.hidden=mode!=='details'&&!group;
+    browse.textContent=search.value.trim()?(language()==='ar'?'العودة إلى نتائج البحث':'Back to search results'):activeCategory?(language()==='ar'?'العودة إلى ':'Back to ')+localized(CATEGORIES[activeCategory],language()):text('back');
     returnButton.hidden=mode!=='results'||!selected;returnButton.textContent=text('return');
   }
   function render(){renderFilters();const count=renderList();renderDetail();renderActions();updateHeader(count);refreshMarkers();}
   search.addEventListener('input',()=>revealResults(),{signal});
+  search.addEventListener('keydown',event=>{
+    if(event.key==='Escape'){event.preventDefault();event.stopPropagation();if(selected)returnButton.onclick();search.blur();return;}
+    if(!['ArrowDown','ArrowUp','Enter'].includes(event.key))return;
+    const rows=[...results.querySelectorAll('.hall-result')];if(!rows.length)return;
+    event.preventDefault();event.stopPropagation();
+    const current=rows.findIndex(row=>row.classList.contains('is-active'));
+    if(event.key==='Enter'){rows[Math.max(0,current)].click();search.removeAttribute('aria-activedescendant');return;}
+    const next=rows[(current+(event.key==='ArrowDown'?1:-1)+rows.length)%rows.length];
+    rows.forEach(row=>row.classList.toggle('is-active',row===next));search.setAttribute('aria-activedescendant',next.id);next.scrollIntoView({block:'nearest'});
+  },{signal});
   $('#campus-clear-search').onclick=()=>{search.value='';revealResults();search.focus();};
   $('#campus-clear-filters').onclick=()=>{activeCategory=null;toursOnly=false;revealResults();};
   $('#campus-reset').onclick=()=>{search.value='';activeCategory=null;toursOnly=false;revealResults();};
@@ -295,14 +383,29 @@ export function createDirectory({ halls, root, language, isReady, openTour, star
   collapse.onclick=()=>sheet.set(sheet.snap==='peek'?'half':sheet.snap==='half'?'expanded':'peek');
   body.addEventListener('scroll',()=>{currentScroll();clearTimeout(scrollTimer);scrollTimer=setTimeout(snapshot,120);},{passive:true,signal});
   $('#campus-overview').onclick=()=>overview(false);
-  function overview(instant) {
+  function overviewPadding() {
     const phone=matchMedia('(max-width:640px) and (orientation:portrait)').matches,rtl=document.documentElement.dir==='rtl';
-    map?.fitBounds([CAMPUS_CORNERS[2],CAMPUS_CORNERS[0]],{padding:phone?{top:$('#campus-controls').offsetHeight+85,bottom:150,left:20,right:20}:{top:85,bottom:45,left:rtl?35:410,right:rtl?410:35},duration:instant||reduced()?0:280});
+    const controls=$('#campus-controls').getBoundingClientRect();
+    return phone?{top:controls.bottom+15,bottom:150,left:20,right:20}
+      :{top:85,bottom:45,left:rtl?35:controls.right+22,right:rtl?innerWidth-controls.left+22:35};
+  }
+  function cameraPolicy() {
+    const container=map?.getContainer()||$('#campus-map');
+    return campusCameraPolicy(container.clientWidth||innerWidth,container.clientHeight||innerHeight,overviewPadding());
+  }
+  function applyCameraPolicy() {
+    if(!map)return;
+    const policy=cameraPolicy();map.setMinZoom(policy.minZoom);map.setMaxZoom(policy.maxZoom);map.setMaxBounds(policy.maxBounds);
+  }
+  window.addEventListener('resize',applyCameraPolicy,{signal});
+  function overview(instant) {
+    map?.fitBounds([CAMPUS_CORNERS[2],CAMPUS_CORNERS[0]],{padding:overviewPadding(),duration:instant||reduced()?0:280});
   }
   detail.addEventListener('keydown',event=>{if(event.key==='Escape'&&!event.defaultPrevented){event.preventDefault();event.stopPropagation();browse.onclick();handle.focus();}},{signal});
   return {
-    initialCamera(){return saved?.camera||null;},
-    attach(nextMap,nextArtwork){map=nextMap;artwork=nextArtwork;map.on('moveend',snapshot);render();},
+    cameraPolicy,
+    initialCamera(){return saved?.camera?clampCampusCamera(saved.camera,cameraPolicy()):null;},
+    attach(nextMap,nextArtwork){map=nextMap;artwork=nextArtwork;applyCameraPolicy();map.on('moveend',snapshot);render();},
     selectGroup(members) {
       if(members.length===1){select(members[0]);handle.focus({preventScroll:true});return;}
       rememberScroll();group=members;mode='results';resultsScroll=0;
@@ -324,7 +427,8 @@ export function createDirectory({ halls, root, language, isReady, openTour, star
       group=null;render();
       sheet.set(!initialized&&initialTarget&&!state?'half':state?.snap||'peek',{instant:true,notify:false});
       body.scrollTop=mode==='details'?detailScroll:resultsScroll;
-      if(state?.camera)map.jumpTo(state.camera);else if(!initialized)overview(true);
+      applyCameraPolicy();
+      if(state?.camera)map.jumpTo(clampCampusCamera(state.camera,cameraPolicy()));else if(!initialized)overview(true);
       initialized=true;restoring=false;
     },
     update(){const scroll=body.scrollTop;render();sheet.refresh();body.scrollTop=scroll;snapshot();},

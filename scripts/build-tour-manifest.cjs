@@ -41,6 +41,9 @@ function discoverCore(){
     const full=path.join(root,rel);
     if(!fs.existsSync(full))throw new Error('Missing imported core file: '+rel);
     const source=fs.readFileSync(full,'utf8');
+    // Only explicitly referenced, separately generated card covers join the shell.
+    // No panorama/image directory enumeration is needed.
+    for(const match of source.matchAll(/thumbnail:\s*['"](\.\/covers\/[^'"]+)['"]/g))found.add(normalize(rel,match[1]));
     for(const match of source.matchAll(/(?:from\s+|import\s*)['"](\.\.?\/[^'"]+)['"]/g)){
       const child=normalize(rel,match[1]);
       if(!child.startsWith('../')){

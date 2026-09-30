@@ -62,7 +62,7 @@ const readState=page=>page.evaluate(()=>JSON.parse(sessionStorage.getItem('hallv
     priorShell=true;
     const oldContext=await browser.newContext({viewport:{width:1280,height:820}}),upgrade=await oldContext.newPage(),upgradeErrors=[];
     upgrade.on('pageerror',error=>upgradeErrors.push(error.message));
-    await upgrade.goto('http://127.0.0.1:'+server.address().port);await upgrade.locator('#campus-home-intro').waitFor({state:'visible',timeout:60000});
+    await upgrade.goto('http://127.0.0.1:'+server.address().port);await upgrade.locator('#campus-identity').waitFor({state:'visible',timeout:60000});
     await upgrade.waitForFunction(()=>Boolean(navigator.serviceWorker.controller),{timeout:60000});
     await upgrade.locator('#hall-search').fill('E4');await upgrade.locator('.hall-result').click();await upgrade.waitForTimeout(400);
     const oldState=await readState(upgrade);

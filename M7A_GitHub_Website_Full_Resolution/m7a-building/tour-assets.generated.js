@@ -1,6 +1,6 @@
 globalThis.UOS_TOUR_ASSETS=Object.freeze({
   "schema": 1,
-  "buildId": "d9864d43c603",
+  "buildId": "10821b5b5f79",
   "coreAssets": [
     "./apple-touch-icon.png",
     "./campus-buildings.js",
@@ -11,6 +11,12 @@ globalThis.UOS_TOUR_ASSETS=Object.freeze({
     "./campus-map-labels.js",
     "./campus-sheet.js",
     "./campus-state.js",
+    "./covers/a4.jpg",
+    "./covers/al-zahra.jpg",
+    "./covers/c4.jpg",
+    "./covers/e2.jpg",
+    "./covers/e4.jpg",
+    "./covers/m7.jpg",
     "./directions.js",
     "./favicon.svg",
     "./halls.js",
@@ -30,7 +36,9 @@ globalThis.UOS_TOUR_ASSETS=Object.freeze({
     "./tour-renderer.js",
     "./tour-routes.js",
     "./tour.js",
-    "./ui-polish.css"
+    "./ui-polish.css",
+    "./ui-theme.js",
+    "./uos-badge.png"
   ],
   "routeModules": [
     "./routes/m7a.js",

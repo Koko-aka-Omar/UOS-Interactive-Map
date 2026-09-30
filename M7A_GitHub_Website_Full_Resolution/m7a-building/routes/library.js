@@ -231,6 +231,24 @@ export const LOCATIONS=[
         arrowAngle: 3.8,
         hotspotAngle: 3.8,
         hotspotDistance: 1.08
+      },
+      {
+        to: 45,
+        angle: 2.18,
+        departureAngle: 2.18,
+        arrowAngle: 2.18,
+        hotspotAngle: 2.18,
+        hotspotDistance: 1.05,
+        arrivalAngle: 0.99
+      },
+      {
+        to: 37,
+        angle: 5.13,
+        departureAngle: 5.13,
+        arrowAngle: 5.13,
+        hotspotAngle: 5.13,
+        hotspotDistance: 1.05,
+        arrivalAngle: 0.2
       }
     ]
   },
@@ -280,15 +298,6 @@ export const LOCATIONS=[
         back: true,
         hotspotAngle: 6.05,
         hotspotDistance: 1.2
-      },
-      {
-        to: 45,
-        angle: 0.48,
-        arrowAngle: 0.48,
-        hotspotAngle: 0.98,
-        hotspotDistance: 1,
-        arrivalAngle: 4.4,
-        departureAngle: 0.48
       }
     ]
   },
@@ -435,6 +444,15 @@ export const LOCATIONS=[
         "arrivalAngle": 0.83,
         "departureAngle": 0.86,
         "back": true
+      },
+      {
+        "to": 29,
+        "angle": 3.34,
+        "departureAngle": 3.34,
+        "arrowAngle": 3.34,
+        "hotspotAngle": 3.34,
+        "hotspotDistance": 1.05,
+        "arrivalAngle": 1.99
       }
     ]
   },
@@ -660,13 +678,13 @@ export const LOCATIONS=[
         "back": true
       },
       {
-        "to": 31,
-        "angle": 4.4,
-        "arrowAngle": 4.05,
-        "hotspotAngle": 4.05,
+        "to": 29,
+        "angle": 4.13,
+        "arrowAngle": 4.13,
+        "hotspotAngle": 4.13,
         "hotspotDistance": 1,
-        "arrivalAngle": 0.48,
-        "departureAngle": 4.4
+        "arrivalAngle": 5.32,
+        "departureAngle": 4.13
       }
     ]
   },
