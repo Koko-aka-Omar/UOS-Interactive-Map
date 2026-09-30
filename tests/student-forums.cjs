@@ -37,7 +37,8 @@ function dimensions(data){
   for(const r of scene.routes){for(const key of ['angle','arrowAngle','departureAngle','arrivalAngle','hotspotAngle','hotspotDistance'])assert(Number.isFinite(r[key]),`${stem} ${key}`);assert(r.preserveView);assert(r.to>=81&&r.to<=87);}
   const full=jpegFromGlb(path.join(root,'assets',stem+'.glb'));
   assert.equal(crypto.createHash('sha256').update(full).digest('hex'),hashes[i],'Original JPEG bytes preserved');assert.deepEqual(dimensions(full),[11904,5952]);
-  const mobile=jpegFromGlb(path.join(root,'assets-mobile',stem+'.glb'));assert.deepEqual(dimensions(mobile),[3072,1536]);assert(mobile.equals(fs.readFileSync(path.join(root,'panoramas-mobile',stem+'.jpg'))));
+  const mobile=jpegFromGlb(path.join(root,'assets-mobile',stem+'.glb'));assert.deepEqual(dimensions(mobile),[3072,1536]);
+  assert.deepEqual(dimensions(fs.readFileSync(path.join(root,'panoramas-mobile',stem+'.jpg'))),[2048,1024]);
   for(const [kind,folder]of [['desktop','assets'],['mobile','assets-mobile']]){
    const bytes=fs.readFileSync(path.join(root,folder,stem+'.glb')),blob=crypto.createHash('sha1').update('blob '+bytes.length+'\0').update(bytes).digest('hex');
    assert.equal(manifest.panoramaRevisions[kind][stem+'.glb'],blob.slice(0,12));
@@ -57,6 +58,13 @@ function dimensions(data){
  for(const [query,lang]of [['A6','en'],['Student Forums','en'],['ملتقى الطلاب','ar'],['Left-Side Checkpoint','en'],['نقطة الجانب الأيمن','ar']])assert.equal(searchHalls(CAMPUS_BUILDINGS,query,lang)[0].hall.id,'building-a6');
  // Explicit baseline protects old scene IDs, routes, calibration and renderer.
  const baseline='e5e35ca5388dc77c2034cf6f1b92b35a6a4b3807',git=process.env.HALLV3_GIT||'git';
+ const beforeBox={globalThis:{}};vm.runInNewContext(execFileSync(git,['show',baseline+':M7A_GitHub_Website_Full_Resolution/m7a-building/tour-assets.generated.js'],{encoding:'utf8'}),beforeBox);
+ for(const mode of ['desktop','mobile'])for(const [file,revision]of Object.entries(beforeBox.globalThis.UOS_TOUR_ASSETS.panoramaRevisions[mode]))assert.equal(manifest.panoramaRevisions[mode][file],revision,'Existing '+mode+' panorama unchanged: '+file);
+ // The automatic image workflow must not replace pre-existing C4/Zahra images.
+ for(const [prefix,count]of [['al-zahra',8],['c4',15]])for(let n=1;n<=count;n++){
+  const tracked='M7A_GitHub_Website_Full_Resolution/m7a-building/panoramas-mobile/'+prefix+'-'+String(n).padStart(3,'0')+'.jpg';
+  assert.equal(execFileSync(git,['rev-parse',':'+tracked],{encoding:'utf8'}).trim(),execFileSync(git,['rev-parse',baseline+':'+tracked],{encoding:'utf8'}).trim(),'Existing staged mobile image preserved: '+tracked);
+ }
  for(const rel of ['routes/m7a.js','routes/theater.js','routes/library.js','routes/mens-hall.js','routes/c4.js','routes/al-zahra.js','tour.js','tour-renderer.js']){
   const tracked='M7A_GitHub_Website_Full_Resolution/m7a-building/'+rel;
   const before=execFileSync(git,['rev-parse',baseline+':'+tracked],{encoding:'utf8'}).trim(),after=execFileSync(git,['hash-object',path.join(root,rel)],{encoding:'utf8'}).trim();assert.equal(after,before,rel+' unchanged');
