@@ -1,10 +1,10 @@
 import { SHEET_SNAPS } from './campus-state.js';
 
-export function sheetHeights(available, header = 96, action = 0) {
+export function sheetHeights(available, header = 96, action = 0, minimumHalf = 0) {
   const max = Math.max(80, available);
   const peek = Math.min(max, Math.max(120, header + action));
   const expanded = Math.max(peek, Math.min(max, Math.round(max * .85)));
-  return { peek, half: Math.max(peek, Math.min(expanded, Math.round(max * .5))), expanded };
+  return { peek, half: Math.max(peek, Math.min(expanded, Math.max(minimumHalf, Math.round(max * .5)))), expanded };
 }
 
 export function settleSheet(height, velocity, heights) {
@@ -44,7 +44,10 @@ export function createCampusSheet({ card, handle, controls, header, body, action
     controls.querySelector('.campus-header').style.minHeight=absolute?Math.max(44,header.offsetHeight)+'px':'';
     const compact=(absolute?0:header.offsetHeight)+controls.offsetHeight+handle.offsetHeight;
     card.dataset.snap=previous;
-    heights = sheetHeights(available,sideBySide?headerHeight:compact,sideBySide?0:actionHeight);
+    // Half must reveal useful content as well as the full header and sticky action.
+    // Peek remains compact; short/keyboard viewports still cap at the available space.
+    heights = sheetHeights(available,sideBySide?headerHeight:compact,sideBySide?0:actionHeight,
+      card.dataset.cardView?430:headerHeight+(sideBySide?0:actionHeight)+(card.dataset.mode==='details'?160:120));
   }
   function access() {
     const peek = snap === 'peek';
@@ -56,6 +59,7 @@ export function createCampusSheet({ card, handle, controls, header, body, action
   }
   function set(next, { instant = false, notify = true } = {}) {
     if (!SHEET_SNAPS.includes(next)) return;
+    if(card.dataset.cardView&&next==='peek')next='half';
     const from = stopAnimation(); snap = next; access(); measure();
     const to = heights[snap]; card.style.height = to + 'px';
     if (!instant && !reduced() && from && Math.abs(to - from) > 1) {

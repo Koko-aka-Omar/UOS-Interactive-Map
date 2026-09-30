@@ -9,7 +9,7 @@ import { CAMPUS_CORNERS, clampCampusCamera } from './campus-geometry.js';
 import { findPath } from './directions.js';
 import { createCampusPopovers } from './campus-popovers.js';
 import { createCampusHandoff } from './campus-handoff.js';
-import { PANORAMA_FILES, VISUAL_CALIBRATION, LOCATIONS, LOCATION_AR, TOUR_AREAS, areaForScene, getHotspotStyle } from './tour-routes.js';
+import { PANORAMA_FILES, VISUAL_CALIBRATION, LOCATIONS, LOCATION_AR, TOUR_AREAS, areaForScene, getHotspotStyle, arrivalView } from './tour-routes.js';
 import { I18N } from './tour-i18n.js';
 
 const app=document.getElementById('app');
@@ -132,12 +132,14 @@ function connectedTargets(){
 
 function scheduleLikelyPreload(){
   cancelStalePreloads();
+  const connection=navigator.connection;
+  if(connection?.saveData||/^(slow-)?2g$/.test(connection?.effectiveType||''))return;
   const routes=LOCATIONS[current]?.routes??[];
-  const targets=connectedTargets();
-  const prioritized=[
-    ...routes.filter(r=>!r.back).map(r=>r.to),
-    ...routes.filter(r=>r.back).map(r=>r.to)
-  ].filter((v,i,a)=>v!=null && a.indexOf(v)===i && !recentScenes.has(v));
+  // At a junction, prepare the route the visitor is facing rather than always
+  // downloading the first branch listed in the data. Retain the one-scene budget.
+  const prioritized=[...routes].sort((a,b)=>
+    Math.abs(wrapAngle(-yaw-(a.departureAngle??a.angle)))-Math.abs(wrapAngle(-yaw-(b.departureAngle??b.angle))))
+    .map(route=>route.to).filter((v,i,a)=>v!=null&&a.indexOf(v)===i&&!recentScenes.has(v));
 
   const source=current;
   const run=()=>{
@@ -355,7 +357,7 @@ function hallIdForScene(i=current){return areaForScene(i)?.hallId??null;}
 function isM7Scene(i=current){return hallIdForScene(i)==='m7';}
 const initialBuilding=requestedSceneIndex>=0?buildingForLegacyHall(hallIdForScene(INITIAL_SCENE)):null;
 const directory=createDirectory({halls:CAMPUS_BUILDINGS,root:mapPanel,language:()=>currentLanguage,isReady:()=>!transitioning,startDirections:startRoomDirections,canGuide:scene=>{const target=LOCATIONS.findIndex(item=>item.id===scene);return ready&&target>=0&&Boolean(findPath(LOCATIONS,current,target));},openTour:openDirectoryTour,currentHallId:()=>object?hallIdForScene():null,initialTarget:initialBuilding?{hallId:initialBuilding.id,roomId:initialBuilding.rooms.find(room=>room.tour?.scene===requestedScene)?.id}:null});
-const campusPopovers=createCampusPopovers(mapPanel,value=>{currentLanguage=value;applyLanguage();});
+const campusPopovers=createCampusPopovers(mapPanel,value=>{currentLanguage=value;applyLanguage();},directory,infoPanel);
 const campusHandoff=createCampusHandoff(mapPanel);
 let pendingCampusEntry=false;
 const cancelCampusEntry=document.createElement('button');cancelCampusEntry.id='campus-cancel-load';cancelCampusEntry.type='button';cancelCampusEntry.hidden=true;mapPanel.append(cancelCampusEntry);
@@ -465,11 +467,6 @@ function showCampusHome(writeHistory=true){
 }
 mapToggle.onclick=()=>{setMoreMenuOpen(false);if(pendingCampusEntry){cancelCampusEntry.onclick();return;}togglePanel(mapPanel,mapToggle);};
 infoToggle.onclick=()=>{setMoreMenuOpen(false);togglePanel(infoPanel,infoToggle);};
-document.getElementById('campus-about').onclick=()=>{
-  infoPanel.inert=false;infoPanel.classList.add('open');infoPanel.setAttribute('aria-hidden','false');
-  infoToggle.setAttribute('aria-pressed','true');
-  infoPanel.querySelector('[data-close-panel]').focus({preventScroll:true});
-};
 document.querySelectorAll('[data-close-panel]').forEach(btn=>btn.addEventListener('click',()=>{
   if(btn.closest('aside')===infoPanel&&mapPanel.classList.contains('open')){
     infoPanel.classList.remove('open');infoPanel.setAttribute('aria-hidden','true');infoPanel.inert=true;infoToggle.setAttribute('aria-pressed','false');
@@ -755,17 +752,18 @@ function updateHotspotVisuals(now=0){
     const pulse=(reducedMotion||coarsePointer)?0:(0.5+0.5*Math.sin(now*0.0028))*0.045;
     const hotspotScale=u.route?getHotspotStyle(current,u.route)[1]:.64;
     const stairBoost=u.route?.kind==='stairs'?0.06:0;
-    const polished=current>=12&&current<=16;
     const guided=directionsNext!==null&&u.route?.to===directionsNext;
     const routeEmphasis=(directionsNext!==null&&!guided)?0.4:1;
     const guidedPulse=(guided&&!reducedMotion)?(0.5+0.5*Math.sin(now*0.004))*0.06:0;
     hs.scale.setScalar(hotspotScale*(1+0.05*e+pulse+guidedPulse)*(guided?1.08:routeEmphasis===1?1:.94));
-    u.inner.material.color.setHex(guided?0xffcf5c:polished?0x00a979:0x00c389);
-    u.ring.material.color.setHex(guided?0xffe49a:0x7ee8c8);
-    u.arrow.material.color.setHex(guided?0xfff5c4:polished?0xf0fffa:0x063f43);
-    u.inner.material.opacity=((polished?0.48:0.16)+0.15*e+stairBoost)*quiet*routeEmphasis;
-    u.ring.material.opacity=(0.40+0.30*e+pulse)*quiet*routeEmphasis;
-    u.arrow.material.opacity=((polished?0.88:0.70)+(polished?0.12:0.20)*e)*quiet*routeEmphasis;
+    // A light chevron over a deeper green disc stays legible on both bright
+    // tiles and dark carpet without changing its physical size or direction.
+    u.inner.material.color.setHex(guided?0xffcf5c:0x006957);
+    u.ring.material.color.setHex(guided?0xffe49a:0xaaf0d8);
+    u.arrow.material.color.setHex(guided?0xfff5c4:0xf0fffa);
+    u.inner.material.opacity=(0.58+0.12*e+stairBoost)*quiet*routeEmphasis;
+    u.ring.material.opacity=(0.65+0.25*e+pulse)*quiet*routeEmphasis;
+    u.arrow.material.opacity=(0.94+0.06*e)*quiet*routeEmphasis;
     if(guided){u.inner.material.opacity=.5+guidedPulse;u.ring.material.opacity=.88+guidedPulse;u.arrow.material.opacity=1;}
   }
 }
@@ -1115,9 +1113,8 @@ async function transitionTo(i,selectedRoute=null,fromMap=false,activation={}){
     // Only now lock input for the short visual travel. Any legitimate look/zoom
     // accepted during preparation is captured here, never at the earlier tap.
     const oldYaw=yaw,oldPitch=pitch,oldFov=camera.fov;
-    const departure=route.departureAngle??bearing,relative=wrapAngle(-oldYaw-departure);
-    const back=routeFromTo(i,from),arrival=route.arrivalAngle??(back?(back.departureAngle??back.arrowAngle??back.angle)+Math.PI:LOCATIONS[i]?.view??0);
-    const view=validView(activation.view)||{yaw:fromMap?-(LOCATIONS[i]?.view??0):-(arrival+(route.preserveView===false?0:relative)),pitch:fromMap?(LOCATIONS[i]?.viewPitch??0):oldPitch,fov:oldFov};
+    const departure=route.departureAngle??bearing;
+    const view=validView(activation.view)||arrivalView({from,to:i,route,yaw:oldYaw,pitch:oldPitch,fov:oldFov,fromMap});
     const facingTravel=Math.cos(oldYaw+departure);
     preparing=false;dragging=false;gesture=null;touches.clear();pinchDistance=null;hoverHotspot=null;el.title='';
     document.body.classList.add('moving');el.style.cursor='progress';routeTip.classList.remove('show');

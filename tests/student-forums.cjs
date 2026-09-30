@@ -67,12 +67,20 @@ function dimensions(data){
   const tracked='M7A_GitHub_Website_Full_Resolution/m7a-building/panoramas-mobile/'+prefix+'-'+String(n).padStart(3,'0')+'.jpg';
   assert.equal(execFileSync(git,['rev-parse',':'+tracked],{encoding:'utf8'}).trim(),execFileSync(git,['rev-parse',baseline+':'+tracked],{encoding:'utf8'}).trim(),'Existing staged mobile image preserved: '+tracked);
  }
- for(const rel of ['routes/m7a.js','routes/theater.js','routes/library.js','routes/mens-hall.js','routes/c4.js','routes/al-zahra.js','tour-renderer.js']){
+ // The interface polish intentionally turns only M7A's opening view toward
+ // its corridor. Continue protecting every route, image binding and grade.
+ const m7Source=execFileSync(git,['show',baseline+':M7A_GitHub_Website_Full_Resolution/m7a-building/routes/m7a.js'],{encoding:'utf8'});
+ const m7Before=JSON.parse(vm.runInNewContext(m7Source.replace(/\bexport\s+/g,'')+';JSON.stringify({PANORAMAS,VISUAL_CALIBRATION,LOCATIONS,LOCATION_AR})'));
+ assert.equal(m7Before.LOCATIONS[0].id,'entrance');m7Before.LOCATIONS[0].view=2.1;
+ const m7After=await load('routes/m7a.js');
+ for(const key of Object.keys(m7Before))assert.deepEqual(m7After[key],m7Before[key],'M7A '+key+' preserved except approved opening view');
+ for(const rel of ['routes/theater.js','routes/library.js','routes/mens-hall.js','routes/c4.js','routes/al-zahra.js','tour-renderer.js']){
   const tracked='M7A_GitHub_Website_Full_Resolution/m7a-building/'+rel;
   const before=execFileSync(git,['rev-parse',baseline+':'+tracked],{encoding:'utf8'}).trim(),after=execFileSync(git,['hash-object',path.join(root,rel)],{encoding:'utf8'}).trim();assert.equal(after,before,rel+' unchanged');
  }
  const geometryBefore=execFileSync(git,['show',baseline+':M7A_GitHub_Website_Full_Resolution/m7a-building/campus-geometry.js'],{encoding:'utf8'}).replace(/\r/g,'');
  const geometryAfter=fs.readFileSync(path.join(root,'campus-geometry.js'),'utf8').replace(/\r/g,'').replace(/^  A6:\[\[.*\]\],\n/m,'');assert.equal(geometryAfter,geometryBefore,'Existing artwork anchors, footprints and camera policy unchanged');
- console.log('PASS Student Forums: 7 original-byte/full-resolution assets, mobile derivatives, exact 14 links, both loops, isolated graph, separate arrivals, A6 anchor/search and unchanged existing halls/renderer');
- console.log('REVIEW 75→76: owner must confirm the walkable approach around the seating row; connectivity and onward bearing are retained.');
+ console.log('PASS Student Forums: 7 original-byte/full-resolution assets, mobile derivatives, exact 14 links, both loops, isolated graph, separate arrivals, A6 anchor/search and preserved routes/renderer with the approved M7A opening view');
+ assert.equal(forum.LOCATIONS[4].routes.find(r=>r.to===86).angle,3.12,'Owner-confirmed central passage is retained');
+ assert(!forum.LOCATIONS.some(s=>s.routes.some(r=>r.calibrationReview)),'Central passage review resolved by owner');
 })().catch(error=>{console.error(error);process.exitCode=1;});

@@ -20,8 +20,11 @@
 <link rel="manifest" href="./manifest.webmanifest" />
 <link rel="stylesheet" href="./styles.css" />
 <link rel="stylesheet" href="./ui-polish.css" />
+<link rel="preconnect" href="https://unpkg.com" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js">
 <link href="https://unpkg.com/maplibre-gl@5/dist/maplibre-gl.css" rel="stylesheet">
-<script src="https://unpkg.com/maplibre-gl@5/dist/maplibre-gl.js"></script>
+<script defer src="https://unpkg.com/maplibre-gl@5/dist/maplibre-gl.js"></script>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"}}</script>
 </head>
 <body>
@@ -171,7 +174,7 @@
 <div class="bottom">
   <div id="hint" role="status" aria-live="polite">Drag to look around</div>
   <nav class="nav" aria-label="Tour navigation" title="Tap a floor arrow to move · Backspace: back · Home: reset view" data-i18n-aria="tourNavigation" data-i18n-title="navigationTitle">
-    <button id="previous" class="step" disabled><span aria-hidden="true">←</span><span class="step-label" data-i18n="back">Back</span></button>
+    <button id="previous" class="step" aria-label="Back" data-i18n-aria="back" disabled><span aria-hidden="true">←</span><span class="step-label" data-i18n="back">Back</span></button>
     <div class="location-chip" aria-live="polite"><span class="location-dot" aria-hidden="true"></span><span id="route-label">Main Hall · Entrance</span></div>
   </nav>
 </div>
