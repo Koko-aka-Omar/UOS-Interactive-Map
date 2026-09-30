@@ -1,328 +1,159 @@
-# University of Sharjah Virtual Tour
+# UOS Interactive Map
 
-An interactive **360° campus tour system for the University of Sharjah (UOS)**, built with Three.js and deployed through GitHub Pages.
+An interactive campus map and **360° virtual tour experience for the University of Sharjah**. Explore campus buildings, find destinations, and move through photographed spaces using connected floor-arrow navigation.
 
-The project currently connects four tour areas:
+**[Open the interactive map](https://koko-aka-omar.github.io/UOS-Interactive-Map/)** · **[Repository](https://github.com/Koko-aka-Omar/UOS-Interactive-Map)**
 
-- **M7A / College of Science**
-- **Al Razi Auditorium**
-- **Library**
-- **Men's Hall**
+## Tour areas
 
-Live site: **https://koko-aka-omar.github.io/hallV3/**
+The current asset manifest includes **88 panorama checkpoints across seven tour areas**:
 
----
+| Area | Checkpoints | Route module |
+| --- | ---: | --- |
+| M7A / College of Science | 10 | `routes/m7a.js` |
+| Al Razi Auditorium | 13 | `routes/theater.js` |
+| Library | 24 | `routes/library.js` |
+| Men's Hall | 11 | `routes/mens-hall.js` |
+| C4 Dining Hall | 15 | `routes/c4.js` |
+| Al Zahra Hall | 8 | `routes/al-zahra.js` |
+| Student Forums | 7 | `routes/student-forums.js` |
+| **Total** | **88** | |
 
-## Overview
+Routes follow explicitly configured physical connections. Listing areas together does not imply that every area is directly connected to every other area. M7A includes study-room destinations; the Library includes searchable Study Areas 1–10.
 
-The project is designed as a lightweight indoor/campus experience inspired by Street View. Visitors can explore connected 360° checkpoints, follow floor arrows, search for destinations, return to the campus map, and open direct links to individual scenes.
+## Features
 
-The current tour contains **58 panorama checkpoints**:
+- Interactive campus map, building directory, search, and category filters.
+- Connected 360° viewpoints with floor arrows and destination-aware loading.
+- Shareable scene links and browser Back/Forward navigation between viewpoints.
+- English and Arabic interface, light/dark controls, and responsive mobile layouts.
+- Expandable campus-directory sheet, fullscreen viewing, reset controls, and motion viewing on supported phones.
+- Dedicated mobile panorama assets, likely-destination preloading, and limited decoded-scene caching.
+- A web app manifest and service worker that cache the application shell and previously viewed panoramas. Offline availability depends on resources already being cached.
 
-| Area | Checkpoints |
-| --- | ---: |
-| M7A | 10 |
-| Al Razi Auditorium | 13 |
-| Library | 24 |
-| Men's Hall | 11 |
-| **Total** | **58** |
+The viewer uses HTML, CSS, JavaScript ES modules, Three.js **0.180.0**, WebGL, and GLB panoramas. The campus map uses MapLibre GL. GitHub Actions publishes the static application through GitHub Pages; no frontend framework or package installation is required to serve it locally.
 
-Navigation follows explicit physical routes rather than allowing arbitrary jumps between panorama images.
+## Project structure
 
----
-
-## Main Features
-
-- Connected 360° panorama navigation
-- Calibrated floor arrows
-- University campus map and building directory
-- Search across available buildings and rooms
-- Searchable Library Study Areas 1–10
-- Turn-by-turn route guidance to searchable rooms
-- English and Arabic interface
-- Direct links to individual scenes
-- Scene URLs update as visitors move, with browser Back/Forward navigation between viewpoints
-- Device-motion viewing on supported phones
-- Fullscreen and reset controls
-- Responsive phone and landscape layouts
-- Dedicated lower-resolution mobile panorama assets
-- Destination-aware loading states
-- Subtle forward/back/stair-specific scene transitions
-- Mild renderer grading to reduce exposure/color differences between tour areas
-- Branded UOS campus home state before entering a tour
-- Retry/back recovery when a scene fails to load
-- Scene preloading and decoded-scene memory limits
-- Progressive Web App manifest and service worker
-- Offline caching for the application shell, UI modules, map/Three.js runtime, static assets, and previously viewed panoramas
-
----
-
-## Interface
-
-The interface uses University of Sharjah teal as an accent while retaining darker translucent controls over the 360° imagery.
-
-The main toolbar is intentionally compact:
-
-**Campus Map · Search · More**
-
-The **More** menu contains secondary viewing controls such as:
-
-- Phone motion
-- Reset view
-- Full screen
-- Tour information
-
-On phones, the campus directory uses an expandable bottom sheet. It can be expanded or reduced using the sheet handle.
-
-The active tour area is shown separately from the exact checkpoint so visitors can distinguish between the building/area and their current position.
-
----
-
-## Tour Areas
-
-### M7A
-
-Includes the main hall, study-room corridor, upper floor, and rooms:
-
-- M7A-001
-- M7A-002
-- M7A-003
-- M7A-004
-
-### Al Razi Auditorium
-
-Includes the exterior approaches, covered entrance, main hall, foyer, auditorium seating/stair viewpoints, stage-side viewpoints, and Library-side connection.
-
-### Library
-
-Includes:
-
-- Entrance
-- Lobby
-- Study Area 1
-- Study Area 2
-- Study Area 3
-- Study Area 4
-- Study Area 5
-- Study Area 6
-- Study Area 7
-- Study Area 8
-- Study Area 9
-- Study Area 10
-- Corridor checkpoints 030–041
-
-### Men's Hall
-
-Includes checkpoints 078–088 as a standalone sequential route.
-
----
-
-## Technology
-
-The project intentionally avoids a heavy frontend framework.
-
-Main technologies:
-
-- HTML5
-- CSS
-- JavaScript ES Modules
-- Three.js
-- WebGL
-- GLTF / GLB
-- MapLibre GL
-- Service Workers
-- Web App Manifest
-- GitHub Actions
-- GitHub Pages
-
-Three.js currently uses version **0.180.0**.
-
----
-
-## Project Structure
+The application remains in `M7A_GitHub_Website_Full_Resolution/m7a-building/`. The repository rename does **not** change that directory or any panorama filenames.
 
 ```text
-hallV3/
-├── .github/
-│   └── workflows/
-│       └── pages.yml
+UOS-Interactive-Map/
+├── .github/workflows/pages.yml
 ├── M7A_GitHub_Website_Full_Resolution/
 │   └── m7a-building/
 │       ├── index.html
-│       ├── styles.css
-│       ├── ui-polish.css
 │       ├── tour.js
 │       ├── tour-renderer.js
+│       ├── tour-routes.js
 │       ├── tour-assets.generated.js
 │       ├── tour-boot.js
 │       ├── tour-i18n.js
-│       ├── tour-routes.js
 │       ├── campus-directory.js
-│       ├── campus-map-labels.js
-│       ├── directions.js
+│       ├── campus-inventory.js
+│       ├── campus-sheet.js
+│       ├── campus-state.js
 │       ├── halls.js
+│       ├── directions.js
+│       ├── styles.css
+│       ├── ui-polish.css
+│       ├── ui-theme.js
 │       ├── service-worker.js
 │       ├── manifest.webmanifest
 │       ├── routes/
 │       │   ├── m7a.js
 │       │   ├── theater.js
 │       │   ├── library.js
-│       │   └── mens-hall.js
+│       │   ├── mens-hall.js
+│       │   ├── c4.js
+│       │   ├── al-zahra.js
+│       │   └── student-forums.js
+│       ├── covers/
 │       ├── assets/
 │       ├── assets-mobile/
 │       └── panoramas-mobile/
-├── scripts/
-│   └── build-tour-manifest.cjs
+├── scripts/build-tour-manifest.cjs
 ├── tests/
+├── AGENTS.md
 ├── NAVIGATION.md
+├── ADDING-HALLS.md
+├── STUDENT-FORUMS.md
 └── README.md
 ```
 
-### Responsibilities
+| Files | Responsibility |
+| --- | --- |
+| `routes/*.js` | Scene names, connections, arrow bearings, and camera calibration |
+| `tour.js` | Viewer orchestration, transitions, loading, recovery, and search integration |
+| `tour-renderer.js` | Renderer configuration |
+| `campus-*.js`, `halls.js`, `directions.js` | Campus directory, map data, sheet behavior, and destinations |
+| `tour-i18n.js` | English and Arabic interface copy |
+| `styles.css`, `ui-polish.css`, `ui-theme.js` | Layout, branding, responsive presentation, and theme controls |
+| `service-worker.js` | Application-shell and panorama caching |
+| `tour-assets.generated.js` | Generated core asset list, route list, panorama revisions, and shell build identifier |
 
-- **`routes/*.js`** — scene names, connections, arrow bearings, camera/navigation calibration
-- **`tour.js`** — viewer orchestration, transitions, search integration, motion controls, loading and recovery
-- **`tour-renderer.js`** — Three.js renderer and panorama post-processing pipeline
-- **`tour-assets.generated.js`** — generated cache manifest and content revisions
-- **`campus-directory.js`** — campus directory, building/room search, map markers, mobile map sheet
-- **`tour-i18n.js`** — English/Arabic interface copy
-- **`styles.css`** — core viewer styling
-- **`ui-polish.css`** — UOS branding and responsive presentation layer
-- **`service-worker.js`** — offline shell and panorama caching
+## Run locally
 
-Keeping route calibration separate from presentation code reduces the risk of visual UI work changing navigation.
-
----
-
-## Navigation System
-
-Each panorama is a node in a route graph. A route can define values such as:
-
-```js
-{
-  to: 1,
-  angle: 2.1,
-  label: 'Main Hall · Study Rooms'
-}
-```
-
-Depending on the scene, routes may also include:
-
-- arrival angle
-- departure angle
-- hotspot angle
-- arrow angle
-- hotspot distance
-- stair direction
-- back-navigation state
-
-Panorama bearings are calibrated independently because each 360° photograph can have a different stitched orientation.
-
-See **`NAVIGATION.md`** for calibration details.
-
----
-
-## Performance
-
-The viewer uses several optimizations for large panorama files:
-
-- Full-resolution desktop assets
-- Dedicated mobile assets
-- Dynamic renderer pixel-ratio limits
-- Network prefetching
-- Likely-destination preloading
-- Limited decoded-scene caching
-- GPU-conscious mobile transitions
-- Static shell caching
-- Reuse of previously downloaded panorama files
-- Reduced effects on coarse-pointer devices
-
-Mobile devices currently use dedicated **3072 × 1536** panorama resources where available.
-
----
-
-## Offline / PWA
-
-The service worker caches the main application shell and runtime resources, including:
-
-- HTML
-- Core and responsive CSS
-- Viewer modules
-- Route modules
-- Map assets
-- MapLibre resources
-- Three.js runtime resources
-- Icons and manifest
-- Static thumbnails encountered while browsing
-- Previously viewed panorama files
-
-Large panorama downloads remain separately cached so UI releases do not unnecessarily invalidate them.
-
----
-
-## Running Locally
-
-Because the project uses JavaScript modules, GLB assets, and a service worker, serve it through HTTP rather than opening the HTML file directly.
+Use a local HTTP server rather than opening `index.html` directly.
 
 ```bash
-git clone https://github.com/Koko-aka-Omar/hallV3.git
-cd hallV3/M7A_GitHub_Website_Full_Resolution/m7a-building
+git clone https://github.com/Koko-aka-Omar/UOS-Interactive-Map.git
+cd UOS-Interactive-Map/M7A_GitHub_Website_Full_Resolution/m7a-building
 python -m http.server 8000
 ```
 
-Then open:
+Open **http://localhost:8000/** in a browser.
 
-```text
-http://localhost:8000
-```
-
----
-
-## Deployment
-
-Every push to `main` triggers the GitHub Pages workflow:
-
-```text
-.github/workflows/pages.yml
-```
-
-Published site:
-
-**https://koko-aka-omar.github.io/hallV3/**
-
----
-
-## Navigation QA
-
-The repository contains navigation checks under `tests/`.
-
-From the repository root:
+For an existing local clone, run this from its repository directory to update the remote after the rename:
 
 ```bash
-node tests/build-navigation-qa.cjs
+git remote set-url origin https://github.com/Koko-aka-Omar/UOS-Interactive-Map.git
+git remote -v
 ```
 
-The navigation data should be tested whenever route connections, arrow bearings, arrival directions, or panorama files are changed.
+Renaming the local folder is optional. The application subdirectory remains unchanged.
 
-UI-only changes should avoid editing route calibration unless there is a specific navigation issue.
+## Deployment and links
 
-### Automated integrity gate
+The workflow in [`.github/workflows/pages.yml`](.github/workflows/pages.yml) publishes the application directory to GitHub Pages on pushes to `main`, or when manually dispatched.
 
-Every GitHub Pages deployment runs:
+**Site address:** https://koko-aka-omar.github.io/UOS-Interactive-Map/
+
+The workflow checks the generated asset manifest and selected browser-module syntax before deploying. Its upload path is the application subdirectory, not the repository name.
+
+Local application resources and the PWA's start URL and scope use relative paths. The absolute social-preview URLs in `index.html` must match the published site address.
+
+Update old bookmarks, QR-code destinations, and previously shared Pages links to the new address. GitHub redirects renamed repository URLs, but **does not automatically redirect project-site URLs**; see [GitHub's repository-renaming guidance](https://docs.github.com/en/repositories/creating-and-managing-repositories/renaming-a-repository). Existing scene query parameters can be retained when updating a site link.
+
+## Maintenance and validation
+
+Read [AGENTS.md](AGENTS.md) before making changes. Keep edits focused, preserve scene IDs and route connectivity, and do not rename panorama assets or move the app root.
+
+After runtime, route, or panorama changes, run these commands from the repository root:
 
 ```bash
+node scripts/build-tour-manifest.cjs
 node tests/validate-tour.cjs
+```
+
+Check that the generated manifest is current with:
+
+```bash
+node scripts/build-tour-manifest.cjs --check
+```
+
+The manifest is generated; do not hand-edit it. Its shell build identifier changes with core-file content, while panorama revisions track panorama content separately.
+
+For navigation work, also run:
+
+```bash
 node tests/build-navigation-qa.cjs
 ```
 
-The validator checks scene IDs, route targets and reverse links, panorama assets, mobile assets, search destinations, thumbnails, translation key parity, and required UI files. A failed validation blocks the Pages deployment. Pull requests also have a dedicated **UOS Tour QA** workflow.
-
----
+Use [NAVIGATION.md](NAVIGATION.md) for calibration and [ADDING-HALLS.md](ADDING-HALLS.md) when adding a hall. [STUDENT-FORUMS.md](STUDENT-FORUMS.md) documents the Student Forums addition. Arrow bearings and arrival directions depend on each panorama's actual orientation; avoid automatic reverse-angle assumptions or unrelated navigation changes.
 
 ## Credits
 
-Developed by **part-time students for the University of Sharjah**, under **Doctor Afra Alteniji’s instructions**.
+Developed by **part-time students for the University of Sharjah**, under the guidance of **Dr. Afra Saif Altunaiji**.
 
-Repository:
-
-**https://github.com/Koko-aka-Omar/hallV3**
+The University of Sharjah logo and campus map are the property of the University of Sharjah. All rights reserved.
