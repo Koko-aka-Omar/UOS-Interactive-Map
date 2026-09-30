@@ -17,16 +17,28 @@ export function createCampusSheet({ card, handle, controls, header, body, action
   const listeners = new AbortController(), signal = listeners.signal;
   const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
   const mobile = () => matchMedia('(max-width: 640px) and (orientation: portrait)').matches;
+  const hint=document.createElement('small');hint.className='sheet-gesture-hint';
+  let hintDone=false;try{hintDone=localStorage.getItem('hallv3.sheet-gesture.v1')==='done';}catch{}
+  if(!hintDone)header.append(hint);
   const currentHeight = () => card.getBoundingClientRect().height;
   const stopAnimation = () => { const height = currentHeight(); ++token; animation?.cancel(); animation = null; card.style.height = height + 'px'; return height; };
   function measure() {
     const viewport = window.visualViewport;
     const visibleBottom = (viewport?.offsetTop || 0) + (viewport?.height || innerHeight);
+    // One handle, two physical anchors. Moving it preserves listeners and state.
+    const phone = mobile(), parent = phone ? header : card;
+    if (handle.parentElement !== parent) {
+      if (phone) header.prepend(handle); else card.append(handle);
+    }
+    handle.setAttribute('aria-label', phone
+      ? (document.documentElement.lang === 'ar' ? 'تغيير ارتفاع التفاصيل' : 'Adjust details sheet')
+      : (document.documentElement.lang === 'ar' ? 'تغيير حجم بطاقة التفاصيل' : 'Resize details card'));
+    hint.hidden=!phone||hintDone;hint.textContent=document.documentElement.lang==='ar'?'اسحب للأعلى لعرض التفاصيل':'Drag to expand';
     card.closest('#map-panel').classList.toggle('campus-keyboard',Boolean(viewport&&mobile()&&viewport.height<innerHeight*.72));
     const top = mobile() ? controls.getBoundingClientRect().bottom + 10 : card.getBoundingClientRect().top;
     // Keyboard geometry changes the sheet, not the map's geographic camera.
     card.style.setProperty('--sheet-bottom', mobile() ? Math.max(0, innerHeight - visibleBottom) + 'px' : 'auto');
-    heights = sheetHeights(visibleBottom - top - (mobile() ? 0 : 18), header.offsetHeight, actions.hidden ? 0 : actions.offsetHeight);
+    heights = sheetHeights(visibleBottom - top - (phone ? 0 : 18), header.offsetHeight + (phone ? 0 : handle.offsetHeight), actions.hidden ? 0 : actions.offsetHeight);
   }
   function access() {
     const peek = snap === 'peek';
@@ -53,6 +65,7 @@ export function createCampusSheet({ card, handle, controls, header, body, action
     card.classList.remove('is-dragging'); suppressClick = finished.moved;
     if (handle.hasPointerCapture(finished.id)) handle.releasePointerCapture(finished.id);
     const velocity = performance.now() - finished.time < 110 ? finished.velocity : 0;
+    if(!cancelled&&finished.moved&&mobile()){hintDone=true;hint.remove();try{localStorage.setItem('hallv3.sheet-gesture.v1','done');}catch{}}
     set(cancelled ? finished.snap : finished.moved ? settleSheet(currentHeight(), velocity, heights) : snap);
   }
   handle.addEventListener('pointerdown', event => {
@@ -64,12 +77,13 @@ export function createCampusSheet({ card, handle, controls, header, body, action
   handle.addEventListener('pointermove', event => {
     if (!drag || event.pointerId !== drag.id) return;
     event.stopPropagation();
-    const delta = drag.y - event.clientY;
+    const direction = mobile() ? -1 : 1;
+    const delta = (event.clientY - drag.y) * direction;
     if (!drag.moved && Math.abs(delta) < 5) return;
     event.preventDefault(); drag.moved = true; card.classList.add('is-dragging');
     body.hidden = false; body.inert = false;
     const now = performance.now(), elapsed = Math.max(1, now - drag.time);
-    drag.velocity = (drag.lastY - event.clientY) / elapsed;
+    drag.velocity = (event.clientY - drag.lastY) * direction / elapsed;
     drag.lastY = event.clientY; drag.time = now;
     card.style.height = Math.max(heights.peek, Math.min(heights.expanded, drag.height + delta)) + 'px';
   }, { signal });
@@ -82,7 +96,8 @@ export function createCampusSheet({ card, handle, controls, header, body, action
   }, { signal });
   handle.addEventListener('keydown', event => {
     const index = SHEET_SNAPS.indexOf(snap);
-    const next = event.key === 'ArrowUp' ? SHEET_SNAPS[Math.min(2, index + 1)] : event.key === 'ArrowDown' ? SHEET_SNAPS[Math.max(0, index - 1)] : event.key === 'Home' ? 'peek' : event.key === 'End' ? 'expanded' : null;
+    const grow = mobile() ? 'ArrowUp' : 'ArrowDown', shrink = mobile() ? 'ArrowDown' : 'ArrowUp';
+    const next = event.key === grow ? SHEET_SNAPS[Math.min(2, index + 1)] : event.key === shrink ? SHEET_SNAPS[Math.max(0, index - 1)] : event.key === 'Home' ? 'peek' : event.key === 'End' ? 'expanded' : null;
     if (next) { event.preventDefault(); event.stopPropagation(); set(next); }
   }, { signal });
   // Independent surface; never disable map interaction globally.

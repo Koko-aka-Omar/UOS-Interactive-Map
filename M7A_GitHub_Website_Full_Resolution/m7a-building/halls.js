@@ -6,6 +6,7 @@ export const HALLS = [
     name: { en: 'Al Zahra Hall', ar: 'قاعة الزهراء' },
     // Exact C2 centre on the unchanged 2026 campus artwork.
     mapCoordinates: [55.47735608256855, 25.280057692934516],
+    thumbnail: './covers/al-zahra.jpg',
     tour: { scene: 'al-zahra-001' },
     rooms: [
       { id: 'al-zahra-001', name: { en: 'Al Zahra Entrance', ar: 'مدخل قاعة الزهراء' }, floor: { en: 'Al Zahra Hall', ar: 'قاعة الزهراء' }, tour: { scene: 'al-zahra-001' } },
@@ -23,7 +24,7 @@ export const HALLS = [
     name: { en: 'C4', ar: 'C4' },
     // Exact C4 centre on the unchanged 2026 campus artwork.
     mapCoordinates: [55.47892269052845, 25.279957223150287],
-    thumbnail: './panoramas-mobile/c4-001.jpg',
+    thumbnail: './covers/c4.jpg',
     tour: { scene: 'c4-001' },
     rooms: [
       { id: 'c4-001', name: { en: 'C4 Entrance', ar: 'مدخل C4' }, floor: { en: 'C4', ar: 'C4' }, tour: { scene: 'c4-001' } },
@@ -48,7 +49,7 @@ export const HALLS = [
     name: { en: "Men's Hall", ar: 'قاعة الطلاب' },
     // A4 centre on the unchanged 2026 campus artwork.
     mapCoordinates: [55.484435266313, 25.279942153384],
-    thumbnail: './panoramas-mobile/mens-hall-078.jpg',
+    thumbnail: './covers/a4.jpg',
     tour: { scene: 'mens-hall-078' },
     rooms: []
   },
@@ -58,7 +59,7 @@ export const HALLS = [
     coordinates: [55.477603577553126, 25.27433935800182],
     // Pin position on the rotated 2026 campus artwork: exact E2 building centre.
     mapCoordinates: [55.470043608909286, 25.27984980357116],
-    thumbnail: './panoramas-mobile/theater-outer-entrance-a.jpg',
+    thumbnail: './covers/e2.jpg',
     tour: { scene: 'theater-entrance-a' },
     rooms: []
   },
@@ -67,7 +68,7 @@ export const HALLS = [
     name: { en: 'Library', ar: 'المكتبة' },
     // E4 library position on the campus artwork; not a GPS coordinate.
     mapCoordinates: [55.46917861123175, 25.279846706387637],
-    thumbnail: './panoramas-mobile/library-entrance-018.jpg',
+    thumbnail: './covers/e4.jpg',
     tour: { scene: 'library-entrance-018' },
     rooms: [
       { id: 'library-study-020', name: { en: 'Study Area 1', ar: 'منطقة الدراسة 1' }, floor: { en: 'Library', ar: 'المكتبة' }, tour: { scene: 'library-study-020' } },
@@ -88,7 +89,7 @@ export const HALLS = [
     coordinates: [55.47720532173917, 25.2857153181386],
     // M7 is College of Sciences; the 2026 campus artwork labels this building A11.
     mapCoordinates: [55.482804602208574, 25.280271872334957],
-    thumbnail: './panoramas-mobile/ground-entrance.jpg',
+    thumbnail: './covers/m7.jpg',
     tour: { scene: 'entrance' },
     rooms: [
       { id: 'm7a-001', name: { en: 'M7A-001', ar: 'M7A-001' }, floor: { en: 'Ground floor', ar: 'الطابق الأرضي' }, tour: { scene: 'm7a-001' } },

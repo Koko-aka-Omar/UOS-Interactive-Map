@@ -1,6 +1,6 @@
 import { artworkPoint, TOUR_FOOTPRINTS } from './campus-geometry.js';
 // Code backgrounds match the retained artwork. Labels are independent of outlines.
-const colors={A:'#413b61',B:'#f46b3e',C:'#315dab',E:'#00bf88',F:'#404040',G:'#4f798b',H:'#8b4f9e'};
+export const ZONE_COLORS={A:'#413b61',B:'#f46b3e',C:'#315dab',E:'#00bf88',F:'#404040',G:'#4f798b',H:'#8b4f9e'};
 export function addCampusArtworkLabels(map,corners,halls,onSelect) {
   const sourceId='campus-tour-footprints',layerIds=['campus-tour-halo','campus-tour-dark','campus-tour-edge','campus-tour-accent','campus-tour-hit'];
   let selectedId=null,hoveredId=null,matchingIds=new Set(halls.map(h=>h.id)),filtered=false,destroyed=false;
@@ -34,14 +34,15 @@ export function addCampusArtworkLabels(map,corners,halls,onSelect) {
       const size=code.length>3?10:code.startsWith('F')||code.startsWith('G')||code.startsWith('H')||['A6','A15','A17','A18','A20','B2','C6','C16'].includes(code)?12:18;
       const mask=document.createElement('span');mask.className='campus-code-mask';
       mask.style.width='calc('+(size+3)+'px * var(--campus-art-scale,1))';
-      mask.style.height='calc('+(code.length*size*.58+4)+'px * var(--campus-art-scale,1))';mask.style.background=colors[code[0]];
+      mask.style.height='calc('+(code.length*size*.58+4)+'px * var(--campus-art-scale,1))';mask.style.background=ZONE_COLORS[code[0]];
       const text=document.createElement('span');text.className='campus-code-text';text.textContent=code;text.dir='ltr';
-      text.style.fontSize='calc('+size+'px * var(--campus-art-scale,1))';text.style.background=colors[code[0]];
+      text.style.fontSize='calc('+size+'px * var(--campus-art-scale,1))';text.style.background=ZONE_COLORS[code[0]];
       inner.append(mask,text);
     }
     if(hall.tour?.scene) {
       const badge=document.createElement('span');badge.className='campus-availability';badge.textContent='360°';inner.append(badge);outer.classList.add('has-tour');
     }
+    const name=document.createElement('span');name.className='campus-selected-name';inner.append(name);
     outer.append(inner);
     const coordinate=artworkPoint(x,y,corners),marker=new maplibregl.Marker({element:outer,anchor:'center'}).setLngLat(coordinate).addTo(map);
     outer.onclick=event=>{
@@ -85,6 +86,7 @@ export function addCampusArtworkLabels(map,corners,halls,onSelect) {
         outer.classList.toggle('filter-match',filtered&&matchingIds.has(hall.id));
         outer.classList.toggle('filter-other',filtered&&!matchingIds.has(hall.id));
         const label=(hall.code?hall.code+' · ':'')+(hall.name[language]||hall.name.en);
+        outer.querySelector('.campus-selected-name').textContent=label;
         outer.title=label;outer.setAttribute('aria-label',label+(hall.tour?.scene?' · 360°':''));
         outer.setAttribute('aria-pressed',String(hall.id===selectedId));
       }

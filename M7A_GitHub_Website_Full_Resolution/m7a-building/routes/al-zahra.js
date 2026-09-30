@@ -17,7 +17,7 @@ const start=73;
 const normalize=angle=>(angle+Math.PI*2)%(Math.PI*2);
 const edge=(to,angle,arrivalAngle,back=false,kind=null,stairDirection=null,hotspotDistance=1.05)=>({
   to,angle,arrowAngle:angle,hotspotAngle:angle,hotspotDistance,
-  arrivalAngle,departureAngle:angle,preserveView:false,
+  arrivalAngle,departureAngle:angle,preserveView:true,
   ...(back?{back:true}:{}),
   ...(kind?{kind}:{}),
   ...(stairDirection?{stairDirection}:{})
