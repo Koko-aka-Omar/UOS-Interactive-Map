@@ -44,7 +44,7 @@ const manifest=loadManifest();
 
 check(PANORAMAS.length===LOCATIONS.length,'panorama/location counts match ('+PANORAMAS.length+')');
 check(LOCATIONS.length===LOCATION_AR.length,'English/Arabic location counts match ('+LOCATIONS.length+')');
-check(LOCATIONS.length===81,'expected 81 current tour checkpoints across the six registered areas');
+check(LOCATIONS.length===88,'expected 88 current tour checkpoints across the seven registered areas');
 
 const ids=new Set();
 for(let i=0;i<LOCATIONS.length;i++){

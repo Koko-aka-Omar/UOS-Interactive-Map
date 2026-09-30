@@ -403,7 +403,7 @@ export const BUILDING_RECORDS = [
     ],
     "verificationStatus": "map-listed",
     "aliases": [],
-    "tourBindingIds": []
+    "tourBindingIds": ["tour-student-forums"]
   },
   {
     "id": "building-a7",
@@ -2433,6 +2433,15 @@ export const SUPPLEMENTAL_PLACES = [
 ];
 
 export const TOUR_BINDINGS = [
+  {
+    "id": "tour-student-forums",
+    "buildingId": "building-a6",
+    "existingHallId": "student-forums",
+    "existingCode": "A6",
+    "sceneId": "student-forums-071",
+    "name": { "en": "Student Forums", "ar": "ملتقى الطلاب" },
+    "sourceIds": ["MAP", "REPO-HALLS"]
+  },
   {
     "id": "tour-m7a",
     "buildingId": "building-a11",

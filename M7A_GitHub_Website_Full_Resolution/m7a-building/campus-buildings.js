@@ -10,7 +10,7 @@ export const CAMPUS_BUILDINGS=[...BUILDING_RECORDS,...SUPPLEMENTAL_PLACES].map(r
   const legacy=HALLS.find(hall=>hall.id===binding?.existingHallId);
   const anchor=BUILDING_ANCHORS[record.code] || PLACE_ANCHORS[record.id];
   // Checkpoints remain navigation choices, not newly invented official rooms.
-  const checkpointArea=legacy?.id==='c4'||legacy?.id==='al-zahra';
+  const checkpointArea=legacy?.id==='c4'||legacy?.id==='al-zahra'||legacy?.id==='student-forums';
   const rooms=(legacy?.rooms||[]).map(room=>({...room,tour:validTarget(room.tour)}));
   return {...record,legacyHallId:legacy?.id,aliases:[...(record.aliases||[]),...(legacy?[legacy.code,legacy.name.en,legacy.name.ar,binding.name.en,binding.name.ar]:[])],
     mapCoordinates:anchor?artworkPoint(...anchor):null,anchor,

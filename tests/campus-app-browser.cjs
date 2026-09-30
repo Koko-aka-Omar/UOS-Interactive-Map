@@ -37,7 +37,7 @@ const readState=page=>page.evaluate(()=>JSON.parse(sessionStorage.getItem('hallv
     await page.goto('http://127.0.0.1:'+server.address().port);await page.locator('.campus-building-target').first().waitFor({timeout:60000});
     await page.waitForTimeout(500);assert(await page.locator('#map-panel').evaluate(el=>el.classList.contains('open')));
     assert.equal(await page.locator('.campus-map-card').getAttribute('data-snap'),'peek');assert.equal(requests.filter(url=>/assets(-mobile)?\/.*\.glb/.test(url)).length,0);
-    await page.locator('#campus-about').click();assert(await page.locator('#info-panel').evaluate(el=>el.classList.contains('open')));assert.equal(await page.locator('#campus-area-count').textContent(),'6');assert.equal(await page.locator('#campus-view-count').textContent(),'81');
+    await page.locator('#campus-about').click();assert(await page.locator('#info-panel').evaluate(el=>el.classList.contains('open')));assert.equal(await page.locator('#campus-area-count').textContent(),'7');assert.equal(await page.locator('#campus-view-count').textContent(),'88');
     await page.locator('#info-panel [data-close-panel]').click();assert(!(await page.locator('#info-panel').evaluate(el=>el.classList.contains('open'))));assert(await page.locator('#map-panel').evaluate(el=>el.classList.contains('open')));
     await page.locator('#hall-search').fill('M7A002');await page.locator('.hall-result').click();await page.locator('#directory-sheet-handle').press('End');await page.waitForTimeout(310);
     await page.locator('.hall-inside summary').click();await page.locator('#directory-body').evaluate(el=>el.scrollTop=90);await page.waitForTimeout(150);

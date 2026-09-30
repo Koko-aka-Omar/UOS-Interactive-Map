@@ -97,5 +97,21 @@ export const HALLS = [
       { id: 'm7a-003', name: { en: 'M7A-003', ar: 'M7A-003' }, floor: { en: 'Ground floor', ar: 'الطابق الأرضي' }, tour: { scene: 'm7a-003' } },
       { id: 'm7a-004', name: { en: 'M7A-004', ar: 'M7A-004' }, floor: { en: 'Ground floor', ar: 'الطابق الأرضي' }, tour: { scene: 'm7a-004' } }
     ]
+  },
+  {
+    id: 'student-forums', code: 'A6',
+    name: { en: 'Student Forums', ar: 'ملتقى الطلاب' },
+    // A6 identity confirmed by the owner; reuse the existing artwork anchor.
+    mapCoordinates: [55.48428915609322, 25.279545297034954],
+    tour: { scene: 'student-forums-071' },
+    rooms: [
+      { id: 'student-forums-071', name: { en: 'Outside Entrance', ar: 'المدخل الخارجي' }, floor: { en: 'Student Forums', ar: 'ملتقى الطلاب' }, tour: { scene: 'student-forums-071' } },
+      { id: 'student-forums-072', name: { en: 'Central Hall', ar: 'البهو المركزي' }, floor: { en: 'Student Forums', ar: 'ملتقى الطلاب' }, tour: { scene: 'student-forums-072' } },
+      { id: 'student-forums-073', name: { en: 'Left-Side Checkpoint', ar: 'نقطة الجانب الأيسر' }, floor: { en: 'Student Forums', ar: 'ملتقى الطلاب' }, tour: { scene: 'student-forums-073' } },
+      { id: 'student-forums-074', name: { en: 'Right-Side Checkpoint', ar: 'نقطة الجانب الأيمن' }, floor: { en: 'Student Forums', ar: 'ملتقى الطلاب' }, tour: { scene: 'student-forums-074' } },
+      { id: 'student-forums-075', name: { en: 'Rejoining Checkpoint', ar: 'نقطة التقاء المسارين' }, floor: { en: 'Student Forums', ar: 'ملتقى الطلاب' }, tour: { scene: 'student-forums-075' } },
+      { id: 'student-forums-076', name: { en: 'Glass Passage Entrance', ar: 'مدخل الممر الزجاجي' }, floor: { en: 'Student Forums', ar: 'ملتقى الطلاب' }, tour: { scene: 'student-forums-076' } },
+      { id: 'student-forums-077', name: { en: 'Glass Passage', ar: 'الممر الزجاجي' }, floor: { en: 'Student Forums', ar: 'ملتقى الطلاب' }, tour: { scene: 'student-forums-077' } }
+    ]
   }
 ];

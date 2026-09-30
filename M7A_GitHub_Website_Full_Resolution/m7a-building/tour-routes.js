@@ -5,6 +5,7 @@ import * as LIBRARY from './routes/library.js';
 import * as MENS_HALL from './routes/mens-hall.js';
 import * as C4 from './routes/c4.js';
 import * as AL_ZAHRA from './routes/al-zahra.js';
+import * as STUDENT_FORUMS from './routes/student-forums.js';
 
 const AREA_SOURCES=[
   {hallId:'m7',module:M7A},
@@ -12,7 +13,8 @@ const AREA_SOURCES=[
   {hallId:'e3',module:LIBRARY},
   {hallId:'a4',module:MENS_HALL},
   {hallId:'c4',module:C4},
-  {hallId:'al-zahra',module:AL_ZAHRA}
+  {hallId:'al-zahra',module:AL_ZAHRA},
+  {hallId:'student-forums',module:STUDENT_FORUMS}
 ];
 
 let sceneOffset=0;

@@ -1,6 +1,6 @@
 globalThis.UOS_TOUR_ASSETS=Object.freeze({
   "schema": 1,
-  "buildId": "b81eaa807711",
+  "buildId": "d0d16d76b18d",
   "coreAssets": [
     "./apple-touch-icon.png",
     "./campus-buildings.js",
@@ -27,6 +27,7 @@ globalThis.UOS_TOUR_ASSETS=Object.freeze({
     "./routes/library.js",
     "./routes/m7a.js",
     "./routes/mens-hall.js",
+    "./routes/student-forums.js",
     "./routes/theater.js",
     "./social-preview.png",
     "./styles.css",
@@ -46,7 +47,8 @@ globalThis.UOS_TOUR_ASSETS=Object.freeze({
     "./routes/library.js",
     "./routes/mens-hall.js",
     "./routes/c4.js",
-    "./routes/al-zahra.js"
+    "./routes/al-zahra.js",
+    "./routes/student-forums.js"
   ],
   "panoramaFiles": [
     "ground-entrance.glb",
@@ -129,7 +131,14 @@ globalThis.UOS_TOUR_ASSETS=Object.freeze({
     "al-zahra-005.glb",
     "al-zahra-006.glb",
     "al-zahra-007.glb",
-    "al-zahra-008.glb"
+    "al-zahra-008.glb",
+    "student-forums-071.glb",
+    "student-forums-072.glb",
+    "student-forums-073.glb",
+    "student-forums-074.glb",
+    "student-forums-075.glb",
+    "student-forums-076.glb",
+    "student-forums-077.glb"
   ],
   "panoramaRevisions": {
     "desktop": {
@@ -213,7 +222,14 @@ globalThis.UOS_TOUR_ASSETS=Object.freeze({
       "al-zahra-005.glb": "87e9bf6e1668",
       "al-zahra-006.glb": "452ec36f0517",
       "al-zahra-007.glb": "d177760cf666",
-      "al-zahra-008.glb": "4dbf1dafdf6e"
+      "al-zahra-008.glb": "4dbf1dafdf6e",
+      "student-forums-071.glb": "cbca1143a850",
+      "student-forums-072.glb": "2b5dfcea459d",
+      "student-forums-073.glb": "a5e31af3ae68",
+      "student-forums-074.glb": "188366e31fa0",
+      "student-forums-075.glb": "44d7896356a8",
+      "student-forums-076.glb": "064445e7eba2",
+      "student-forums-077.glb": "484013152f81"
     },
     "mobile": {
       "ground-entrance.glb": "f84780998f7f",
@@ -296,7 +312,14 @@ globalThis.UOS_TOUR_ASSETS=Object.freeze({
       "al-zahra-005.glb": "d3be74a8c221",
       "al-zahra-006.glb": "78dc91139f0c",
       "al-zahra-007.glb": "3f5d82117617",
-      "al-zahra-008.glb": "33564d1d5a3d"
+      "al-zahra-008.glb": "33564d1d5a3d",
+      "student-forums-071.glb": "d341a92591c3",
+      "student-forums-072.glb": "f748c2757fd5",
+      "student-forums-073.glb": "97073d4aed20",
+      "student-forums-074.glb": "426d252ad146",
+      "student-forums-075.glb": "3e17e4f021d4",
+      "student-forums-076.glb": "e745c2fa4018",
+      "student-forums-077.glb": "50dce88f13d0"
     }
   }
 });
