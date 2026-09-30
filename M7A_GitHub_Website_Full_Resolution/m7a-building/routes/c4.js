@@ -17,7 +17,7 @@ const scenes=[
   {name:'Dining Hall',ar:'قاعة الطعام',view:3.12,routes:[[10,1.48,true],[12,3.12]]},
   {name:'Food Court Corridor',ar:'ممر المطاعم',view:3.15,routes:[[11,0.12,true],[13,3.15]]},
   {name:'Food Counter',ar:'منطقة المطاعم',view:3.30,routes:[[12,0.20,true],[14,3.30]]},
-  {name:'Dining Area',ar:'منطقة الطعام',view:0.00,routes:[[13,3.13,true]]}
+  {name:'Dining Area',ar:'منطقة الطعام',view:0.00,routes:[[13,0.00,true]]}
 ];
 
 const start=58;
@@ -26,6 +26,9 @@ const parents=[null,0,1,2,3,3,3,6,6,8,9,10,11,12,13];
 // Rendered C4 audit: corners need an independently verified forward arrival,
 // not the opposite bearing of a return arrow after the corridor has turned.
 const arrivals={'0->1':3.12,'1->2':3.13,'2->1':4.67,'3->2':1.48,'10->11':3.12,'11->10':5.98,'12->11':1.48};
+// At the last pair, the glass exit is ahead and the food counters are behind.
+// Keep these photographed travel bearings explicit in each destination frame.
+Object.assign(arrivals,{'12->13':3.30,'13->14':3.13,'14->13':0.20});
 const edge=(to,angle,arrivalAngle,back=false,hotspotDistance=1.05)=>({
   to,angle,arrowAngle:angle,hotspotAngle:angle,hotspotDistance,
   // C4 arrow travel faces its calibrated destination bearing. Carrying the
