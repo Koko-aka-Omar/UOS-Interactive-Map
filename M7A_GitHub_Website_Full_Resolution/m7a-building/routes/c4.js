@@ -28,7 +28,10 @@ const parents=[null,0,1,2,3,3,3,6,6,8,9,10,11,12,13];
 const arrivals={'0->1':3.12,'1->2':3.13,'2->1':4.67,'3->2':1.48,'10->11':3.12,'11->10':5.98,'12->11':1.48};
 const edge=(to,angle,arrivalAngle,back=false,hotspotDistance=1.05)=>({
   to,angle,arrowAngle:angle,hotspotAngle:angle,hotspotDistance,
-  arrivalAngle,departureAngle:angle,preserveView:true,
+  // C4 arrow travel faces its calibrated destination bearing. Carrying the
+  // source look offset can turn the arrival backwards, especially on Back.
+  // Map entry and history restoration use their own views in transitionTo.
+  arrivalAngle,departureAngle:angle,preserveView:false,
   ...(back?{back:true}:{})
 });
 const reciprocalBearing=(from,to)=>{
