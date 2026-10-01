@@ -1,6 +1,6 @@
 globalThis.UOS_TOUR_ASSETS=Object.freeze({
   "schema": 1,
-  "buildId": "8fcda78e666c",
+  "buildId": "372d27986409",
   "coreAssets": [
     "./apple-touch-icon.png",
     "./campus-buildings.js",

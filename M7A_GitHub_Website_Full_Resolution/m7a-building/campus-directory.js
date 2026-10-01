@@ -1,5 +1,5 @@
 import { CATEGORIES, SOURCES } from './campus-inventory.js';
-import { ARTWORK_VERSION, CAMPUS_CORNERS, campusCameraPolicy, clampCampusCamera } from './campus-geometry.js';
+import { ARTWORK_VERSION, CAMPUS_CORNERS, artworkPoint, campusCameraPolicy, campusBoundsCamera, clampCampusCamera } from './campus-geometry.js';
 import { createCampusStateStore, matchesFilters } from './campus-state.js';
 import { createCampusSheet } from './campus-sheet.js';
 import { ZONE_COLORS } from './campus-map-labels.js';
@@ -27,6 +27,8 @@ export function sourceCaption(id, language) {
     MEDICINE:['College of Medicine','كلية الطب'], DENTISTRY:['College of Dental Medicine','كلية طب الأسنان'],
     LIBRARY:['Library website','موقع المكتبة'], 'LIBRARY-LOCATIONS':['Library locations','مواقع المكتبات'],
     REGISTRAR:['Office of the Registrar','إدارة التسجيل'],
+    ORM:['Office of Risk Management','مكتب إدارة المخاطر'],
+    'CENTRAL-LABS':['Central Laboratories Directorate','إدارة المختبرات المركزية'],
     'MEN-AFFAIRS':['Student Affairs — Men','شؤون الطلاب'], 'WOMEN-AFFAIRS':['Student Affairs — Women','شؤون الطالبات'],
     'MEN-HOUSING':['Student housing — Men','سكن الطلاب'], 'WOMEN-HOUSING':['Student housing — Women','سكن الطالبات'],
     SPORTS:['University sports','الرياضة الجامعية'], INNOVATION:['Innovation Hub','مركز الابتكار'],
@@ -66,6 +68,7 @@ export function groupNearby(halls, project, radius = 64) {
 
 export function normalizeSearch(value = '') {
   return value.normalize('NFKC').toLocaleLowerCase()
+    .replace(/['’]/g, '')
     .replace(/[٠-٩۰-۹]/g, d => String('٠١٢٣٤٥٦٧٨٩'.includes(d) ? '٠١٢٣٤٥٦٧٨٩'.indexOf(d) : '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
     .replace(/[\u0610-\u061a\u064b-\u065f\u0670\u06d6-\u06edـ]/g, '')
     .replace(/[أإآٱ]/g, 'ا').replace(/ى/g, 'ي')
@@ -81,6 +84,13 @@ const everyday = {
   'student-services':['student services','خدمات الطلاب','خدمات الطالبات']
 };
 const compact = value => normalizeSearch(value).replace(/ /g, '');
+function matchesSearchToken(value, token) {
+  // Campus qualifiers must not match inside "women’s" or "female".
+  const gender = /^(men|mens|male|males)$/.test(token) ? /^(men|mens|male|males)$/
+    : /^(women|womens|female|females)$/.test(token) ? /^(women|womens|female|females)$/ : null;
+  if (gender) return value.split(' ').some(word => gender.test(word));
+  return value.includes(token) || compact(value).includes(compact(token));
+}
 function searchRank(query, codes, names, extra) {
   const needle = normalizeSearch(query), code = compact(query);
   if (!needle) return 0;
@@ -89,7 +99,7 @@ function searchRank(query, codes, names, extra) {
   if (normalized.includes(needle)) return 1;
   if ([...codes.map(normalizeSearch), ...normalized].some(value => value.startsWith(needle))) return 2;
   const fields = [...normalized, ...codes.map(normalizeSearch), ...extra.map(normalizeSearch)];
-  return needle.split(' ').every(token => fields.some(value => value.includes(token) || compact(value).includes(compact(token)))) ? 3 : Infinity;
+  return needle.split(' ').every(token => fields.some(value => matchesSearchToken(value, token))) ? 3 : Infinity;
 }
 export function searchHalls(halls, query, language = 'en') {
   const items = [];
@@ -150,7 +160,7 @@ export function createDirectory({ halls, root, language, isReady, openTour, star
   let saved=store.read(), map=null, artwork=null, initialized=false, restoring=false;
   let selected=null, room=null, group=null, mode='results', activeCategory=null, toursOnly=false;
   let resultsScroll=0, detailScroll=0, sections={}, detailKey='', listKey='', scrollTimer=null, contentAnimation=null;
-  let cardViewState=null;
+  let cardViewState=null, frameTimer=null;
   const text=key=>copy[language()][key], label=hall=>(hall.code?'\u2066'+hall.code+'\u2069 · ':'')+localized(hall.name,language());
   const node=(tag, className='', value='')=>{const el=document.createElement(tag);el.className=className;el.textContent=value;return el;};
   const button=(className, caption, onclick)=>{const el=node('button',className,caption);el.type='button';el.onclick=onclick;return el;};
@@ -167,7 +177,7 @@ export function createDirectory({ halls, root, language, isReady, openTour, star
     saved=store.write({version:2,artwork:ARTWORK_VERSION,camera:{center:[center.lng,center.lat],zoom:map.getZoom(),bearing:map.getBearing(),pitch:map.getPitch(),padding:map.getPadding()},
       selectedId:selected?.id||null,roomId:room?.id||null,mode,snap:cardViewState?.snap||sheet.snap,activeCategory,toursOnly,query:search.value,resultsScroll,detailScroll,sections});
   }
-  const sheet=createCampusSheet({card:$('.campus-map-card'),handle,controls:$('#campus-controls'),header:$('#directory-header'),body,actions,onSettle:(_,reason)=>{updateHeader();if(reason?.gesture&&mode==='details'&&!root.classList.contains('campus-focus'))ensureSelectedVisible();snapshot();}});
+  const sheet=createCampusSheet({card:$('.campus-map-card'),handle,controls:$('#campus-controls'),header:$('#directory-header'),body,actions,onSettle:(_,reason)=>{updateHeader();if(reason?.gesture&&!root.classList.contains('campus-focus')){if(mode==='details')ensureSelectedVisible();else if(activeCategory||toursOnly||search.value.trim())frameResults();}snapshot();}});
   let focusSnapshot=null;
   $('#campus-focus')?.addEventListener('click',()=>{
     const focused=root.classList.contains('campus-focus');
@@ -175,6 +185,7 @@ export function createDirectory({ halls, root, language, isReady, openTour, star
     root.classList.toggle('campus-focus',!focused);
     if(focused){sheet.set(focusSnapshot?.snap||sheet.snap,{instant:true,notify:false});body.scrollTop=focusSnapshot?.scroll||0;focusSnapshot=null;}
     updateHeader();
+    if(focused&&mode==='details')ensureSelectedVisible();
   },{signal});
   function refreshMarkers() {
     artwork?.update({selectedId:selected?.id,matchingIds:activeMatches(),filtered:Boolean(activeCategory||toursOnly||search.value.trim()),language:language()});
@@ -184,11 +195,13 @@ export function createDirectory({ halls, root, language, isReady, openTour, star
     rememberScroll();mode=next;
     render();body.scrollTop=mode==='details'?detailScroll:resultsScroll;
   }
-  function revealResults(resetScroll=true) {
+  function revealResults(resetScroll=true,frameDelay=0) {
     rememberScroll();group=null;mode='results';
     if(resetScroll)resultsScroll=0;
     render();body.scrollTop=resultsScroll;
     if(sheet.snap==='peek')sheet.set('half');
+    clearTimeout(frameTimer);
+    frameTimer=setTimeout(frameResults,frameDelay);
     snapshot();
   }
   // Structural controls are created once. Updates do not replace an open menu.
@@ -229,24 +242,39 @@ export function createDirectory({ halls, root, language, isReady, openTour, star
     if(zone){const caption=language()==='ar'?'انتقل إلى منطقة':'Go to zone';zone.options[0].textContent=caption;zone.setAttribute('aria-label',caption);}
   }
   function select(hall, selectedRoom=null) {
+    clearTimeout(frameTimer);
     rememberScroll();
     const changed=selected?.id!==hall.id;
     if(changed||room?.id!==selectedRoom?.id)root.dispatchEvent(new CustomEvent('campus-selection-change'));
     selected=hall;room=selectedRoom;group=null;mode='details';
     if(changed)detailScroll=0;
     render();sheet.set(sheet.snap==='expanded'?'expanded':'half');body.scrollTop=detailScroll;
-    if(changed)ensureSelectedVisible();
+    ensureSelectedVisible();
     snapshot();
   }
   function ensureSelectedVisible(){
-    if(map&&selected?.mapCoordinates) {
-      const point=map.project(selected.mapCoordinates),container=map.getContainer(),card=$('.campus-map-card').getBoundingClientRect(),controls=$('#campus-controls').getBoundingClientRect();
-      const padding=overviewPadding();
-      const occluded=[card,controls].some(rect=>point.x>=rect.left&&point.x<=rect.right&&point.y>=rect.top&&point.y<=rect.bottom);
-      if(occluded||point.x<padding.left||point.x>container.clientWidth-padding.right||point.y<padding.top||point.y>container.clientHeight-padding.bottom) {
-        map.easeTo({center:selected.mapCoordinates,padding,duration:reduced()?0:280});
-      }
-    }
+    if(selected)frameBuildings([selected]);
+  }
+  function frameBuildings(members){
+    if(!map||!members.length)return;
+    const points=members.flatMap(hall=>{
+      // Frame a little of the surrounding campus, including small single results.
+      if(hall.anchor){const [x,y]=hall.anchor;return [artworkPoint(x-80,y-100),artworkPoint(x+80,y+100)];}
+      const coordinate=mapCoordinate(hall);return coordinate?[coordinate]:[];
+    });
+    if(!points.length)return;
+    const xs=points.map(p=>p[0]),ys=points.map(p=>p[1]),padding=buildingPadding();
+    applyCameraPolicy();
+    const container=map.getContainer(),bounds=[[Math.min(...xs),Math.min(...ys)],[Math.max(...xs),Math.max(...ys)]];
+    map.easeTo({...campusBoundsCamera(bounds,container.clientWidth,container.clientHeight,padding,map.getMaxZoom()-.75),duration:reduced()?0:340});
+  }
+  function frameResults(){
+    frameTimer=null;
+    if(mode!=='results'||!root.classList.contains('open'))return;
+    if(!activeCategory&&!toursOnly&&!search.value.trim()){overview(false);return;}
+    const matches=activeMatches();
+    // Empty searches keep their position; an unrelated saved selection is not a result.
+    frameBuildings(halls.filter(hall=>matches.has(hall.id)));
   }
   function renderList() {
     const pool=group||halls;
@@ -344,7 +372,7 @@ export function createDirectory({ halls, root, language, isReady, openTour, star
         else sources.append(node('small','',caption));
       }
       sources.addEventListener('toggle',()=>{if(sources.isConnected&&detail.contains(sources)){sectionsFor().sources=sources.open;snapshot();}},{signal});detail.append(sources);
-      if(selected.mapCoordinates)detail.append(button('campus-filter',text('show'),()=>map?.easeTo({center:selected.mapCoordinates,duration:reduced()?0:280})));
+      if(selected.mapCoordinates)detail.append(button('campus-filter',text('show'),ensureSelectedVisible));
       contentAnimation?.cancel();
       if(!restoring&&!reduced())contentAnimation=detail.animate([{opacity:.45},{opacity:1}],{duration:150});
     }
@@ -392,7 +420,7 @@ export function createDirectory({ halls, root, language, isReady, openTour, star
     returnButton.hidden=mode!=='results'||!selected;returnButton.textContent=selected?(language()==='ar'?'العودة إلى ':'Return to ')+label(selected):'';
   }
   function render(){renderFilters();const count=renderList();renderDetail();renderActions();updateHeader(count);refreshMarkers();}
-  search.addEventListener('input',()=>revealResults(),{signal});
+  search.addEventListener('input',()=>revealResults(true,240),{signal});
   search.addEventListener('keydown',event=>{
     if(event.key==='Escape'){event.preventDefault();event.stopPropagation();if(selected)returnButton.onclick();search.blur();return;}
     if(!['ArrowDown','ArrowUp','Enter'].includes(event.key))return;
@@ -406,14 +434,14 @@ export function createDirectory({ halls, root, language, isReady, openTour, star
   $('#campus-clear-search').onclick=()=>{search.value='';revealResults();search.focus();};
   $('#campus-clear-filters').onclick=()=>{activeCategory=null;toursOnly=false;revealResults();};
   $('#campus-reset').onclick=()=>{search.value='';activeCategory=null;toursOnly=false;revealResults();};
-  browse.onclick=()=>{group=null;showMode('results');if(sheet.snap==='peek')sheet.set('half');snapshot();};
-  returnButton.onclick=()=>{if(selected){showMode('details');sheet.set(sheet.snap==='expanded'?'expanded':'half');body.scrollTop=detailScroll;snapshot();}};
-  collapse.onclick=()=>sheet.set(sheet.snap==='peek'?'half':sheet.snap==='half'?'expanded':'peek');
+  browse.onclick=()=>{group=null;showMode('results');if(sheet.snap==='peek')sheet.set('half');frameResults();snapshot();};
+  returnButton.onclick=()=>{if(selected){clearTimeout(frameTimer);showMode('details');sheet.set(sheet.snap==='expanded'?'expanded':'half');body.scrollTop=detailScroll;ensureSelectedVisible();snapshot();}};
+  collapse.onclick=()=>{sheet.set(sheet.snap==='peek'?'half':sheet.snap==='half'?'expanded':'peek');if(mode==='details')ensureSelectedVisible();else if(activeCategory||toursOnly||search.value.trim())frameResults();};
   body.addEventListener('scroll',()=>{currentScroll();clearTimeout(scrollTimer);scrollTimer=setTimeout(snapshot,120);},{passive:true,signal});
   $('#campus-overview').onclick=()=>overview(false);
   const zone=$('#campus-zone');
   if(zone){for(const id of [...new Set(halls.filter(h=>h.anchor&&h.zone).map(h=>h.zone))].sort()){const option=node('option','',id);option.value=id;zone.append(option);}
-    zone.onchange=()=>{const members=halls.filter(h=>h.zone===zone.value&&h.mapCoordinates);if(members.length){const points=members.map(h=>h.mapCoordinates),xs=points.map(p=>p[0]),ys=points.map(p=>p[1]);map?.fitBounds([[Math.min(...xs),Math.min(...ys)],[Math.max(...xs),Math.max(...ys)]],{padding:overviewPadding(),duration:reduced()?0:280,maxZoom:map.getMaxZoom()});}zone.value='';};}
+    zone.onchange=()=>{clearTimeout(frameTimer);const members=halls.filter(h=>h.zone===zone.value&&h.mapCoordinates);frameBuildings(members);zone.value='';};}
   function overviewPadding() {
     const phone=matchMedia('(max-width:640px) and (orientation:portrait)').matches,rtl=document.documentElement.dir==='rtl';
     const controls=$('#campus-controls').getBoundingClientRect();
@@ -430,9 +458,26 @@ export function createDirectory({ halls, root, language, isReady, openTour, star
     // unobstructed rectangle that actually fits more artwork at this viewport.
     return campusCameraPolicy(innerWidth,innerHeight,below).minZoom>campusCameraPolicy(innerWidth,innerHeight,beside).minZoom?below:beside;
   }
+  function buildingPadding(){
+    let padding=overviewPadding();
+    if(!matchMedia('(max-width:640px) and (orientation:portrait)').matches){
+      const card=$('.campus-map-card').getBoundingClientRect(),tools=$('.campus-map-actions').getBoundingClientRect(),rtl=document.documentElement.dir==='rtl';
+      // Results need room beside the card, even when the full artwork fits below it.
+      const beside={top:Math.max(72,tools.bottom+16),bottom:45,left:rtl?24:card.right+20,right:rtl?innerWidth-card.left+20:24};
+      if(innerWidth-beside.left-beside.right>=220)padding=beside;
+    }
+    const phone=matchMedia('(max-width:640px)').matches,inset=phone?12:24;
+    padding.top+=inset;
+    // Small-scale markers remain a readable size rather than shrinking with artwork.
+    padding.left+=phone?34:inset;padding.right+=phone?34:inset;
+    padding.bottom+=inset+30;
+    return padding;
+  }
   function cameraPolicy() {
     const container=map?.getContainer()||$('#campus-map');
-    return campusCameraPolicy(container.clientWidth||innerWidth,container.clientHeight||innerHeight,overviewPadding());
+    const width=container.clientWidth||innerWidth,height=container.clientHeight||innerHeight;
+    const overview=campusCameraPolicy(width,height,overviewPadding()),buildings=campusCameraPolicy(width,height,buildingPadding());
+    return {...overview,minZoom:Math.min(overview.minZoom,buildings.minZoom)};
   }
   function applyCameraPolicy() {
     if(!map)return;
@@ -440,6 +485,7 @@ export function createDirectory({ halls, root, language, isReady, openTour, star
   }
   window.addEventListener('resize',applyCameraPolicy,{signal});
   function overview(instant) {
+    clearTimeout(frameTimer);
     const padding=overviewPadding(),container=map?.getContainer();
     if(!container)return;
     const policy=campusCameraPolicy(container.clientWidth,container.clientHeight,padding);
@@ -450,18 +496,19 @@ export function createDirectory({ halls, root, language, isReady, openTour, star
   return {
     setCardView(open) {
       if(open&&!cardViewState){rememberScroll();cardViewState={snap:sheet.snap,scroll:body.scrollTop,focused:root.classList.contains('campus-focus')};root.classList.remove('campus-focus');sheet.set('half',{notify:false});updateHeader();}
-      else if(!open&&cardViewState){const previous=cardViewState;cardViewState=null;root.classList.toggle('campus-focus',previous.focused);sheet.set(previous.snap,{notify:false});body.scrollTop=previous.scroll;updateHeader();snapshot();}
+      else if(!open&&cardViewState){const previous=cardViewState;cardViewState=null;root.classList.toggle('campus-focus',previous.focused);sheet.set(previous.snap,{notify:false});body.scrollTop=previous.scroll;updateHeader();if(mode==='details')ensureSelectedVisible();else if(activeCategory||toursOnly||search.value.trim())frameResults();snapshot();}
     },
     cameraPolicy,
     initialCamera(){return saved?.camera?clampCampusCamera({...saved.camera,padding:overviewPadding()},cameraPolicy()):null;},
     attach(nextMap,nextArtwork){map=nextMap;artwork=nextArtwork;applyCameraPolicy();map.on('moveend',snapshot);render();},
     selectGroup(members) {
+      clearTimeout(frameTimer);
       if(members.length===1){select(members[0]);handle.focus({preventScroll:true});return;}
       rememberScroll();group=members;mode='results';resultsScroll=0;
-      render();sheet.set(sheet.snap==='expanded'?'expanded':'half');body.scrollTop=0;snapshot();handle.focus({preventScroll:true});
+      render();sheet.set(sheet.snap==='expanded'?'expanded':'half');body.scrollTop=0;frameBuildings(members);snapshot();handle.focus({preventScroll:true});
     },
     selectById(id){const hall=halls.find(item=>item.id===id||item.legacyHallId===id);if(hall)select(hall);},
-    leave(){map?.stop();snapshot();},
+    leave(){clearTimeout(frameTimer);map?.stop();snapshot();},
     restore() {
       if(!map)return;
       const state=saved||store.read();restoring=true;map.stop();map.resize();
@@ -477,11 +524,12 @@ export function createDirectory({ halls, root, language, isReady, openTour, star
       sheet.set(!initialized&&initialTarget&&!state?'half':state?.snap||'peek',{instant:true,notify:false});
       body.scrollTop=mode==='details'?detailScroll:resultsScroll;
       applyCameraPolicy();
-      if(state?.camera)map.jumpTo(clampCampusCamera({...state.camera,padding:overviewPadding()},cameraPolicy()));else if(!initialized)overview(true);
+      const padding=selected&&mode==='details'||activeCategory||toursOnly||search.value.trim()?buildingPadding():overviewPadding();
+      if(state?.camera)map.jumpTo(clampCampusCamera({...state.camera,padding},cameraPolicy()));else if(!initialized)overview(true);
       initialized=true;restoring=false;
     },
     update(){const scroll=body.scrollTop;render();sheet.refresh();body.scrollTop=scroll;snapshot();},
     refreshMarkers,
-    destroy(){clearTimeout(scrollTimer);contentAnimation?.cancel();listeners.abort();sheet.destroy();map?.off('moveend',snapshot);artwork?.destroy();}
+    destroy(){clearTimeout(scrollTimer);clearTimeout(frameTimer);contentAnimation?.cancel();listeners.abort();sheet.destroy();map?.off('moveend',snapshot);artwork?.destroy();}
   };
 }
