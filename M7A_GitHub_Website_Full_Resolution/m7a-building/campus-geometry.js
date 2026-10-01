@@ -19,6 +19,16 @@ export function clampCampusCamera(camera,policy) {
   return {...camera,center:[clamp(center[0],policy.maxBounds[0][0],policy.maxBounds[1][0]),clamp(center[1],policy.maxBounds[0][1],policy.maxBounds[1][1])],
     zoom:clamp(camera.zoom,policy.minZoom,policy.maxZoom),bearing:0,pitch:0};
 }
+// Fit against the final free rectangle. MapLibre fitBounds adds existing map
+// padding to its options; our card changes need one absolute padding value.
+export function campusBoundsCamera(bounds,width,height,padding,maxZoom){
+  const [[west,south],[east,north]]=bounds;
+  const mercatorY=lat=>(1-Math.log(Math.tan(Math.PI/4+lat*Math.PI/360))/Math.PI)/2;
+  const northY=mercatorY(north),southY=mercatorY(south);
+  const freeWidth=Math.max(80,width-padding.left-padding.right),freeHeight=Math.max(80,height-padding.top-padding.bottom);
+  const zoom=Math.min(maxZoom,Math.log2(Math.min(freeWidth/Math.max((east-west)/360,1e-9),freeHeight/Math.max(southY-northY,1e-9))/512));
+  return {center:[(west+east)/2,Math.atan(Math.sinh(Math.PI*(1-northY-southY)))*180/Math.PI],zoom,padding,bearing:0,pitch:0};
+}
 export function artworkPoint(x,y,corners=CAMPUS_CORNERS) {
   return [corners[0][0]+(corners[3][0]-corners[0][0])*y/4118,
     corners[0][1]+(corners[1][1]-corners[0][1])*x/900];

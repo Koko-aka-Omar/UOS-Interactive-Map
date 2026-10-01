@@ -10,7 +10,8 @@ export function addCampusArtworkLabels(map,corners,halls,onSelect) {
     const points=TOUR_FOOTPRINTS[h.code].map(([x,y])=>artworkPoint(x,y,corners));
     return {type:'Feature',id:h.id,properties:{buildingId:h.id},geometry:{type:'Polygon',coordinates:[[...points,points[0]]]}};
   });
-  const emphasis=['case',['boolean',['feature-state','selected'],false],1,['boolean',['feature-state','muted'],false],.3,1];
+  const eligible=id=>!filtered||matchingIds.has(id)||id===selectedId;
+  const emphasis=['case',['boolean',['feature-state','muted'],false],0,1];
   const selected=['boolean',['feature-state','selected'],false],hover=['boolean',['feature-state','hover'],false];
   // Camera expressions must be top-level in MapLibre paint properties.
   const opacity=strength=>['interpolate',['linear'],['zoom'],15,0,16,['*',emphasis,strength]];
@@ -26,7 +27,7 @@ export function addCampusArtworkLabels(map,corners,halls,onSelect) {
   }
   function state() {
     if(!map.getSource(sourceId))return;
-    for(const feature of features)map.setFeatureState({source:sourceId,id:feature.id},{selected:feature.id===selectedId,hover:feature.id===hoveredId,muted:filtered&&!matchingIds.has(feature.id)});
+    for(const feature of features)map.setFeatureState({source:sourceId,id:feature.id},{selected:feature.id===selectedId,hover:feature.id===hoveredId,muted:!eligible(feature.id)});
   }
   function setHover(id){if(hoveredId===id)return;const previous=hoveredId;hoveredId=id;if(map.getSource(sourceId))for(const changed of [previous,id])if(changed&&features.some(f=>f.id===changed))map.setFeatureState({source:sourceId,id:changed},{hover:changed===id});const hall=halls.find(h=>h.id===id);if(hall)preview.show(hall);else preview.leave();}
   const entries=halls.filter(h=>h.anchor).map(hall=>{
@@ -51,6 +52,7 @@ export function addCampusArtworkLabels(map,corners,halls,onSelect) {
     if(hall.tour?.scene) {
       const badge=document.createElement('span');badge.className='campus-availability';badge.textContent='360°';inner.append(badge);outer.classList.add('has-tour');
     }
+    if(!code){const caption=document.createElement('span');caption.className='campus-place-text';inner.append(caption);}
     const name=document.createElement('span');name.className='campus-selected-name';inner.append(name);
     outer.append(inner);
     const coordinate=artworkPoint(x,y,corners),marker=new maplibregl.Marker({element:outer,anchor:'center'}).setLngLat(coordinate).addTo(map);
@@ -60,6 +62,7 @@ export function addCampusArtworkLabels(map,corners,halls,onSelect) {
       const rect=map.getContainer().getBoundingClientRect(),point={x:event.clientX-rect.left,y:event.clientY-rect.top};
       // Only genuinely overlapping label targets join the chooser; no chain grouping.
       const nearby=entries.filter(item=>{
+        if(item.outer.disabled)return false;
         const p=map.project(item.coordinate),box=item.outer.getBoundingClientRect();
         return Math.abs(p.x-point.x)<=box.width/2&&Math.abs(p.y-point.y)<=box.height/2;
       }).map(item=>item.hall);
@@ -71,34 +74,58 @@ export function addCampusArtworkLabels(map,corners,halls,onSelect) {
   });
   const tourEntries=entries.filter(item=>item.hall.tour?.scene);
   // Stable explicit choosers for labels that genuinely overlap at small scales.
-  const clusters=tourEntries.map(item=>{const outer=document.createElement('button');outer.type='button';outer.className='campus-tour-cluster';outer.hidden=true;const marker=new maplibregl.Marker({element:outer,anchor:'center'}).setLngLat(item.coordinate).addTo(map),cluster={outer,marker,members:[]};outer.onclick=event=>{event.stopPropagation();preview.close();onSelect?.(cluster.members);};return cluster;});
+  const clusters=[];
+  function clusterAt(index,coordinate){
+    if(clusters[index])return clusters[index];
+    const outer=document.createElement('button');outer.type='button';outer.className='campus-tour-cluster';outer.hidden=true;
+    const marker=new maplibregl.Marker({element:outer,anchor:'center'}).setLngLat(coordinate).addTo(map),cluster={outer,marker,members:[]};
+    outer.onclick=event=>{event.stopPropagation();preview.close();onSelect?.(cluster.members);};clusters.push(cluster);return cluster;
+  }
+  function labelAccess(item){
+    const suppressed=!eligible(item.hall.id)||item.outer.classList.contains('is-clustered');
+    item.outer.disabled=suppressed;item.outer.tabIndex=suppressed?-1:0;
+    item.outer.setAttribute('aria-hidden',String(suppressed));
+  }
   function clusterLabels(){
-    tourEntries.forEach(item=>item.outer.hidden=false);clusters.forEach(cluster=>cluster.outer.hidden=true);
-    const unseen=new Set(tourEntries);let used=0;
-    for(const start of tourEntries){if(!unseen.delete(start))continue;const members=[start];for(let index=0;index<members.length;index++)for(const other of unseen){const a=map.project(members[index].coordinate),b=map.project(other.coordinate);if(Math.abs(a.x-b.x)<62&&Math.abs(a.y-b.y)<28){unseen.delete(other);members.push(other);}}
-      if(members.length<2)continue;const cluster=clusters[used++];cluster.members=members.map(item=>item.hall);members.forEach(item=>item.outer.hidden=true);
+    entries.forEach(item=>item.outer.classList.remove('is-clustered'));clusters.forEach(cluster=>cluster.outer.hidden=true);
+    // A selection always has its own marker. Only visible results join a chooser.
+    const candidates=(filtered?entries.filter(item=>item.hall.code):tourEntries).filter(item=>eligible(item.hall.id)&&item.hall.id!==selectedId);
+    const unseen=new Set(candidates);let used=0;
+    for(const start of candidates){if(!unseen.delete(start))continue;const members=[start];for(let index=0;index<members.length;index++)for(const other of unseen){const a=map.project(members[index].coordinate),b=map.project(other.coordinate);if(Math.abs(a.x-b.x)<70&&Math.abs(a.y-b.y)<32){unseen.delete(other);members.push(other);}}
+      if(members.length<2)continue;const cluster=clusterAt(used++,start.coordinate);cluster.members=members.map(item=>item.hall);members.forEach(item=>item.outer.classList.add('is-clustered'));
       cluster.marker.setLngLat([members.reduce((sum,item)=>sum+item.coordinate[0],0)/members.length,members.reduce((sum,item)=>sum+item.coordinate[1],0)/members.length]);cluster.outer.hidden=false;
-      const chosen=members.find(item=>item.hall.id===selectedId);
-      cluster.outer.textContent=members.length<=2?members.map(item=>item.hall.code).join(' / '):chosen?chosen.hall.code+' +'+(members.length-1):String(members.length)+(language==='ar'?' جولات':' tours');cluster.outer.setAttribute('aria-label',(language==='ar'?'اختر جولة: ':'Choose a tour: ')+members.map(item=>item.hall.code+' · '+(item.hall.name[language]||item.hall.name.en)).join(', '));cluster.outer.classList.toggle('is-selected',Boolean(chosen));const matching=members.some(item=>matchingIds.has(item.hall.id));cluster.outer.classList.toggle('filter-match',filtered&&matching);cluster.outer.classList.toggle('filter-other',filtered&&!matching&&!chosen);
+      const allTours=members.every(item=>item.hall.tour?.scene);
+      cluster.outer.textContent=members.length<=2?members.map(item=>item.hall.code).join(' / '):String(members.length)+(language==='ar'?(allTours?' جولات':' مبانٍ'):(allTours?' tours':' buildings'));cluster.outer.setAttribute('aria-label',(language==='ar'?'اختر مبنى: ':'Choose a building: ')+members.map(item=>item.hall.code+' · '+(item.hall.name[language]||item.hall.name.en)).join(', '));cluster.outer.classList.toggle('filter-match',filtered);cluster.outer.classList.toggle('has-tour',allTours);
     }
+    // Leave each artwork mask painted, even when its label is filtered or clustered.
+    entries.forEach(labelAccess);
   }
   const resize=()=>{
     const left=map.project(corners[3]),right=map.project(corners[0]);
     map.getContainer().style.setProperty('--campus-art-scale',Math.hypot(right.x-left.x,right.y-left.y)/4118);
     map.getContainer().classList.toggle('campus-overview-scale',map.getZoom()<16);
     clusterLabels();
-    // Only the selected optional name is displayed; hide it if it covers a code.
-    for(const item of entries){const name=item.outer.querySelector('.campus-selected-name');name.classList.remove('label-collision');if(item.hall.id!==selectedId)continue;const box=name.getBoundingClientRect();if(!box.width)continue;const collision=entries.some(other=>{if(other===item)return false;const r=other.outer.getBoundingClientRect();return box.left<r.right&&box.right>r.left&&box.top<r.bottom&&box.bottom>r.top;});name.classList.toggle('label-collision',collision);}
+    // Prefer the free side of a selection instead of removing its name at overview.
+    for(const item of entries){
+      const name=item.outer.querySelector('.campus-selected-name');name.classList.remove('label-above');name.style.setProperty('--campus-name-offset','0px');
+      if(item.hall.id!==selectedId)continue;
+      const box=name.getBoundingClientRect(),viewport=map.getContainer().getBoundingClientRect(),point=map.project(item.coordinate);
+      if(!box.width)continue;
+      if(point.x>=0&&point.x<=viewport.width){const shift=box.left<viewport.left+12?viewport.left+12-box.left:box.right>viewport.right-12?viewport.right-12-box.right:0;name.style.setProperty('--campus-name-offset',shift+'px');}
+      const placed=name.getBoundingClientRect(),others=[...entries.filter(other=>other!==item&&!other.outer.disabled).map(other=>other.outer),...clusters.filter(cluster=>!cluster.outer.hidden).map(cluster=>cluster.outer)];
+      const collision=others.some(outer=>{const r=outer.getBoundingClientRect();return placed.left<r.right&&placed.right>r.left&&placed.top<r.bottom&&placed.bottom>r.top;});name.classList.toggle('label-above',collision);
+    }
   };
   const mapClick=event=>{
     const hit=map.getLayer(layerIds[4])?map.queryRenderedFeatures(event.point,{layers:[layerIds[4]]}):[];
-    if(hit.length){onSelect?.(hit.map(f=>halls.find(h=>h.id===f.properties.buildingId)).filter(Boolean));return;}
-    const nearby=entries.filter(item=>{const p=map.project(item.coordinate);return Math.hypot(p.x-event.point.x,p.y-event.point.y)<=12;}).map(item=>item.hall);
+    const visibleHit=hit.map(f=>halls.find(h=>h.id===f.properties.buildingId)).filter(hall=>hall&&eligible(hall.id));
+    if(visibleHit.length){onSelect?.(visibleHit);return;}
+    const nearby=entries.filter(item=>{if(item.outer.disabled)return false;const p=map.project(item.coordinate);return Math.hypot(p.x-event.point.x,p.y-event.point.y)<=12;}).map(item=>item.hall);
     if(nearby.length)onSelect?.(nearby);
   };
   const mapHover=event=>{
     if(!map.getLayer(layerIds[4]))return;
-    const hit=map.queryRenderedFeatures(event.point,{layers:[layerIds[4]]});
+    const hit=map.queryRenderedFeatures(event.point,{layers:[layerIds[4]]}).filter(f=>eligible(f.properties.buildingId));
     setHover(hit[0]?.properties.buildingId||null);map.getCanvas().style.cursor=hit.length?'pointer':'';
   };
   map.on('load',layers);if(map.isStyleLoaded())layers();
@@ -106,12 +133,14 @@ export function addCampusArtworkLabels(map,corners,halls,onSelect) {
   return {
     update({selectedId:next,matchingIds:matches,filtered:active,language:nextLanguage='en'}) {
       selectedId=next;matchingIds=matches;filtered=active;language=nextLanguage;
+      if(hoveredId&&!eligible(hoveredId)){setHover(null);preview.close();}
       for(const {hall,outer}of entries) {
         outer.classList.toggle('is-selected',hall.id===selectedId);
         outer.classList.toggle('filter-match',filtered&&matchingIds.has(hall.id));
         outer.classList.toggle('filter-other',filtered&&!matchingIds.has(hall.id));
         const label=(hall.code?hall.code+' · ':'')+(hall.name[language]||hall.name.en);
         outer.querySelector('.campus-selected-name').textContent=label;
+        const caption=outer.querySelector('.campus-place-text');if(caption)caption.textContent=hall.name[language]||hall.name.en;
         outer.title=label;outer.setAttribute('aria-label',label+(hall.tour?.scene?' · 360°':''));
         outer.setAttribute('aria-pressed',String(hall.id===selectedId));
       }

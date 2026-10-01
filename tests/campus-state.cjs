@@ -5,7 +5,7 @@ const load=file=>import(pathToFileURL(path.join(__dirname,'../M7A_GitHub_Website
 (async()=>{
   const {CAMPUS_BUILDINGS:halls,buildingForLegacyHall}=await load('campus-buildings.js');
   const {CATEGORIES,SOURCES,BUILDING_RECORDS,SUPPLEMENTAL_PLACES}=await load('campus-inventory.js');
-  const {ARTWORK_VERSION,artworkPoint,CAMPUS_CORNERS}=await load('campus-geometry.js');
+  const {ARTWORK_VERSION,artworkPoint,CAMPUS_CORNERS,campusBoundsCamera}=await load('campus-geometry.js');
   const {matchesFilters,sanitizeCampusState,createCampusStateStore}=await load('campus-state.js');
   const {searchHalls,filterCampus,sourceCaption}=await load('campus-directory.js');
   assert.equal(sourceCaption('LIBRARY','en'),'Library website');
@@ -37,11 +37,28 @@ const load=file=>import(pathToFileURL(path.join(__dirname,'../M7A_GitHub_Website
   assert(halls.find(hall=>hall.code==='C5').categories.includes('student-services'));
   assert.deepEqual(artworkPoint(0,0),CAMPUS_CORNERS[0]);
   assert.deepEqual(artworkPoint(900,4118),CAMPUS_CORNERS[2]);
+  // Card padding must reduce the available rectangle once, including after resize.
+  const bounds=[[0,0],[1,0]],zero={top:0,right:0,bottom:0,left:0};
+  const full=campusBoundsCamera(bounds,1024,768,zero,20);
+  const beside=campusBoundsCamera(bounds,1024,768,{...zero,left:512},20);
+  assert(Math.abs(full.zoom-beside.zoom-1)<1e-10);
+  assert.deepEqual(beside.center,full.center);
+  assert.equal(campusBoundsCamera(bounds,1024,768,zero,8).zoom,8);
+  assert.equal(full.bearing,0);assert.equal(full.pitch,0);
   assert.equal(halls.filter(hall=>matchesFilters(hall,'dining',true)).length,2);
   assert.equal(halls.filter(hall=>matchesFilters(hall,'libraries',true)).length,1);
   assert.equal(searchHalls(halls,'M7 A','en')[0].hall.code,'A11');
   assert.equal(searchHalls(halls,'E٤','ar')[0].hall.code,'E4');
   assert.equal(searchHalls(halls,'Al Zahra','en')[0].hall.code,'C2');
+  // Everyday campus qualifiers distinguish otherwise repeated building names.
+  for (const query of ['mens library', "men's library", 'men library'])
+    assert.deepEqual(searchHalls(halls,query).map(item=>item.hall.code),['A7']);
+  assert.deepEqual(searchHalls(halls,'womens library').map(item=>item.hall.code),['C7']);
+  assert.deepEqual(searchHalls(halls,'medical library').map(item=>item.hall.code),['E4']);
+  assert.deepEqual(searchHalls(halls,'مكتبة الطلاب','ar').map(item=>item.hall.code),['A7']);
+  assert.deepEqual(searchHalls(halls,'مكتبة الطالبات','ar').map(item=>item.hall.code),['C7']);
+  assert.equal(searchHalls(halls,'Administration Building of the Colleges of Medical and Health Sciences')[0].hall.code,'E3');
+  assert.equal(searchHalls(halls,'University Dental Hospital Sharjah')[0].hall.code,'E11');
   const camera={center:[55.47,25.28],zoom:16.237,bearing:0,pitch:0,padding:{top:3,right:4,bottom:5,left:6}};
   const state={version:1,artwork:ARTWORK_VERSION,camera,selectedId:'building-a11',roomId:'m7a-002',activeCategory:'libraries',toursOnly:true,query:'002',collapsed:true,sheetExpanded:true,scroll:47};
   const migrated=sanitizeCampusState(state,halls,CATEGORIES);
@@ -63,7 +80,7 @@ const load=file=>import(pathToFileURL(path.join(__dirname,'../M7A_GitHub_Website
   assert(halls.find(h=>h.code==='A1').publicNotice.en.includes('confirm'));
   assert(halls.find(h=>h.code==='A12').publicNotice.en.includes('confirm'));
   assert(halls.find(h=>h.code==='B2').publicNotice.en.includes('B1-A'));
-  assert.equal(halls.find(h=>h.code==='E10').description.en,'Building E10 · Zone E');
+  assert.equal(halls.find(h=>h.code==='E10').description.en,'Building E10 on the medical campus.');
   const stale=sanitizeCampusState({...state,roomId:'missing',activeCategory:'missing'},halls,CATEGORIES);
   assert.deepEqual(stale.camera,camera);assert.equal(stale.roomId,null);assert.equal(stale.activeCategory,null);
   assert.equal(sanitizeCampusState({...state,selectedId:'missing'},halls,CATEGORIES).selectedId,null);
