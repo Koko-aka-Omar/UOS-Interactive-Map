@@ -29,7 +29,13 @@ const arrivals={'0->1':3.12,'1->2':3.13,'2->1':4.67,'3->2':1.48,'10->11':3.12,'1
 // At the last pair, the glass exit is ahead and the food counters are behind.
 // Keep these photographed travel bearings explicit in each destination frame.
 Object.assign(arrivals,{'12->13':3.30,'13->14':3.13,'14->13':0.20});
-const edge=(to,angle,arrivalAngle,back=false,hotspotDistance=1.05)=>({
+// Floor positions are calibrated separately from the corridor vanishing point.
+// In the close views, centre the disc in the usable aisle, clear of glass,
+// pillars and furniture. Keys use the visible, one-based checkpoint numbers.
+const floorPlacement={
+  '3->2':1.57
+};
+const edge=(to,angle,arrivalAngle,back=false,hotspotDistance=.90)=>({
   to,angle,arrowAngle:angle,hotspotAngle:angle,hotspotDistance,
   // C4 arrow travel faces its calibrated destination bearing. Carrying the
   // source look offset can turn the arrival backwards, especially on Back.
@@ -55,8 +61,13 @@ export const LOCATIONS=scenes.map((scene,index)=>({
     angle,
     arrivals[index+'->'+to]??normalize(reciprocalBearing(index,to)+Math.PI),
     back,
-    index===0&&to===1?0.82:1.05
-  )).map(route=>index===13&&route.to===start+14?{...route,hotspotAngle:3.43}:route)
+    index===0&&to===1?0.82:.90
+  )).map(route=>({
+    ...route,hotspotAngle:floorPlacement[(index+1)+'->'+(route.to-start+1)]??route.angle,
+    // Keep the disc on the clear floor before the pillar, with the tip pointing
+    // left into dining instead of straight into the tiered seating.
+    ...(index===10&&route.to===start+11?{hotspotDistance:.72,arrowAngle:2.10}:{})
+  }))
 }));
 
 export const LOCATION_AR=scenes.map(scene=>({area:'C4',name:scene.ar}));

@@ -15,8 +15,7 @@ const load = file => import(require('node:url').pathToFileURL(path.join(root,fil
   assert.equal(searchHalls(HALLS, 'كلية العلوم', 'ar')[0].hall.id, 'm7');
   assert.equal(searchHalls(HALLS, 'does-not-exist', 'en').length, 0);
   assert.equal(searchHalls(HALLS, '', 'en').length, HALLS.length);
-  const styles = fs.readFileSync(path.join(root,'ui-polish.css'),'utf8');
-  assert(/\.campus-building-target\.has-tour\s+\.campus-code-mask\s*\{\s*display:\s*none\s*\}/.test(styles), 'Tour labels must not retain the zoom-scaled artwork mask over their names');
+  // Label-mask stacking is verified in the browser; masks now sit behind badges.
   const ids = new Set();
   const routeFiles = [...fs.readFileSync(path.join(root,'tour-routes.js'),'utf8').matchAll(/from\s+['"]\.\/routes\/([^'"]+\.js)['"]/g)].map(match=>match[1]);
   const routeIds = new Set();

@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { createPanoramaRenderer } from './tour-renderer.js';
+import { createPanoramaRefinement } from './tour-refinement.js';
 import { HALLS } from './halls.js';
 import { addCampusArtworkLabels } from './campus-map-labels.js';
 import { createDirectory, searchHalls, localized } from './campus-directory.js';
@@ -33,6 +34,13 @@ const DATA=PANORAMA_FILES.map(file=>{
   const revision=ASSET_MANIFEST?.panoramaRevisions?.[panoramaMode]?.[file];
   return panoramaDir+file+(revision?'?rev='+revision:'');
 });
+// Reuse the aligned mobile panorama for immediate desktop travel, then refine
+// the stationary view with the untouched original. Data-saving mode keeps one download.
+const TRAVEL_DATA=PANORAMA_FILES.map((file,i)=>{
+  const revision=ASSET_MANIFEST?.panoramaRevisions?.mobile?.[file];
+  return !coarsePointer&&!navigator.connection?.saveData&&revision
+    ? './assets-mobile/'+file+'?rev='+revision:DATA[i];
+});
 
 const CAMERA_HEIGHT=0.45;
 const {scene,camera,renderer,el,postUniforms,renderQuality,syncPostTargetSize,renderPanoramaFrame}=
@@ -40,16 +48,17 @@ const {scene,camera,renderer,el,postUniforms,renderQuality,syncPostTargetSize,re
 
 const loader=new GLTFLoader();
 
-// One fetch/parse path for demand and preload; at most one likely neighbor and
+// One fetch/parse path for demand and preload; at most two lightweight neighbors and
 // one recent view. The budget includes decoded RGBA plus GPU storage/mipmaps.
 const preloadCache=new Map();
 const networkPrefetches=new Map();
 const recentScenes=new Map();
-const DECODED_PRELOAD_LIMIT=1;
+const DECODED_PRELOAD_LIMIT=coarsePointer?1:2;
 const RECENT_SCENE_LIMIT=1;
 const SCENE_MEMORY_BUDGET=(coarsePointer?112:1024)*1024*1024;
 const sceneLoadingTimings=new Map(),sceneMemory=new Map();
 let preloadIdle=null,preparingTarget=null;
+let refinement=null;
 function estimatedSceneBytes(root){
   const textures=new Set();root?.traverse(mesh=>{for(const m of(Array.isArray(mesh.material)?mesh.material:[mesh.material]))if(m?.map)textures.add(m.map);});
   return [...textures].reduce((sum,texture)=>sum+(texture.image?.width||0)*(texture.image?.height||0)*4*(texture.generateMipmaps?1+4/3:2),0);
@@ -58,11 +67,12 @@ function residentSceneBytes(){
   return estimatedSceneBytes(object)+[...recentScenes.values()].reduce((sum,root)=>sum+estimatedSceneBytes(root),0)
     +[...preloadCache.keys()].reduce((sum,i)=>sum+(sceneMemory.get(i)||0),0);
 }
-function trimSceneMemory(keep=null){
-  while(residentSceneBytes()>SCENE_MEMORY_BUDGET&&recentScenes.size){const key=recentScenes.keys().next().value;dispose(recentScenes.get(key));recentScenes.delete(key);}
-  while(residentSceneBytes()>SCENE_MEMORY_BUDGET&&preloadCache.size){const key=[...preloadCache.keys()].find(i=>i!==keep&&i!==preparingTarget);if(key==null)break;evictDecodedPreload(key);}
+function trimSceneMemory(keep=null,incomingBytes=0){
+  while(residentSceneBytes()+incomingBytes>SCENE_MEMORY_BUDGET&&recentScenes.size){const key=recentScenes.keys().next().value;dispose(recentScenes.get(key));recentScenes.delete(key);}
+  while(residentSceneBytes()+incomingBytes>SCENE_MEMORY_BUDGET&&preloadCache.size){const key=[...preloadCache.keys()].find(i=>i!==keep&&i!==preparingTarget);if(key==null)break;evictDecodedPreload(key);}
 }
 function cancelStalePreloads(keep=null){
+  refinement?.cancel();
   if(preloadIdle!==null){if('cancelIdleCallback' in window)cancelIdleCallback(preloadIdle);else clearTimeout(preloadIdle);preloadIdle=null;}
   clearTimeout(hoverPreloadTimer);
   for(const i of preloadCache.keys())if(i!==keep)evictDecodedPreload(i);
@@ -72,9 +82,9 @@ function cancelStalePreloads(keep=null){
 function prefetchNetwork(i,foreground=false){
   if(i<0||i>=DATA.length)return null;
   const existing=networkPrefetches.get(i);
-  if(existing){existing.foreground ||= foreground;return existing.task;}
+  if(existing&&!existing.controller.signal.aborted){existing.foreground ||= foreground;return existing.task;}
   const controller=new AbortController(),start=performance.now(),record={controller,foreground,task:null};
-  record.task=fetch(DATA[i],{cache:'force-cache',signal:controller.signal}).then(async response=>{
+  record.task=fetch(TRAVEL_DATA[i],{cache:'force-cache',signal:controller.signal,priority:foreground?'high':'low'}).then(async response=>{
     if(!response.ok)throw new Error('HTTP '+response.status);
     const data=await response.arrayBuffer();
     sceneLoadingTimings.set(i,{networkMs:performance.now()-start,transferBytes:data.byteLength});return data;
@@ -117,7 +127,7 @@ function preloadCheckpoint(i,warmTexture=false){
     if(warmTexture)await warmCheckpointScene(gltf.scene,i);
     return gltf;
   }).catch(err=>{
-    preloadCache.delete(i);
+    if(preloadCache.get(i)===task)preloadCache.delete(i);
     if(err.name!=='AbortError')console.warn('Preload failed for checkpoint',i+1,err);
     return null;
   });
@@ -132,19 +142,23 @@ function connectedTargets(){
 
 function scheduleLikelyPreload(){
   cancelStalePreloads();
+  scheduleSceneRefinement();
   const connection=navigator.connection;
   if(connection?.saveData||/^(slow-)?2g$/.test(connection?.effectiveType||''))return;
   const routes=LOCATIONS[current]?.routes??[];
   // At a junction, prepare the route the visitor is facing rather than always
-  // downloading the first branch listed in the data. Retain the one-scene budget.
+  // downloading the first branch listed in the data. Keep the decoded cache bounded.
   const prioritized=[...routes].sort((a,b)=>
     Math.abs(wrapAngle(-yaw-(a.departureAngle??a.angle)))-Math.abs(wrapAngle(-yaw-(b.departureAngle??b.angle))))
     .map(route=>route.to).filter((v,i,a)=>v!=null&&a.indexOf(v)===i&&!recentScenes.has(v));
 
   const source=current;
-  const run=()=>{
+  const run=async()=>{
     preloadIdle=null;if(current!==source||transitioning||mapPanel.classList.contains('open')||document.hidden)return;
-    if(prioritized[0]!=null)preloadCheckpoint(prioritized[0],true);
+    for(const target of prioritized.slice(0,DECODED_PRELOAD_LIMIT)){
+      if(current!==source||transitioning||mapPanel.classList.contains('open')||document.hidden)return;
+      await preloadCheckpoint(target,true);
+    }
   };
   if('requestIdleCallback' in window)preloadIdle=requestIdleCallback(run,{timeout:450});else preloadIdle=setTimeout(run,90);
 }
@@ -153,7 +167,11 @@ let hoverPreloadTimer=null;
 function queueRoutePreload(target){
   if(transitioning||target==null || target===current || recentScenes.has(target))return;
   clearTimeout(hoverPreloadTimer);
-  hoverPreloadTimer=setTimeout(()=>{cancelStalePreloads(target);preloadCheckpoint(target,true);},55);
+  hoverPreloadTimer=setTimeout(()=>{
+    // Intent changes must not throw away an already prepared adjacent scene.
+    refinement?.cancel();
+    preloadCheckpoint(target,true)?.finally(scheduleSceneRefinement);
+  },55);
 }
 const raycaster=new THREE.Raycaster();
 const pointer=new THREE.Vector2();
@@ -1031,10 +1049,44 @@ function loadGLTF(i,onProgress=null){
   onProgress?.(null);
   return prefetchNetwork(i,i===preparingTarget||i===INITIAL_SCENE&&!object).then(async data=>{
     onProgress?.(1);const start=performance.now();
-    const gltf=await loader.parseAsync(data,new URL('.',new URL(DATA[i],location.href)).href);
+    const gltf=await loader.parseAsync(data,new URL('.',new URL(TRAVEL_DATA[i],location.href)).href);
+    gltf.scene.userData.panoramaFullQuality=TRAVEL_DATA[i]===DATA[i];
     const timings=sceneLoadingTimings.get(i)||{};timings.parseDecodeMs=performance.now()-start;sceneLoadingTimings.set(i,timings);return gltf;
   });
 }
+refinement=createPanoramaRefinement({
+  isCurrent:(i,root)=>current===i&&object===root&&!transitioning&&!document.hidden&&!mapPanel.classList.contains('open'),
+  load:async(i,signal)=>{
+    const start=performance.now();
+    const response=await fetch(DATA[i],{cache:'force-cache',signal,priority:'low'});
+    if(!response.ok)throw new Error('HTTP '+response.status);
+    const gltf=await loader.parseAsync(await response.arrayBuffer(),new URL('.',new URL(DATA[i],location.href)).href);
+    const root=gltf.scene;
+    try{
+      if(signal.aborted)throw new DOMException('Superseded refinement','AbortError');
+      prepareCheckpointScene(gltf,i,false);
+      trimSceneMemory(null,estimatedSceneBytes(root));
+      await warmCheckpointScene(root,i);
+      root.userData.panoramaFullQuality=true;
+      const timings=sceneLoadingTimings.get(i)||{};
+      timings.refinementMs=performance.now()-start;sceneLoadingTimings.set(i,timings);
+      return root;
+    }catch(error){dispose(root);throw error;}
+  },
+  apply:(i,previous,replacement)=>{
+    // Swap only the scene artwork: camera, hotspot bearings, URL and history stay put.
+    scene.remove(previous);object=replacement;scene.add(object);dispose(previous);
+    trimSceneMemory();renderPanoramaFrame();
+  },
+  dispose,
+  onError:error=>console.warn('Full-resolution refinement unavailable; retaining the loaded panorama.',error)
+});
+function scheduleSceneRefinement(){
+  if(object&&!object.userData.panoramaFullQuality&&!transitioning&&!document.hidden&&!mapPanel.classList.contains('open'))refinement.queue(current,object);
+}
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden)cancelStalePreloads();else if(object&&!transitioning)scheduleLikelyPreload();
+});
 let lastInitialProgress=0;
 function setInitialProgress(value){
   lastInitialProgress=value;
@@ -1327,7 +1379,7 @@ loadCheckpoint(INITIAL_SCENE,null,p=>setInitialProgress(p),{generation:navigatio
   setInitialProgress(1);scheduleLikelyPreload();
   // Backfill the first panorama from HTTP cache if it loaded before worker activation.
   tourWorker.then(registration=>registration?.active?.postMessage({
-    type:'CACHE_VIEWED_PANORAMA',url:new URL(DATA[INITIAL_SCENE],location.href).href
+    type:'CACHE_VIEWED_PANORAMA',url:new URL(TRAVEL_DATA[INITIAL_SCENE],location.href).href
   })).catch(err=>console.warn('Initial panorama cache unavailable',err));
 }).catch(err=>{
   if(err.name==='AbortError')return;
