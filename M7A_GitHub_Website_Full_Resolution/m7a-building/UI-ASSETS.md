@@ -76,3 +76,56 @@ The publish follow-up removes the original zoom-scaled colour mask from tour
 labels only. Their horizontal code/360° label has its own surface, so the old
 vertical artwork mask must not paint over its text. Original map artwork,
 building anchors and non-tour code masks are unchanged.
+
+## Sharper campus map artwork
+
+`campus-map-2026.webp` is a direct rasterization of page 1 of the university's
+[2026 campus-map PDF](https://www.sharjah.ac.ae/-/media/project/uos/sites/uos/discover-uos/uos-map/uosmap-2026.pdf).
+The retained crop is `(81, 507, 597, 2868)` in PDF points, with the origin at the
+top left. Render page 1 with Poppler at 216 DPI, then crop pixel bounds
+`(243, 1521, 1791, 8604)` and resample with Pillow LANCZOS to **1350 × 6177**.
+Encode WebP at quality 88, method 6 (707,270 bytes).
+
+This is exactly 1.5 times the original 900 × 4118 raster in each dimension.
+The logical artwork coordinate system, map corners, marker anchors, footprints,
+camera limits and aspect ratio remain unchanged. Crop registration against the
+previous asset recovered the same PDF bounds; no warping, redrawing, sharpening,
+colour treatment or label replacement was applied. The vector source supplies
+the additional detail. The original image remains available in Git history.
+
+The horizontal code overlays now cover the antialiased edges of the original
+rotated lettering (including A14). Their artwork-scaled masks are centered on
+the marker behind the label surface, including tour badges. This supersedes
+the earlier tour-mask removal: the badge stays in front, while the backing
+prevents fragments of the original code from showing above and below it.
+Building names, anchors and the sharper raster are unchanged by this label fix.
+
+## Progressive panorama travel
+
+All desktop tours now enter using the existing revisioned mobile GLB, then
+replace only the panorama artwork with the original desktop GLB in place.
+Camera orientation, field of view, hotspots and history do not reset during
+refinement. Phones retain their native mobile asset; data-saving mode retains
+the single-download path. No panorama files were regenerated or modified.
+
+The decoded neighbor cache holds up to two desktop previews (one on phones).
+Refinement is canceled when navigation starts, the map opens or the page is
+hidden. Late decoded images are disposed, and a failed refinement leaves the
+usable preview on screen. The existing memory budget also reserves room for
+the incoming full-quality texture before upload.
+
+Local C4 010→011 measurement, same browser and cached original assets:
+1,295 ms before, 408 ms after, including the 360 ms travel animation.
+The immediate C4 010 asset is 585,064 bytes at 3072×1536, versus the original
+23,720,564 bytes at 11904×5952, which still loads as the final desktop view.
+These are local measurements, not a guarantee for every device or connection.
+
+## C4 floor-arrow placement
+
+C4 floor markers now use a consistent 0.90 distance (entrance 0.82). The 003→002
+marker is centered in the clear aisle independently of its existing travel
+bearing. The 011→012 marker sits closer on unobstructed floor (0.72), with its
+tip turned toward dining rather than into the tiered seating. The 014→015
+marker uses its corridor bearing rather than the previous side offset.
+All 28 directed C4 links, arrival bearings, opening views and panorama files
+are preserved. Other tours' arrow placement is unchanged.

@@ -36,11 +36,17 @@ export function addCampusArtworkLabels(map,corners,halls,onSelect) {
     if(code) {
       const size=code.length>3?10:code.startsWith('F')||code.startsWith('G')||code.startsWith('H')||['A6','A15','A17','A18','A20','B2','C6','C16'].includes(code)?12:18;
       const mask=document.createElement('span');mask.className='campus-code-mask';
-      mask.style.width='calc('+(size+3)+'px * var(--campus-art-scale,1))';
-      mask.style.height='calc('+(code.length*size*.58+4)+'px * var(--campus-art-scale,1))';mask.style.background=ZONE_COLORS[code[0]];
+      // Cover the rotated printed code, including its antialiased edges.
+      // Keep this behind the label surface so masks cannot obscure tour badges.
+      // These three printed codes run horizontally; A18 follows a diagonal wing.
+      const horizontal=['A20','B2','C16'].includes(code);
+      // E11 has a second printed line (UDHS) beside the rotated code.
+      mask.style.width='calc('+(code==='E11'?34:horizontal?code.length*18*.58+10:size+4)+'px * var(--campus-art-scale,1))';
+      mask.style.height='calc('+(horizontal?18:code.length*size*.58+10)+'px * var(--campus-art-scale,1))';mask.style.background=ZONE_COLORS[code[0]];
+      if(code==='A18')mask.style.transform='translate(-50%,-50%) rotate(45deg)';
       const text=document.createElement('span');text.className='campus-code-text';text.textContent=code;text.dir='ltr';
       text.style.fontSize='calc('+size+'px * var(--campus-art-scale,1))';text.style.background=ZONE_COLORS[code[0]];
-      inner.append(mask,text);
+      outer.append(mask);inner.append(text);
     }
     if(hall.tour?.scene) {
       const badge=document.createElement('span');badge.className='campus-availability';badge.textContent='360°';inner.append(badge);outer.classList.add('has-tour');
