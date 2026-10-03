@@ -46,8 +46,13 @@ export function createCampusSheet({ card, handle, controls, header, body, action
     card.dataset.snap=previous;
     // Half must reveal useful content as well as the full header and sticky action.
     // Peek remains compact; short/keyboard viewports still cap at the available space.
+    // Size the route surface to its real instructions/actions, capped by the
+    // visible viewport. Empty routes stay compact; translated content can scroll.
+    const routeForm=card.querySelector('.campus-journey-form:not([hidden])');
+    const routeHeight=card.dataset.cardView==='route'&&routeForm
+      ? routeForm.scrollHeight+(card.querySelector('.campus-card-view-header')?.offsetHeight||0)+handle.offsetHeight+28 : 430;
     heights = sheetHeights(available,sideBySide?headerHeight:compact,sideBySide?0:actionHeight,
-      card.dataset.cardView?430:headerHeight+(sideBySide?0:actionHeight)+(card.dataset.mode==='details'?160:120));
+      card.dataset.cardView?(card.dataset.cardView==='route'?routeHeight:430):headerHeight+(sideBySide?0:actionHeight)+(card.dataset.mode==='details'?160:120));
   }
   function access() {
     const peek = snap === 'peek';

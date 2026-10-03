@@ -20,6 +20,10 @@
 <link rel="manifest" href="./manifest.webmanifest" />
 <link rel="stylesheet" href="./styles.css" />
 <link rel="stylesheet" href="./ui-polish.css" />
+<link rel="preload" href="./fonts/geist-400.ttf" as="font" type="font/ttf" crossorigin>
+<link rel="preload" href="./fonts/geist-600.ttf" as="font" type="font/ttf" crossorigin>
+<link rel="preload" href="./fonts/geist-500.ttf" as="font" type="font/ttf" crossorigin>
+<link rel="preload" href="./fonts/geist-700.ttf" as="font" type="font/ttf" crossorigin>
 <link rel="preconnect" href="https://unpkg.com" crossorigin>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js">
@@ -59,6 +63,7 @@
   </div>
 </header>
 <aside id="map-panel" class="panel campus-map-panel" aria-hidden="true" aria-label="Tour map" data-i18n-aria="tourMap">
+  <a class="campus-skip-link" href="#hall-search"><span lang="en">Skip to campus search</span><span lang="ar">انتقل إلى البحث في الحرم الجامعي</span></a>
   <div id="campus-map" role="region" aria-label="Interactive University of Sharjah campus map" data-i18n-aria="campusMapAria"></div>
   <div class="campus-map-shade" aria-hidden="true"></div>
   <div class="campus-map-toolbar">
@@ -67,13 +72,13 @@
       <section id="campus-controls" class="campus-controls" aria-label="Campus navigator">
         <div class="campus-header">
           <button id="campus-settings" class="campus-icon-button" type="button" aria-label="Settings" aria-controls="campus-settings-panel" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m10 3-.6 2.4-2 .9L5 5.6 3 9l1.8 1.6v2.8L3 15l2 3.4 2.4-.7 2 .9L10 21h4l.6-2.4 2-.9 2.4.7 2-3.4-1.8-1.6v-2.8L21 9l-2-3.4-2.4.7-2-.9L14 3Z"/><circle cx="12" cy="12" r="3"/></svg></button>
-          <div class="campus-identity-lockup"><svg class="uos-badge" viewBox="520 525 3120 2410" role="img" aria-label="University of Sharjah · جامعة الشارقة"><image href="./uos-badge.png" width="4159" height="3452"/></svg><div><strong id="campus-identity">Campus Navigator</strong><small id="campus-descriptor">Interactive Campus Map</small></div></div>
+          <div class="campus-identity-lockup"><svg class="uos-badge" viewBox="520 525 3120 2410" role="img" aria-label="University of Sharjah · جامعة الشارقة"><image href="./uos-badge.png" width="4159" height="3452"/></svg><div><h1 id="campus-identity">Campus Navigator</h1><small id="campus-descriptor">Interactive Campus Map</small></div></div>
         </div>
-        <div class="campus-search-row"><div class="campus-search"><input id="hall-search" type="search" placeholder="Search buildings or rooms" aria-label="Search buildings or rooms" autocomplete="off"><button id="campus-clear-search" type="button" aria-label="Clear search" hidden>×</button></div><button id="campus-filter-toggle" type="button" aria-controls="campus-filter-panel" aria-expanded="false">Filters</button></div>
+        <div class="campus-search-row"><div class="campus-search"><input id="hall-search" name="campus-search" type="search" placeholder="Search buildings or rooms" aria-label="Search buildings or rooms" autocomplete="off" spellcheck="false"><button id="campus-clear-search" type="button" aria-label="Clear search" hidden>×</button></div><button id="campus-filter-toggle" type="button" aria-controls="campus-filter-panel" aria-expanded="false">Filters</button><button id="campus-route-toggle" type="button" aria-controls="campus-route-panel" aria-expanded="false">Route</button></div>
       </section>
       <div id="directory-header">
         <button id="directory-sheet-handle" class="directory-sheet-handle" type="button" aria-controls="directory-body" aria-expanded="false" aria-label="Expand map details"><span aria-hidden="true"></span></button>
-        <div class="directory-heading"><strong id="directory-title">Browse campus</strong><button id="directory-collapse" type="button" aria-controls="directory-body" aria-expanded="false" aria-label="Expand details">+</button></div>
+        <div class="directory-heading"><h2 id="directory-title">Browse campus</h2><button id="directory-collapse" type="button" aria-controls="directory-body" aria-expanded="false" aria-label="Expand details">+</button></div>
         <small id="directory-status"></small><small id="directory-count" role="status" aria-live="polite"></small>
         <div class="directory-mode-actions"><button id="directory-browse" type="button" hidden>Back to results</button><button id="directory-return" type="button" hidden>Selected building</button></div>
       </div>
@@ -97,6 +102,7 @@
     <fieldset><legend data-settings-label="appearance">Appearance</legend><button type="button" data-theme-choice="light">Light</button><button type="button" data-theme-choice="dark">Dark</button><button type="button" data-theme-choice="system">System</button></fieldset><button id="campus-about" type="button">About Campus Navigator</button>
   </section>
   <section id="campus-filter-panel" class="campus-popover" role="dialog" aria-labelledby="campus-filter-title" hidden><strong id="campus-filter-title">Filters</strong><div id="campus-filters" role="group" aria-label="Building filters"></div><div class="campus-filter-tools"><button id="campus-clear-filters" type="button" hidden>Clear filters</button><button id="campus-reset" type="button" hidden>Reset all</button></div></section>
+  <section id="campus-route-panel" class="campus-popover" role="region" aria-labelledby="campus-route-title" hidden><strong id="campus-route-title">Plan a route</strong></section>
   <div class="campus-map-location">
     <span class="location-dot" aria-hidden="true"></span>
     <div><small data-i18n="currentCheckpoint">Current checkpoint</small><strong id="campus-current-location" aria-live="polite">Main Hall · Entrance</strong></div>

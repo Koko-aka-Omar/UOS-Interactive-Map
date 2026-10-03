@@ -4,7 +4,7 @@ import { createCampusPreview } from './campus-preview.js';
 export const ZONE_COLORS={A:'#413b61',B:'#f46b3e',C:'#315dab',E:'#00bf88',F:'#404040',G:'#4f798b',H:'#8b4f9e'};
 export function addCampusArtworkLabels(map,corners,halls,onSelect) {
   const sourceId='campus-tour-footprints',layerIds=['campus-tour-halo','campus-tour-dark','campus-tour-edge','campus-tour-accent','campus-tour-hit'];
-  let selectedId=null,hoveredId=null,matchingIds=new Set(halls.map(h=>h.id)),filtered=false,destroyed=false,language='en';
+  let selectedId=null,hoveredId=null,matchingIds=new Set(halls.map(h=>h.id)),routeIds=new Set(),filtered=false,destroyed=false,language='en';
   const preview=createCampusPreview(map,map.getContainer().closest('#map-panel'),()=>language);
   const features=halls.filter(h=>h.tour?.scene&&TOUR_FOOTPRINTS[h.code]).map(h=>{
     const points=TOUR_FOOTPRINTS[h.code].map(([x,y])=>artworkPoint(x,y,corners));
@@ -82,14 +82,14 @@ export function addCampusArtworkLabels(map,corners,halls,onSelect) {
     outer.onclick=event=>{event.stopPropagation();preview.close();onSelect?.(cluster.members);};clusters.push(cluster);return cluster;
   }
   function labelAccess(item){
-    const suppressed=!eligible(item.hall.id)||item.outer.classList.contains('is-clustered');
+    const suppressed=routeIds.has(item.hall.id)||!eligible(item.hall.id)||item.outer.classList.contains('is-clustered');
     item.outer.disabled=suppressed;item.outer.tabIndex=suppressed?-1:0;
     item.outer.setAttribute('aria-hidden',String(suppressed));
   }
   function clusterLabels(){
     entries.forEach(item=>item.outer.classList.remove('is-clustered'));clusters.forEach(cluster=>cluster.outer.hidden=true);
     // A selection always has its own marker. Only visible results join a chooser.
-    const candidates=(filtered?entries.filter(item=>item.hall.code):tourEntries).filter(item=>eligible(item.hall.id)&&item.hall.id!==selectedId);
+    const candidates=(filtered?entries.filter(item=>item.hall.code):tourEntries).filter(item=>eligible(item.hall.id)&&item.hall.id!==selectedId&&!routeIds.has(item.hall.id));
     const unseen=new Set(candidates);let used=0;
     for(const start of candidates){if(!unseen.delete(start))continue;const members=[start];for(let index=0;index<members.length;index++)for(const other of unseen){const a=map.project(members[index].coordinate),b=map.project(other.coordinate);if(Math.abs(a.x-b.x)<70&&Math.abs(a.y-b.y)<32){unseen.delete(other);members.push(other);}}
       if(members.length<2)continue;const cluster=clusterAt(used++,start.coordinate);cluster.members=members.map(item=>item.hall);members.forEach(item=>item.outer.classList.add('is-clustered'));
@@ -131,13 +131,14 @@ export function addCampusArtworkLabels(map,corners,halls,onSelect) {
   map.on('load',layers);if(map.isStyleLoaded())layers();
   map.on('zoom',resize);map.on('resize',resize);map.on('moveend',resize);map.on('click',mapClick);map.on('mousemove',mapHover);resize();
   return {
-    update({selectedId:next,matchingIds:matches,filtered:active,language:nextLanguage='en'}) {
-      selectedId=next;matchingIds=matches;filtered=active;language=nextLanguage;
+    update({selectedId:next,matchingIds:matches,filtered:active,routeIds:nextRouteIds=new Set(),language:nextLanguage='en'}) {
+      selectedId=next;matchingIds=matches;filtered=active;routeIds=nextRouteIds;language=nextLanguage;
       if(hoveredId&&!eligible(hoveredId)){setHover(null);preview.close();}
       for(const {hall,outer}of entries) {
         outer.classList.toggle('is-selected',hall.id===selectedId);
         outer.classList.toggle('filter-match',filtered&&matchingIds.has(hall.id));
         outer.classList.toggle('filter-other',filtered&&!matchingIds.has(hall.id));
+        outer.classList.toggle('route-endpoint',routeIds.has(hall.id));
         const label=(hall.code?hall.code+' · ':'')+(hall.name[language]||hall.name.en);
         outer.querySelector('.campus-selected-name').textContent=label;
         const caption=outer.querySelector('.campus-place-text');if(caption)caption.textContent=hall.name[language]||hall.name.en;

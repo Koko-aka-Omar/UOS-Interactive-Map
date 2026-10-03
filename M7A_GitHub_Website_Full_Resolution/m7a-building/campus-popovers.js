@@ -2,11 +2,11 @@
 export function createCampusPopovers(root, chooseLanguage, directory, infoPanel) {
   const controller=new AbortController(),signal=controller.signal;
   const card=root.querySelector('.campus-map-card');
-  const pairs=[['campus-settings','campus-settings-panel'],['campus-filter-toggle','campus-filter-panel']].map(([a,b])=>[root.querySelector('#'+a),root.querySelector('#'+b)]);
+  const pairs=[['campus-settings','campus-settings-panel'],['campus-filter-toggle','campus-filter-panel'],['campus-route-toggle','campus-route-panel']].map(([a,b])=>[root.querySelector('#'+a),root.querySelector('#'+b)]);
   const view=document.createElement('section');view.className='campus-card-view';view.hidden=true;
   const header=document.createElement('div');header.className='campus-card-view-header';
   const back=document.createElement('button');back.type='button';back.className='campus-card-back';
-  const title=document.createElement('strong');title.id='campus-card-view-title';
+  const title=document.createElement('h2');title.id='campus-card-view-title';
   view.setAttribute('aria-labelledby',title.id);header.append(back,title);view.append(header);card.append(view);
   for(const [,panel]of pairs){panel.setAttribute('role','region');view.append(panel);}
   const about=document.createElement('section');about.className='campus-card-about';about.hidden=true;view.append(about);
@@ -26,12 +26,12 @@ export function createCampusPopovers(root, chooseLanguage, directory, infoPanel)
   function open(pair){
     restoreAbout();active=pair;
     for(const [button,panel]of pairs){panel.hidden=pair[1]!==panel;button.setAttribute('aria-expanded',String(pair[0]===button));}
-    view.hidden=false;card.dataset.cardView=pair===pairs[0]?'settings':'filters';
+    view.hidden=false;card.dataset.cardView=pair===pairs[0]?'settings':pair===pairs[1]?'filters':'route';
     for(const el of content)el.inert=true;
     directory.setCardView(true);update();back.focus({preventScroll:true});
   }
   for(const pair of pairs)pair[0].addEventListener('click',()=>open(pair),{signal});
-  back.addEventListener('click',()=>{if(card.dataset.cardView==='about'){open(pairs[0]);root.querySelector('#campus-about').focus({preventScroll:true});}else close(true);},{signal});
+  back.addEventListener('click',()=>{if(card.dataset.cardView==='route'&&!pairs[2][1].dispatchEvent(new CustomEvent('campus-route-back',{cancelable:true})))return;if(card.dataset.cardView==='about'){open(pairs[0]);root.querySelector('#campus-about').focus({preventScroll:true});}else close(true);},{signal});
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&active){e.preventDefault();e.stopImmediatePropagation();back.click();}},{signal,capture:true});
   root.querySelectorAll('[data-language-choice]').forEach(button=>button.addEventListener('click',()=>chooseLanguage(button.dataset.languageChoice),{signal}));
   root.querySelector('#campus-about').addEventListener('click',()=>{
@@ -49,6 +49,7 @@ export function createCampusPopovers(root, chooseLanguage, directory, infoPanel)
     for(const [i,button]of [...root.querySelectorAll('[data-theme-choice]')].entries())button.textContent=(ar?['فاتح','داكن','النظام']:['Light','Dark','System'])[i];
     root.querySelector('#campus-about').textContent=ar?'عن دليل الحرم الجامعي':'About Campus Navigator';
     root.querySelector('#campus-filter-title').textContent=ar?'التصفية':'Filters';
+    root.querySelector('#campus-route-title').textContent=ar?'تخطيط المسار':'Plan a route';
     back.textContent=ar?'رجوع':'Back';
     title.textContent=card.dataset.cardView==='about'?(ar?'عن الدليل':'About'):(active?.[1].querySelector('strong')?.textContent||'');
   }

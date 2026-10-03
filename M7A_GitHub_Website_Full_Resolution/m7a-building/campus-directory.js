@@ -5,6 +5,8 @@ import { createCampusSheet } from './campus-sheet.js';
 import { ZONE_COLORS } from './campus-map-labels.js';
 import { coverForBuilding, previewForScene, scenesForBuilding } from './scene-previews.js';
 import { LOCATIONS, LOCATION_AR } from './tour-routes.js';
+import { createCampusJourney } from './campus-journey.js';
+import { hasCampusRoute } from './campus-paths.js';
 
 export function localized(value, language) {
   return typeof value === 'string' ? value : value?.[language] || value?.en || '';
@@ -160,7 +162,7 @@ export function createDirectory({ halls, root, language, isReady, openTour, star
   let saved=store.read(), map=null, artwork=null, initialized=false, restoring=false;
   let selected=null, room=null, group=null, mode='results', activeCategory=null, toursOnly=false;
   let resultsScroll=0, detailScroll=0, sections={}, detailKey='', listKey='', scrollTimer=null, contentAnimation=null;
-  let cardViewState=null, frameTimer=null;
+  let cardViewState=null, frameTimer=null, journey=null;
   const text=key=>copy[language()][key], label=hall=>(hall.code?'\u2066'+hall.code+'\u2069 · ':'')+localized(hall.name,language());
   const node=(tag, className='', value='')=>{const el=document.createElement(tag);el.className=className;el.textContent=value;return el;};
   const button=(className, caption, onclick)=>{const el=node('button',className,caption);el.type='button';el.onclick=onclick;return el;};
@@ -177,7 +179,7 @@ export function createDirectory({ halls, root, language, isReady, openTour, star
     saved=store.write({version:2,artwork:ARTWORK_VERSION,camera:{center:[center.lng,center.lat],zoom:map.getZoom(),bearing:map.getBearing(),pitch:map.getPitch(),padding:map.getPadding()},
       selectedId:selected?.id||null,roomId:room?.id||null,mode,snap:cardViewState?.snap||sheet.snap,activeCategory,toursOnly,query:search.value,resultsScroll,detailScroll,sections});
   }
-  const sheet=createCampusSheet({card:$('.campus-map-card'),handle,controls:$('#campus-controls'),header:$('#directory-header'),body,actions,onSettle:(_,reason)=>{updateHeader();if(reason?.gesture&&!root.classList.contains('campus-focus')){if(mode==='details')ensureSelectedVisible();else if(activeCategory||toursOnly||search.value.trim())frameResults();}snapshot();}});
+  const sheet=createCampusSheet({card:$('.campus-map-card'),handle,controls:$('#campus-controls'),header:$('#directory-header'),body,actions,onSettle:(_,reason)=>{updateHeader();if(reason?.gesture&&!root.classList.contains('campus-focus')){if(journey?.active())journey.frame();else if(mode==='details')ensureSelectedVisible();else if(activeCategory||toursOnly||search.value.trim())frameResults();}snapshot();}});
   let focusSnapshot=null;
   $('#campus-focus')?.addEventListener('click',()=>{
     const focused=root.classList.contains('campus-focus');
@@ -185,10 +187,11 @@ export function createDirectory({ halls, root, language, isReady, openTour, star
     root.classList.toggle('campus-focus',!focused);
     if(focused){sheet.set(focusSnapshot?.snap||sheet.snap,{instant:true,notify:false});body.scrollTop=focusSnapshot?.scroll||0;focusSnapshot=null;}
     updateHeader();
-    if(focused&&mode==='details')ensureSelectedVisible();
+    if(journey?.active())journey.frame();else if(focused&&mode==='details')ensureSelectedVisible();
   },{signal});
   function refreshMarkers() {
-    artwork?.update({selectedId:selected?.id,matchingIds:activeMatches(),filtered:Boolean(activeCategory||toursOnly||search.value.trim()),language:language()});
+    const route=journey?.active();
+    artwork?.update({selectedId:route?null:selected?.id,matchingIds:route?new Set([route.from.id,route.to.id]):activeMatches(),filtered:Boolean(route||activeCategory||toursOnly||search.value.trim()),routeIds:route?new Set([route.from.id,route.to.id]):new Set(),language:language()});
   }
   function rememberScroll() {if(!body.hidden)currentScroll();}
   function showMode(next) {
@@ -196,6 +199,7 @@ export function createDirectory({ halls, root, language, isReady, openTour, star
     render();body.scrollTop=mode==='details'?detailScroll:resultsScroll;
   }
   function revealResults(resetScroll=true,frameDelay=0) {
+    if(journey?.active())journey.stop();
     rememberScroll();group=null;mode='results';
     if(resetScroll)resultsScroll=0;
     render();body.scrollTop=resultsScroll;
@@ -243,17 +247,21 @@ export function createDirectory({ halls, root, language, isReady, openTour, star
   }
   function select(hall, selectedRoom=null) {
     clearTimeout(frameTimer);
+    if(journey?.active()&&journey.active().to.id!==hall.id)journey.stop();
     rememberScroll();
     const changed=selected?.id!==hall.id;
     if(changed||room?.id!==selectedRoom?.id)root.dispatchEvent(new CustomEvent('campus-selection-change'));
     selected=hall;room=selectedRoom;group=null;mode='details';
     if(changed)detailScroll=0;
-    render();sheet.set(sheet.snap==='expanded'?'expanded':'half');body.scrollTop=detailScroll;
+    // Settling the sheet snapshots the previous results scroll. Capture the
+    // destination position first so that callback cannot replace a fresh zero.
+    const selectedScroll=detailScroll;
+    render();sheet.set(sheet.snap==='expanded'?'expanded':'half');body.scrollTop=selectedScroll;detailScroll=selectedScroll;
     ensureSelectedVisible();
     snapshot();
   }
   function ensureSelectedVisible(){
-    if(selected)frameBuildings([selected]);
+    if(journey?.active())journey.frame();else if(selected)frameBuildings([selected]);
   }
   function frameBuildings(members){
     if(!map||!members.length)return;
@@ -271,6 +279,7 @@ export function createDirectory({ halls, root, language, isReady, openTour, star
   function frameResults(){
     frameTimer=null;
     if(mode!=='results'||!root.classList.contains('open'))return;
+    if(journey?.active()){journey.frame();return;}
     if(!activeCategory&&!toursOnly&&!search.value.trim()){overview(false);return;}
     const matches=activeMatches();
     // Empty searches keep their position; an unrelated saved selection is not a result.
@@ -295,11 +304,13 @@ export function createDirectory({ halls, root, language, isReady, openTour, star
         if(activeCategory||toursOnly)results.append(button('campus-filter',text('clear'),()=>{activeCategory=null;toursOnly=false;revealResults();}));
       }
       for(const item of items) {
-        const el=button('hall-result','',()=>{select(item.hall,item.room);handle.focus({preventScroll:true});});
+        // Move focus before hiding the results so the browser does not scroll
+        // the new detail content to keep the old result button in view.
+        const el=button('hall-result','',()=>{handle.focus({preventScroll:true});select(item.hall,item.room);});
         el.dataset.buildingId=item.hall.id;
         el.dataset.roomId=item.room?.id||'';el.id='campus-result-'+item.hall.id+'-'+(item.room?.id||'building');
         el.classList.toggle('is-match',Boolean(search.value||activeCategory||toursOnly));
-        const code=node('span','directory-code',item.hall.code||'');code.dir='ltr';
+        const code=node('span','directory-code',item.hall.code||'');code.dir='ltr';code.translate=false;
         const labels=node('span','directory-row-labels'),caption=node('strong');
         appendSearchHighlight(caption,localized(item.room?.name||item.hall.name,language()),search.value);
         labels.append(caption);
@@ -325,10 +336,15 @@ export function createDirectory({ halls, root, language, isReady, openTour, star
       detailKey=key;detail.replaceChildren();
       const photo=room?previewForScene(room.tour?.scene):coverForBuilding(selected);
       if(photo) {
-        const img=node('img','hall-thumbnail');img.src=photo.url;img.dataset.scene=photo.sceneId;img.alt=localized(room?.name||selected.name,language());img.loading='lazy';img.decoding='async';
+        const img=node('img','hall-thumbnail');img.src=photo.url;img.dataset.scene=photo.sceneId;img.alt=localized(room?.name||selected.name,language());img.width=640;img.height=360;img.loading='lazy';img.decoding='async';
         img.onerror=()=>{img.hidden=true;};detail.append(img);
       }
       detail.append(node('p','hall-description',localized(selected.description,language())));
+      if(hasCampusRoute(selected)){
+        const hall=selected,routeActions=node('div','campus-building-route-actions');
+        routeActions.append(button('campus-filter',language()==='ar'?'أنا هنا':'I’m here',()=>journey.openFrom(hall)),button('campus-filter',language()==='ar'?'مسار إلى هنا':'Route here',()=>journey.openTo(hall)));
+        detail.append(routeActions);
+      }
       if(selected.publicNotice)detail.append(node('p','hall-notice',localized(selected.publicNotice,language())));
       detail.append(node('p','hall-notice outside-filter',text('outside')));
       if(selected.tourName&&localized(selected.tourName,language())!==localized(selected.name,language()))detail.append(node('p','hall-venue',localized(selected.tourName,language())));
@@ -336,7 +352,7 @@ export function createDirectory({ halls, root, language, isReady, openTour, star
       if(scenes.length){const strip=node('section','scene-preview-strip'),heading=node('strong','',language()==='ar'?'استكشف الداخل':'Explore inside');strip.append(heading);
         const grid=node('div','scene-preview-grid');strip.append(grid);
         function add(scene){const preview=previewForScene(scene.id);if(!preview)return;const index=LOCATIONS.findIndex(item=>item.id===scene.id),name=language()==='ar'?LOCATION_AR[index]?.name||scene.name:scene.name;
-          const entry=button('scene-preview-button','',()=>{snapshot();openTour({scene:scene.id});});entry.dataset.scene=scene.id;entry.setAttribute('aria-label',(language()==='ar'?'افتح نقطة الجولة: ':'Open viewpoint: ')+name);const image=node('img');image.src=preview.url;image.alt='';image.loading='lazy';image.decoding='async';entry.append(image,node('span','',name));grid.append(entry);}
+          const entry=button('scene-preview-button','',()=>{snapshot();openTour({scene:scene.id});});entry.dataset.scene=scene.id;entry.setAttribute('aria-label',(language()==='ar'?'افتح نقطة الجولة: ':'Open viewpoint: ')+name);const image=node('img');image.src=preview.url;image.alt='';image.width=preview.width;image.height=preview.height;image.loading='lazy';image.decoding='async';entry.append(image,node('span','',name));grid.append(entry);}
         scenes.slice(0,3).forEach(add);
         if(scenes.length>3){const more=button('scene-preview-more',language()==='ar'?'عرض جميع نقاط الجولة':'All viewpoints',()=>{scenes.slice(3).forEach(add);more.remove();});strip.append(more);}
         detail.append(strip);
@@ -481,7 +497,7 @@ export function createDirectory({ halls, root, language, isReady, openTour, star
   }
   function applyCameraPolicy() {
     if(!map)return;
-    const policy=cameraPolicy();map.setMinZoom(policy.minZoom);map.setMaxZoom(policy.maxZoom);map.setMaxBounds(policy.maxBounds);
+    const policy=cameraPolicy();map.setMinZoom(policy.minZoom);map.setMaxZoom(policy.maxZoom);map.setMaxBounds(journey?.active()?null:policy.maxBounds);
   }
   window.addEventListener('resize',applyCameraPolicy,{signal});
   function overview(instant) {
@@ -493,14 +509,24 @@ export function createDirectory({ halls, root, language, isReady, openTour, star
       zoom:policy.minZoom+.04,padding,bearing:0,pitch:0,duration:instant||reduced()?0:280});
   }
   detail.addEventListener('keydown',event=>{if(event.key==='Escape'&&!event.defaultPrevented){event.preventDefault();event.stopPropagation();browse.onclick();handle.focus();}},{signal});
+  journey=createCampusJourney({root,halls,searchHalls,language,onChange(){sheet.refresh();applyCameraPolicy();refreshMarkers();},
+    onPlan(hall){clearTimeout(frameTimer);selected=hall;room=null;group=null;mode='details';detailScroll=0;render();snapshot();},
+    onFrame(points){
+      if(!map||!root.classList.contains('open')||!points.length)return;
+      const coordinates=points.map(([x,y])=>artworkPoint(x,y)),xs=coordinates.map(p=>p[0]),ys=coordinates.map(p=>p[1]),container=map.getContainer();
+      applyCameraPolicy();
+      const padding=buildingPadding();padding.left+=24;padding.right+=24;padding.top+=32;
+      map.easeTo({...campusBoundsCamera([[Math.min(...xs),Math.min(...ys)],[Math.max(...xs),Math.max(...ys)]],container.clientWidth,container.clientHeight,padding,map.getMaxZoom()-.75),duration:reduced()?0:340});
+    },onView:hall=>{select(hall);root.dispatchEvent(new CustomEvent('campus-selection-change'));}});
+  window.addEventListener('resize',()=>{if(journey.active())journey.frame();},{signal});
   return {
     setCardView(open) {
       if(open&&!cardViewState){rememberScroll();cardViewState={snap:sheet.snap,scroll:body.scrollTop,focused:root.classList.contains('campus-focus')};root.classList.remove('campus-focus');sheet.set('half',{notify:false});updateHeader();}
-      else if(!open&&cardViewState){const previous=cardViewState;cardViewState=null;root.classList.toggle('campus-focus',previous.focused);sheet.set(previous.snap,{notify:false});body.scrollTop=previous.scroll;updateHeader();if(mode==='details')ensureSelectedVisible();else if(activeCategory||toursOnly||search.value.trim())frameResults();snapshot();}
+      else if(!open&&cardViewState){const previous=cardViewState;cardViewState=null;root.classList.toggle('campus-focus',previous.focused);sheet.set(previous.snap,{notify:false});body.scrollTop=previous.scroll;updateHeader();if(journey.active())journey.frame();else if(mode==='details')ensureSelectedVisible();else if(activeCategory||toursOnly||search.value.trim())frameResults();snapshot();}
     },
     cameraPolicy,
     initialCamera(){return saved?.camera?clampCampusCamera({...saved.camera,padding:overviewPadding()},cameraPolicy()):null;},
-    attach(nextMap,nextArtwork){map=nextMap;artwork=nextArtwork;applyCameraPolicy();map.on('moveend',snapshot);render();},
+    attach(nextMap,nextArtwork){map=nextMap;artwork=nextArtwork;applyCameraPolicy();map.on('moveend',snapshot);journey.attach(map);render();},
     selectGroup(members) {
       clearTimeout(frameTimer);
       if(members.length===1){select(members[0]);handle.focus({preventScroll:true});return;}
@@ -527,9 +553,10 @@ export function createDirectory({ halls, root, language, isReady, openTour, star
       const padding=selected&&mode==='details'||activeCategory||toursOnly||search.value.trim()?buildingPadding():overviewPadding();
       if(state?.camera)map.jumpTo(clampCampusCamera({...state.camera,padding},cameraPolicy()));else if(!initialized)overview(true);
       initialized=true;restoring=false;
+      if(journey.active())journey.frame();
     },
-    update(){const scroll=body.scrollTop;render();sheet.refresh();body.scrollTop=scroll;snapshot();},
+    update(){const scroll=body.scrollTop;journey.update();render();sheet.refresh();body.scrollTop=scroll;if(journey.active())journey.frame();snapshot();},
     refreshMarkers,
-    destroy(){clearTimeout(scrollTimer);clearTimeout(frameTimer);contentAnimation?.cancel();listeners.abort();sheet.destroy();map?.off('moveend',snapshot);artwork?.destroy();}
+    destroy(){clearTimeout(scrollTimer);clearTimeout(frameTimer);contentAnimation?.cancel();listeners.abort();sheet.destroy();map?.off('moveend',snapshot);journey.destroy();artwork?.destroy();}
   };
 }
